@@ -1,45 +1,52 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { frameStore } from "$lib/stores/frames.svelte";
-  import type { Frame, ExportFrame } from "$lib/types";
+  import { openGif, exportGif } from "$lib/actions";
+  import type { DialogProvider, GifBackend } from "$lib/actions";
 
   let loading = $state(false);
   let statusMessage = $state("");
 
-  async function handleOpen() {
-    const path: string | null = await invoke("open_file_dialog");
-    if (!path) return;
+  const dialog: DialogProvider = {
+    openFile: () => invoke("open_file_dialog"),
+    saveFile: () => invoke("save_file_dialog"),
+  };
 
+  const backend: GifBackend = {
+    decode: (path) => invoke("decode_gif", { path }),
+    export: (frames, path) => invoke("export_gif", { frames, path }),
+  };
+
+  async function handleOpen() {
     loading = true;
-    statusMessage = "Decoding GIF…";
+    statusMessage = "Opening…";
     try {
-      const frames: Frame[] = await invoke("decode_gif", { path });
-      frameStore.setFrames(frames);
-      statusMessage = `Loaded ${frames.length} frames`;
-    } catch (error) {
-      statusMessage = `Error: ${error}`;
+      const result = await openGif(dialog, backend);
+      if (result.error) {
+        statusMessage = result.error;
+      } else if (result.frames) {
+        frameStore.setFrames(result.frames);
+        statusMessage = result.message ?? "";
+      } else {
+        statusMessage = "";
+      }
     } finally {
       loading = false;
     }
   }
 
   async function handleExport() {
-    if (!frameStore.hasFrames) return;
-
-    const path: string | null = await invoke("save_file_dialog");
-    if (!path) return;
-
     loading = true;
-    statusMessage = "Exporting GIF…";
+    statusMessage = "Exporting…";
     try {
-      const exportFrames: ExportFrame[] = frameStore.frames.map((f) => ({
-        imageData: f.imageData,
-        duration: f.duration,
-      }));
-      await invoke("export_gif", { frames: exportFrames, path });
-      statusMessage = "Exported successfully";
-    } catch (error) {
-      statusMessage = `Error: ${error}`;
+      const result = await exportGif(dialog, backend, frameStore.frames);
+      if (result.error) {
+        statusMessage = result.error;
+      } else if (result.message) {
+        statusMessage = result.message;
+      } else {
+        statusMessage = "";
+      }
     } finally {
       loading = false;
     }

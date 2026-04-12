@@ -1,3 +1,4 @@
+mod dialog;
 mod gif;
 
 use std::path::PathBuf;
@@ -15,22 +16,13 @@ fn export_gif(frames: Vec<ExportFrame>, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn open_file_dialog() -> Option<String> {
-    let file = rfd::AsyncFileDialog::new()
-        .add_filter("GIF", &["gif"])
-        .pick_file()
-        .await?;
-    Some(file.path().to_string_lossy().to_string())
+async fn open_file_dialog() -> Result<Option<String>, String> {
+    dialog::open_file().await
 }
 
 #[tauri::command]
-async fn save_file_dialog() -> Option<String> {
-    let file = rfd::AsyncFileDialog::new()
-        .add_filter("GIF", &["gif"])
-        .set_file_name("export.gif")
-        .save_file()
-        .await?;
-    Some(file.path().to_string_lossy().to_string())
+async fn save_file_dialog() -> Result<Option<String>, String> {
+    dialog::save_file().await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
