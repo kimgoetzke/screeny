@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { open, save } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
   import { frameStore } from "$lib/stores/frames.svelte";
   import type { Frame, ExportFrame } from "$lib/types";
@@ -8,9 +7,7 @@
   let statusMessage = $state("");
 
   async function handleOpen() {
-    const path = await open({
-      filters: [{ name: "GIF", extensions: ["gif"] }],
-    });
+    const path: string | null = await invoke("open_file_dialog");
     if (!path) return;
 
     loading = true;
@@ -29,10 +26,7 @@
   async function handleExport() {
     if (!frameStore.hasFrames) return;
 
-    const path = await save({
-      filters: [{ name: "GIF", extensions: ["gif"] }],
-      defaultPath: "export.gif",
-    });
+    const path: string | null = await invoke("save_file_dialog");
     if (!path) return;
 
     loading = true;

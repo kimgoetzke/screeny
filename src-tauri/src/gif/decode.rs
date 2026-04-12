@@ -1,4 +1,3 @@
-use std::io::Cursor;
 use std::path::Path;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
@@ -70,8 +69,9 @@ pub fn decode_gif_file(path: &Path) -> Result<Vec<Frame>, String> {
 }
 
 /// Decode a GIF from an in-memory byte slice. Used for testing.
+#[cfg(test)]
 pub fn decode_gif_bytes(data: &[u8]) -> Result<Vec<Frame>, String> {
-    let reader = Cursor::new(data);
+    let reader = std::io::Cursor::new(data);
 
     let mut options = gif::DecodeOptions::new();
     options.set_color_output(gif::ColorOutput::RGBA);
