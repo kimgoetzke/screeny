@@ -1,14 +1,25 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod gif;
+
+use std::path::PathBuf;
+
+use gif::{ExportFrame, Frame};
+
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn decode_gif(path: String) -> Result<Vec<Frame>, String> {
+    gif::decode::decode_gif_file(&PathBuf::from(path))
+}
+
+#[tauri::command]
+fn export_gif(frames: Vec<ExportFrame>, path: String) -> Result<(), String> {
+    gif::encode::encode_gif_file(&frames, &PathBuf::from(path))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![decode_gif, export_gif])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
