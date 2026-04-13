@@ -68,8 +68,7 @@ pub fn decode_gif_file(path: &Path) -> Result<Vec<Frame>, String> {
     Ok(frames)
 }
 
-/// Decode a GIF from an in-memory byte slice. Used for testing.
-#[cfg(test)]
+/// Decode a GIF from an in-memory byte slice.
 pub fn decode_gif_bytes(data: &[u8]) -> Result<Vec<Frame>, String> {
     let reader = std::io::Cursor::new(data);
 

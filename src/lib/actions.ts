@@ -1,12 +1,12 @@
 import type { Frame, ExportFrame } from "$lib/types";
 
 export interface DialogProvider {
-  openFile(): Promise<string | null>;
+  openFile(): Promise<Uint8Array | null>;
   saveFile(): Promise<string | null>;
 }
 
 export interface GifBackend {
-  decode(path: string): Promise<Frame[]>;
+  decode(data: Uint8Array): Promise<Frame[]>;
   export(frames: ExportFrame[], path: string): Promise<void>;
 }
 
@@ -20,17 +20,17 @@ export async function openGif(
   dialog: DialogProvider,
   backend: GifBackend,
 ): Promise<ActionResult> {
-  let path: string | null;
+  let data: Uint8Array | null;
   try {
-    path = await dialog.openFile();
+    data = await dialog.openFile();
   } catch (error) {
     return { error: `Failed to open file dialog: ${error}` };
   }
 
-  if (!path) return {};
+  if (!data) return {};
 
   try {
-    const frames = await backend.decode(path);
+    const frames = await backend.decode(data);
     return { frames, message: `Loaded ${frames.length} frames` };
   } catch (error) {
     return { error: `Failed to decode GIF: ${error}` };

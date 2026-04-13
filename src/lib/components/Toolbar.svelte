@@ -1,6 +1,5 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { open, save } from "@tauri-apps/plugin-dialog";
   import { frameStore } from "$lib/stores/frames.svelte";
   import { openGif, exportGif } from "$lib/actions";
   import type { DialogProvider, GifBackend } from "$lib/actions";
@@ -9,30 +8,60 @@
   let statusMessage = $state("");
   let isE2e = $state(false);
 
+  let fileInput: HTMLInputElement;
+  let showSaveInput = $state(false);
+  let savePath = $state("");
+  let saveResolve: ((path: string | null) => void) | null = null;
+
   invoke<boolean>("e2e_check").then((result) => {
     isE2e = result;
   });
 
   const nativeDialog: DialogProvider = {
-    openFile: async () => {
-      const result = await open({
-        title: "Open GIF",
-        filters: [{ name: "GIF", extensions: ["gif"] }],
-        multiple: false,
-      });
-      return typeof result === "string" ? result : null;
-    },
+    openFile: () =>
+      new Promise((resolve) => {
+        const handleChange = async (event: Event) => {
+          cleanup();
+          const file = (event.target as HTMLInputElement).files?.[0];
+          if (!file) {
+            resolve(null);
+            return;
+          }
+          const buffer = await file.arrayBuffer();
+          resolve(new Uint8Array(buffer));
+          fileInput.value = "";
+        };
+
+        const handleCancel = () => {
+          cleanup();
+          resolve(null);
+        };
+
+        function cleanup() {
+          fileInput.removeEventListener("change", handleChange);
+          fileInput.removeEventListener("cancel", handleCancel);
+        }
+
+        fileInput.addEventListener("change", handleChange);
+        fileInput.addEventListener("cancel", handleCancel);
+        fileInput.click();
+      }),
+
     saveFile: async () => {
-      return await save({
-        title: "Export GIF",
-        defaultPath: "export.gif",
-        filters: [{ name: "GIF", extensions: ["gif"] }],
+      const suggested: string = await invoke("suggest_export_path");
+      savePath = suggested;
+      showSaveInput = true;
+      return new Promise((resolve) => {
+        saveResolve = resolve;
       });
     },
   };
 
   const e2eDialog: DialogProvider = {
-    openFile: () => invoke("e2e_open_fixture"),
+    openFile: async () => {
+      const bytes: number[] | null = await invoke("e2e_open_fixture");
+      return bytes ? new Uint8Array(bytes) : null;
+    },
     saveFile: () => invoke("e2e_save_path"),
   };
 
@@ -41,7 +70,7 @@
   }
 
   const backend: GifBackend = {
-    decode: (path) => invoke("decode_gif", { path }),
+    decode: (data) => invoke("decode_gif_bytes", { data: Array.from(data) }),
     export: (frames, path) => invoke("export_gif", { frames, path }),
   };
 
@@ -79,7 +108,21 @@
       loading = false;
     }
   }
+
+  function confirmSave() {
+    showSaveInput = false;
+    saveResolve?.(savePath || null);
+    saveResolve = null;
+  }
+
+  function cancelSave() {
+    showSaveInput = false;
+    saveResolve?.(null);
+    saveResolve = null;
+  }
 </script>
+
+<input type="file" accept=".gif" bind:this={fileInput} style="display:none" />
 
 <div class="toolbar" data-testid="toolbar">
   <div class="toolbar-actions">
@@ -92,7 +135,22 @@
       Export
     </button>
   </div>
-  {#if statusMessage}
+  {#if showSaveInput}
+    <div class="save-input-row" data-testid="save-input-row">
+      <input
+        type="text"
+        bind:value={savePath}
+        placeholder="~/export.gif"
+        data-testid="save-path-input"
+        onkeydown={(e) => {
+          if (e.key === "Enter") confirmSave();
+          if (e.key === "Escape") cancelSave();
+        }}
+      />
+      <button onclick={confirmSave} data-testid="btn-save-confirm">Save</button>
+      <button onclick={cancelSave} data-testid="btn-save-cancel">Cancel</button>
+    </div>
+  {:else if statusMessage}
     <span class="status" data-testid="status-message">{statusMessage}</span>
   {/if}
 </div>
@@ -137,5 +195,33 @@
     font-size: 14px;
     color: #999;
     padding: 4px 8px;
+  }
+
+  .save-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .save-input-row input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #eee;
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  .save-input-row input[type="text"]:focus {
+    outline: none;
+    border-color: #888;
+  }
+
+  .save-input-row button {
+    padding: 6px 14px;
+    font-size: 14px;
   }
 </style>

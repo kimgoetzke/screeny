@@ -10,7 +10,7 @@ pub fn is_e2e_mode() -> bool {
 ///
 /// The fixture lives at `<repo>/tests/fixtures/test.gif`.
 /// `SCREENY_E2E_FIXTURE` overrides the path for custom setups.
-fn fixture_path() -> Result<String, String> {
+pub fn fixture_path() -> Result<String, String> {
     if let Ok(path) = env::var("SCREENY_E2E_FIXTURE") {
         return Ok(path);
     }
@@ -55,7 +55,7 @@ pub fn e2e_check() -> bool {
 }
 
 #[tauri::command]
-pub fn e2e_open_fixture() -> Result<Option<String>, String> {
+pub fn e2e_open_fixture() -> Result<Option<Vec<u8>>, String> {
     if !is_e2e_mode() {
         return Err("Not in E2E mode".to_string());
     }
@@ -64,7 +64,8 @@ pub fn e2e_open_fixture() -> Result<Option<String>, String> {
     if !p.exists() {
         return Err(format!("Fixture not found: {path}"));
     }
-    Ok(Some(path))
+    let bytes = std::fs::read(&p).map_err(|e| format!("Failed to read fixture: {e}"))?;
+    Ok(Some(bytes))
 }
 
 #[tauri::command]

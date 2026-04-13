@@ -76,7 +76,7 @@
     height: 100%;
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 15px;
+    font-size: 16px;
     background: #1e1e1e;
     color: #eee;
   }
@@ -104,6 +104,7 @@
     border: 3px dashed #5b9bd5;
     border-radius: 8px;
     margin: 8px;
+    padding: 8px;
     z-index: 10;
     pointer-events: none;
   }

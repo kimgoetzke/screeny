@@ -9,7 +9,7 @@ function makeFrame(id: string): Frame {
 
 function mockDialog(overrides: Partial<DialogProvider> = {}): DialogProvider {
   return {
-    openFile: vi.fn().mockResolvedValue("/some/file.gif"),
+    openFile: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
     saveFile: vi.fn().mockResolvedValue("/some/export.gif"),
     ...overrides,
   };
@@ -67,15 +67,16 @@ describe("openGif", () => {
     expect(result.frames).toBeUndefined();
   });
 
-  it("should pass the dialog path to decode", async () => {
+  it("should pass the file bytes to decode", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
     const dialog = mockDialog({
-      openFile: vi.fn().mockResolvedValue("/home/user/test.gif"),
+      openFile: vi.fn().mockResolvedValue(bytes),
     });
     const backend = mockBackend();
 
     await openGif(dialog, backend);
 
-    expect(backend.decode).toHaveBeenCalledWith("/home/user/test.gif");
+    expect(backend.decode).toHaveBeenCalledWith(bytes);
   });
 });
 
