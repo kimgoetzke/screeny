@@ -2,6 +2,11 @@
 
 A cross-platform GIF recording and editing application built with Tauri, SvelteKit, and Rust.
 
+## IMPORTANT
+
+> [!IMPORTANT]
+> Unlike all of my other repositories, this is an AI-first experiment where I will try to stay as far as away from the code as I can. The goal is improve my agent-based workflows and learn more about AI-first software engineering.
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
@@ -23,25 +28,30 @@ Full-stack end-to-end tests that exercise the Svelte UI, Tauri IPC boundary, and
 #### Prerequisites
 
 1. **Build the Tauri app** (E2E tests run against the release binary):
+
    ```sh
    pnpm tauri build
    ```
+
    Note: on some Linux setups the AppImage bundling step may fail — the release binary at
    `src-tauri/target/release/screeny` is still produced and is all the E2E harness needs.
 
 2. **Install `tauri-driver`**:
+
    ```sh
    cargo install tauri-driver
    ```
 
 3. **WebKitWebDriver** must be available on `PATH`. On most Linux distributions this is provided by the `webkit2gtk` or
    `webkit2gtk-driver` package. Check:
+
    ```sh
    which WebKitWebDriver
    ```
 
 4. **Display / session**: the tests launch a real GUI window, so a running display server is required. On Wayland
    compositors (e.g. Hyprland) the current session works. In headless CI, use a virtual framebuffer:
+
    ```sh
    # Example with weston
    weston --backend=headless &
