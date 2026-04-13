@@ -176,6 +176,7 @@
     justify-content: center;
     height: 100%;
     color: #666;
-    font-size: 13px;
+    font-size: 15px;
+    padding: 16px;
   }
 </style>

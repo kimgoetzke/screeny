@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { open, save } from "@tauri-apps/plugin-dialog";
   import { frameStore } from "$lib/stores/frames.svelte";
   import { openGif, exportGif } from "$lib/actions";
   import type { DialogProvider, GifBackend } from "$lib/actions";
@@ -13,8 +14,21 @@
   });
 
   const nativeDialog: DialogProvider = {
-    openFile: () => invoke("open_file_dialog"),
-    saveFile: () => invoke("save_file_dialog"),
+    openFile: async () => {
+      const result = await open({
+        title: "Open GIF",
+        filters: [{ name: "GIF", extensions: ["gif"] }],
+        multiple: false,
+      });
+      return typeof result === "string" ? result : null;
+    },
+    saveFile: async () => {
+      return await save({
+        title: "Export GIF",
+        defaultPath: "export.gif",
+        filters: [{ name: "GIF", extensions: ["gif"] }],
+      });
+    },
   };
 
   const e2eDialog: DialogProvider = {
@@ -87,8 +101,8 @@
   .toolbar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
+    gap: 16px;
+    padding: 10px 16px;
     background: #1a1a1a;
     border-bottom: 1px solid #333;
     flex-shrink: 0;
@@ -96,16 +110,16 @@
 
   .toolbar-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
   }
 
   button {
-    padding: 6px 16px;
+    padding: 8px 20px;
     border: 1px solid #555;
     border-radius: 4px;
     background: #2a2a2a;
     color: #eee;
-    font-size: 13px;
+    font-size: 15px;
     cursor: pointer;
   }
 
@@ -120,7 +134,8 @@
   }
 
   .status {
-    font-size: 12px;
+    font-size: 14px;
     color: #999;
+    padding: 4px 8px;
   }
 </style>

@@ -26,7 +26,7 @@
     <canvas bind:this={canvas} data-testid="frame-canvas"></canvas>
   {:else}
     <div class="empty" data-testid="viewer-empty">
-      <p>Open a GIF to get started</p>
+      <p>Open or drop a GIF to get started</p>
     </div>
   {/if}
 </div>
@@ -51,6 +51,9 @@
 
   .empty {
     color: #666;
-    font-size: 16px;
+    font-size: 20px;
+    padding: 32px;
+    text-align: center;
+    line-height: 1.5;
   }
 </style>
