@@ -6,11 +6,25 @@
 
   let loading = $state(false);
   let statusMessage = $state("");
+  let isE2e = $state(false);
 
-  const dialog: DialogProvider = {
+  invoke<boolean>("e2e_check").then((result) => {
+    isE2e = result;
+  });
+
+  const nativeDialog: DialogProvider = {
     openFile: () => invoke("open_file_dialog"),
     saveFile: () => invoke("save_file_dialog"),
   };
+
+  const e2eDialog: DialogProvider = {
+    openFile: () => invoke("e2e_open_fixture"),
+    saveFile: () => invoke("e2e_save_path"),
+  };
+
+  function getDialog(): DialogProvider {
+    return isE2e ? e2eDialog : nativeDialog;
+  }
 
   const backend: GifBackend = {
     decode: (path) => invoke("decode_gif", { path }),
@@ -21,7 +35,7 @@
     loading = true;
     statusMessage = "Opening…";
     try {
-      const result = await openGif(dialog, backend);
+      const result = await openGif(getDialog(), backend);
       if (result.error) {
         statusMessage = result.error;
       } else if (result.frames) {
@@ -39,7 +53,7 @@
     loading = true;
     statusMessage = "Exporting…";
     try {
-      const result = await exportGif(dialog, backend, frameStore.frames);
+      const result = await exportGif(getDialog(), backend, frameStore.frames);
       if (result.error) {
         statusMessage = result.error;
       } else if (result.message) {
@@ -53,15 +67,19 @@
   }
 </script>
 
-<div class="toolbar">
+<div class="toolbar" data-testid="toolbar">
   <div class="toolbar-actions">
-    <button onclick={handleOpen} disabled={loading}>Open</button>
-    <button onclick={handleExport} disabled={loading || !frameStore.hasFrames}>
+    <button onclick={handleOpen} disabled={loading} data-testid="btn-open">Open</button>
+    <button
+      onclick={handleExport}
+      disabled={loading || !frameStore.hasFrames}
+      data-testid="btn-export"
+    >
       Export
     </button>
   </div>
   {#if statusMessage}
-    <span class="status">{statusMessage}</span>
+    <span class="status" data-testid="status-message">{statusMessage}</span>
   {/if}
 </div>
 

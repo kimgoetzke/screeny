@@ -34,9 +34,9 @@
   }
 </script>
 
-<div class="timeline">
+<div class="timeline" data-testid="timeline">
   {#if frameStore.hasFrames}
-    <div class="frames-strip">
+    <div class="frames-strip" data-testid="frames-strip">
       {#each frameStore.frames as frame, index (frame.id)}
         <div
           class="frame-thumb"
@@ -45,6 +45,8 @@
           draggable="true"
           role="button"
           tabindex="0"
+          data-testid="frame-thumb-{index}"
+          data-frame-id={frame.id}
           ondragstart={(e) => handleDragStart(index, e)}
           ondragover={(e) => handleDragOver(index, e)}
           ondrop={(e) => handleDrop(index, e)}
@@ -58,11 +60,17 @@
           <img src={frame.imageData} alt="Frame {index + 1}" draggable="false" />
           <div class="frame-info">
             <span class="frame-number">{index + 1}</span>
-            <span class="frame-duration">{frame.duration}ms</span>
+            <span class="frame-duration" data-testid="frame-duration-{index}"
+              >{frame.duration}ms</span
+            >
           </div>
           <button
             class="delete-btn"
-            onclick={(e) => { e.stopPropagation(); frameStore.deleteFrame(frame.id); }}
+            data-testid="frame-delete-{index}"
+            onclick={(e) => {
+              e.stopPropagation();
+              frameStore.deleteFrame(frame.id);
+            }}
             title="Delete frame"
           >
             ×
@@ -71,7 +79,7 @@
       {/each}
     </div>
   {:else}
-    <div class="empty">No frames loaded</div>
+    <div class="empty" data-testid="timeline-empty">No frames loaded</div>
   {/if}
 </div>
 

@@ -21,11 +21,11 @@
   });
 </script>
 
-<div class="viewer">
+<div class="viewer" data-testid="frame-viewer">
   {#if frameStore.hasFrames}
-    <canvas bind:this={canvas}></canvas>
+    <canvas bind:this={canvas} data-testid="frame-canvas"></canvas>
   {:else}
-    <div class="empty">
+    <div class="empty" data-testid="viewer-empty">
       <p>Open a GIF to get started</p>
     </div>
   {/if}

@@ -4,7 +4,7 @@
   import Timeline from "$lib/components/Timeline.svelte";
 </script>
 
-<div class="app">
+<div class="app" data-testid="app">
   <Toolbar />
   <FrameViewer />
   <Timeline />

@@ -1,5 +1,6 @@
 mod dialog;
-mod gif;
+mod e2e;
+pub mod gif;
 
 use std::path::PathBuf;
 
@@ -34,6 +35,9 @@ pub fn run() {
             export_gif,
             open_file_dialog,
             save_file_dialog,
+            e2e::e2e_check,
+            e2e::e2e_open_fixture,
+            e2e::e2e_save_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

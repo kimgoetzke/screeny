@@ -1,0 +1,60 @@
+/// One-shot helper: generates `tests/fixtures/test.gif` for E2E tests.
+///
+/// Run with: cargo test -p screeny --test generate_fixture -- --ignored --nocapture
+use std::path::PathBuf;
+
+fn project_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
+}
+
+fn make_export_frame(
+    colour: [u8; 4],
+    width: u32,
+    height: u32,
+    duration: u32,
+) -> screeny_lib::gif::ExportFrame {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    use image::{codecs::png::PngEncoder, ImageEncoder, RgbaImage};
+
+    let pixel_count = (width * height) as usize;
+    let mut pixels = Vec::with_capacity(pixel_count * 4);
+    for _ in 0..pixel_count {
+        pixels.extend_from_slice(&colour);
+    }
+
+    let img = RgbaImage::from_raw(width, height, pixels).unwrap();
+    let mut png_bytes = Vec::new();
+    PngEncoder::new(&mut png_bytes)
+        .write_image(img.as_raw(), width, height, image::ExtendedColorType::Rgba8)
+        .unwrap();
+
+    let b64 = STANDARD.encode(&png_bytes);
+    screeny_lib::gif::ExportFrame {
+        image_data: format!("data:image/png;base64,{b64}"),
+        duration,
+    }
+}
+
+#[test]
+#[ignore]
+fn generate_test_gif() {
+    let frames = vec![
+        make_export_frame([255, 0, 0, 255], 8, 8, 100),
+        make_export_frame([0, 255, 0, 255], 8, 8, 100),
+        make_export_frame([0, 0, 255, 255], 8, 8, 100),
+    ];
+
+    let output = project_root().join("tests/fixtures/test.gif");
+    std::fs::create_dir_all(output.parent().unwrap()).unwrap();
+
+    screeny_lib::gif::encode::encode_gif_file(&frames, &output).unwrap();
+    println!("Wrote fixture to {}", output.display());
+
+    // Verify it round-trips
+    let decoded =
+        screeny_lib::gif::decode::decode_gif_file(&output).unwrap();
+    assert_eq!(decoded.len(), 3);
+}
