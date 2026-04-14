@@ -6,6 +6,14 @@ use std::path::PathBuf;
 use gif::{ExportFrame, Frame};
 use tauri::{window::Color, Manager};
 
+#[derive(serde::Serialize, Clone)]
+pub struct DirEntry {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub extension: Option<String>,
+}
+
 #[tauri::command]
 fn decode_gif(path: String) -> Result<Vec<Frame>, String> {
     gif::decode::decode_gif_file(&PathBuf::from(path))
@@ -25,6 +33,56 @@ fn export_gif(frames: Vec<ExportFrame>, path: String) -> Result<(), String> {
 fn suggest_export_path() -> String {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
     format!("{home}/export.gif")
+}
+
+#[tauri::command]
+fn home_dir() -> String {
+    std::env::var("HOME").unwrap_or_else(|_| "/".to_string())
+}
+
+#[tauri::command]
+fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
+    let read_dir = std::fs::read_dir(&path)
+        .map_err(|e| format!("Failed to read directory '{path}': {e}"))?;
+
+    let mut entries: Vec<DirEntry> = read_dir
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            // Skip hidden entries
+            if name.starts_with('.') {
+                return None;
+            }
+            let metadata = entry.metadata().ok()?;
+            let is_dir = metadata.is_dir();
+            let entry_path = entry.path().to_string_lossy().into_owned();
+            let extension = entry
+                .path()
+                .extension()
+                .map(|e| e.to_string_lossy().to_lowercase());
+            // Include directories and .gif files only
+            if is_dir || extension.as_deref() == Some("gif") {
+                Some(DirEntry {
+                    name,
+                    path: entry_path,
+                    is_dir,
+                    extension,
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Sort: directories first, then alphabetically by name
+    entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then_with(|| a.name.cmp(&b.name)));
+
+    Ok(entries)
+}
+
+#[tauri::command]
+fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&path).map_err(|e| format!("Failed to read file '{path}': {e}"))
 }
 
 #[tauri::command]
@@ -75,12 +133,76 @@ pub fn run() {
             decode_gif_bytes,
             export_gif,
             suggest_export_path,
+            home_dir,
+            list_dir,
+            read_file_bytes,
             close_splashscreen,
             e2e_close_splashscreen,
             e2e::e2e_check,
             e2e::e2e_open_fixture,
             e2e::e2e_save_path,
+            e2e::e2e_fixture_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn list_dir_returns_dirs_and_gif_files() {
+        let dir = tempdir().unwrap();
+        fs::create_dir(dir.path().join("subdir")).unwrap();
+        fs::write(dir.path().join("animation.gif"), b"GIF89a").unwrap();
+        fs::write(dir.path().join("image.png"), b"PNG").unwrap();
+        fs::write(dir.path().join(".hidden"), b"").unwrap();
+
+        let entries = list_dir(dir.path().to_str().unwrap().to_string()).unwrap();
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        assert!(names.contains(&"subdir"), "should include directory");
+        assert!(names.contains(&"animation.gif"), "should include .gif file");
+        assert!(!names.contains(&"image.png"), "should exclude .png file");
+        assert!(!names.contains(&".hidden"), "should exclude hidden entries");
+    }
+
+    #[test]
+    fn list_dir_sorts_dirs_before_files() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("aaa.gif"), b"GIF89a").unwrap();
+        fs::create_dir(dir.path().join("zzz_dir")).unwrap();
+
+        let entries = list_dir(dir.path().to_str().unwrap().to_string()).unwrap();
+
+        assert!(entries[0].is_dir, "first entry should be a directory");
+        assert!(!entries[1].is_dir, "second entry should be a file");
+    }
+
+    #[test]
+    fn list_dir_errors_on_nonexistent_path() {
+        let result = list_dir("/nonexistent/path/xyz123".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn read_file_bytes_returns_file_contents() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.gif");
+        let content = b"GIF89a content";
+        fs::write(&file_path, content).unwrap();
+
+        let bytes = read_file_bytes(file_path.to_str().unwrap().to_string()).unwrap();
+
+        assert_eq!(bytes, content);
+    }
+
+    #[test]
+    fn read_file_bytes_errors_on_nonexistent_file() {
+        let result = read_file_bytes("/nonexistent/file.gif".to_string());
+        assert!(result.is_err());
+    }
 }

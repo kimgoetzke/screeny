@@ -16,6 +16,37 @@ async function jsClick(selector: string) {
   await browser.execute((el: HTMLElement) => el.click(), element as unknown as HTMLElement);
 }
 
+/**
+ * Set an input's value via JavaScript, bypassing WebdriverIO interactability checks.
+ * Dispatches an `input` event so Svelte's bind:value picks up the change.
+ */
+async function jsSetValue(selector: string, value: string) {
+  const element = await $(selector);
+  await element.waitForExist({ timeout: 5_000 });
+  await browser.execute(
+    (el: HTMLInputElement, val: string) => {
+      el.value = val;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    element as unknown as HTMLInputElement,
+    value,
+  );
+}
+
+/**
+ * Invoke a Tauri command from within the WebView context.
+ * Uses window.__TAURI_INTERNALS__.invoke which is always available in Tauri 2.
+ */
+async function tauriInvoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  return browser.execute(
+    async (cmd: string, cmdArgs: unknown) => {
+      return (window as any).__TAURI_INTERNALS__.invoke(cmd, cmdArgs) as Promise<T>;
+    },
+    command,
+    args ?? {},
+  ) as Promise<T>;
+}
+
 describe("Studio — app launch", () => {
   it("should show the toolbar", async () => {
     const toolbar = await $('[data-testid="toolbar"]');
@@ -43,9 +74,26 @@ describe("Studio — app launch", () => {
 
 describe("Studio — open GIF fixture", () => {
   it("should load frames when clicking Open", async () => {
+    // 1. Open the file picker
     await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
 
-    // Wait for the status message to confirm load
+    // 2. Navigate to the fixture directory using the path input.
+    //    e2e_fixture_dir returns the directory that contains tests/fixtures/test.gif.
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+
+    // 3. Wait for test.gif to appear and select it
+    const gifEntry = await $('[data-testid="file-picker-entry-test.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-test.gif"]');
+
+    // 4. Confirm the selection
+    await jsClick('[data-testid="file-picker-confirm"]');
+
+    // 5. Assert frames loaded
     const status = await $('[data-testid="status-message"]');
     await status.waitForExist({ timeout: 10_000 });
     await expect(status).toHaveText("Loaded 3 frames");

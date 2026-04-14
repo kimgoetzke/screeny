@@ -56,6 +56,7 @@
                 cairo
                 gdk-pixbuf
                 glib
+                gsettings-desktop-schemas
                 harfbuzz
                 librsvg
                 libsoup_3
@@ -119,6 +120,7 @@
                   shellHook = ''
                     export CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true
                     export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
+                    export XDG_DATA_DIRS=${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:$XDG_DATA_DIRS
                     echo ""
                     echo "Welcome to your Rust WASM environment!" | ${pkgs.lolcat}/bin/lolcat
                     echo "It uses Rust ${version} with $(rustc --version), includes Tauri, and the WASM target." | ${pkgs.lolcat}/bin/lolcat

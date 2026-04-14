@@ -3,12 +3,16 @@
   import { frameStore } from "$lib/stores/frames.svelte";
   import { openGif, exportGif } from "$lib/actions";
   import type { DialogProvider, GifBackend } from "$lib/actions";
+  import FilePicker from "$lib/components/FilePicker.svelte";
 
   let loading = $state(false);
   let statusMessage = $state("");
   let isE2e = $state(false);
 
-  let fileInput: HTMLInputElement;
+  let showFilePicker = $state(false);
+  let filePickerResolve: ((result: Uint8Array | null) => void) | null = null;
+  let filePickerReject: ((error: unknown) => void) | null = null;
+
   let showSaveInput = $state(false);
   let savePath = $state("");
   let saveResolve: ((path: string | null) => void) | null = null;
@@ -19,32 +23,10 @@
 
   const nativeDialog: DialogProvider = {
     openFile: () =>
-      new Promise((resolve) => {
-        const handleChange = async (event: Event) => {
-          cleanup();
-          const file = (event.target as HTMLInputElement).files?.[0];
-          if (!file) {
-            resolve(null);
-            return;
-          }
-          const buffer = await file.arrayBuffer();
-          resolve(new Uint8Array(buffer));
-          fileInput.value = "";
-        };
-
-        const handleCancel = () => {
-          cleanup();
-          resolve(null);
-        };
-
-        function cleanup() {
-          fileInput.removeEventListener("change", handleChange);
-          fileInput.removeEventListener("cancel", handleCancel);
-        }
-
-        fileInput.addEventListener("change", handleChange);
-        fileInput.addEventListener("cancel", handleCancel);
-        fileInput.click();
+      new Promise((resolve, reject) => {
+        filePickerResolve = resolve;
+        filePickerReject = reject;
+        showFilePicker = true;
       }),
 
     saveFile: async () => {
@@ -57,16 +39,32 @@
     },
   };
 
-  const e2eDialog: DialogProvider = {
-    openFile: async () => {
-      const bytes: number[] | null = await invoke("e2e_open_fixture");
-      return bytes ? new Uint8Array(bytes) : null;
-    },
-    saveFile: () => invoke("e2e_save_path"),
-  };
+  async function handleFilePickerConfirm(path: string) {
+    showFilePicker = false;
+    if (!filePickerResolve) return;
+    try {
+      const bytes: number[] = await invoke("read_file_bytes", { path });
+      filePickerResolve(new Uint8Array(bytes));
+    } catch (error) {
+      filePickerReject?.(error);
+    }
+    filePickerResolve = null;
+    filePickerReject = null;
+  }
 
+  function handleFilePickerCancel() {
+    showFilePicker = false;
+    filePickerResolve?.(null);
+    filePickerResolve = null;
+    filePickerReject = null;
+  }
+
+  // E2E: open uses the native file picker path; only save is bypassed
   function getDialog(): DialogProvider {
-    return isE2e ? e2eDialog : nativeDialog;
+    return {
+      openFile: nativeDialog.openFile,
+      saveFile: isE2e ? () => invoke("e2e_save_path") : nativeDialog.saveFile,
+    };
   }
 
   const backend: GifBackend = {
@@ -122,7 +120,9 @@
   }
 </script>
 
-<input type="file" accept=".gif" bind:this={fileInput} style="display:none" />
+{#if showFilePicker}
+  <FilePicker onConfirm={handleFilePickerConfirm} onCancel={handleFilePickerCancel} />
+{/if}
 
 <div class="toolbar" data-testid="toolbar">
   <div class="toolbar-actions">

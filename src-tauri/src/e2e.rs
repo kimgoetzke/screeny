@@ -69,6 +69,18 @@ pub fn e2e_open_fixture() -> Result<Option<Vec<u8>>, String> {
 }
 
 #[tauri::command]
+pub fn e2e_fixture_dir() -> Result<String, String> {
+    if !is_e2e_mode() {
+        return Err("Not in E2E mode".to_string());
+    }
+    let path = fixture_path()?;
+    PathBuf::from(&path)
+        .parent()
+        .ok_or_else(|| format!("Fixture path '{path}' has no parent directory"))
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 pub fn e2e_save_path() -> Result<Option<String>, String> {
     if !is_e2e_mode() {
         return Err("Not in E2E mode".to_string());
