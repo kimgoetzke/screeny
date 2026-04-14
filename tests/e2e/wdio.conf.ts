@@ -10,7 +10,10 @@ export const config: WebdriverIO.Config = {
   runner: "local",
   hostname: "127.0.0.1",
   port: 4444,
-  specs: [resolve(repoRoot, "tests/e2e/specs/**/*.ts")],
+  specs: [
+    resolve(repoRoot, "tests/e2e/specs/splashscreen.ts"),
+    resolve(repoRoot, "tests/e2e/specs/studio.ts"),
+  ],
   maxInstances: 1,
   capabilities: [
     {

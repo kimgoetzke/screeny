@@ -29,12 +29,27 @@ fn suggest_export_path() -> String {
 
 #[tauri::command]
 fn close_splashscreen(app: tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("splashscreen") {
-        window.close().ok();
+    if !e2e::is_e2e_mode() {
+        if let Some(window) = app.get_webview_window("splashscreen") {
+            window.close().ok();
+        }
     }
+    // In E2E mode the splashscreen is left open so the test can inspect it.
+    // e2e_close_splashscreen must be called explicitly to tear it down.
     if let Some(window) = app.get_webview_window("main") {
         window.show().ok();
     }
+}
+
+#[tauri::command]
+fn e2e_close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
+    if !e2e::is_e2e_mode() {
+        return Err("Not in E2E mode".to_string());
+    }
+    if let Some(window) = app.get_webview_window("splashscreen") {
+        window.close().ok();
+    }
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -61,6 +76,7 @@ pub fn run() {
             export_gif,
             suggest_export_path,
             close_splashscreen,
+            e2e_close_splashscreen,
             e2e::e2e_check,
             e2e::e2e_open_fixture,
             e2e::e2e_save_path,
