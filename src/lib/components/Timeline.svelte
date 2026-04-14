@@ -87,8 +87,8 @@
   .timeline {
     flex-shrink: 0;
     height: 140px;
-    background: #1a1a1a;
-    border-top: 1px solid #333;
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
     overflow-x: auto;
     overflow-y: hidden;
   }
@@ -105,7 +105,7 @@
     position: relative;
     flex-shrink: 0;
     height: 100px;
-    border: 2px solid #444;
+    border: 2px solid var(--color-border);
     border-radius: 4px;
     cursor: grab;
     overflow: hidden;
@@ -117,11 +117,11 @@
   }
 
   .frame-thumb.selected {
-    border-color: #5b9bd5;
+    border-color: var(--color-accent);
   }
 
   .frame-thumb.drag-over {
-    border-color: #7bc87b;
+    border-color: var(--color-success);
     border-style: dashed;
   }
 
@@ -140,9 +140,9 @@
     display: flex;
     justify-content: space-between;
     padding: 2px 4px;
-    background: rgba(0, 0, 0, 0.7);
+    background: color-mix(in srgb, var(--color-bg) 70%, transparent);
     font-size: 10px;
-    color: #ccc;
+    color: var(--color-text);
   }
 
   .delete-btn {
@@ -154,7 +154,7 @@
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: rgba(200, 50, 50, 0.8);
+    background: color-mix(in srgb, var(--color-error) 80%, transparent);
     color: white;
     font-size: 14px;
     line-height: 1;
@@ -175,7 +175,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 15px;
     padding: 16px;
   }

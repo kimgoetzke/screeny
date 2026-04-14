@@ -1,0 +1,30 @@
+/* JetBrains Dark Islands theme — base16 mapping to semantic design tokens */
+:root {
+  /* Backgrounds (darkest → lightest) */
+  --color-bg:          #191a1c; /* base00 — editor/app background */
+  --color-bg-elevated: #1f2024; /* base01 — caret row / slightly raised surface */
+  --color-surface:     #2b2d30; /* base02 — UI panels, cards, selection */
+
+  /* Borders & inactive */
+  --color-border:      #393b40; /* base03 */
+
+  /* Text (muted → brightest) */
+  --color-text-muted:    #7a7e85; /* base04 — comments, disabled, placeholder */
+  --color-text:          #bcbec4; /* base05 — default body text */
+  --color-text-bright:   #ced0d6; /* base06 — emphasis */
+  --color-text-brightest:#dfe1e5; /* base07 — headings, high-contrast labels */
+
+  /* Semantic — functional colours */
+  --color-error:   #f75464; /* base08 — red */
+  --color-warning: #e0bb65; /* base0A — yellow */
+  --color-success: #6aab73; /* base0B — green */
+  --color-info:    #2aacb8; /* base0C — cyan */
+
+  /* Accent / brand */
+  --color-accent:           #56a8f5; /* base0D — blue (primary interactive) */
+  --color-accent-secondary: #c77dbb; /* base0E — purple */
+
+  /* Extra palette colours */
+  --color-orange: #cf8e6d; /* base09 */
+  --color-gold:   #d5b778; /* base0F */
+}

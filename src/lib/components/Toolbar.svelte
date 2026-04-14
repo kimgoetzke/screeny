@@ -161,8 +161,8 @@
     align-items: center;
     gap: 16px;
     padding: 10px 16px;
-    background: #1a1a1a;
-    border-bottom: 1px solid #333;
+    background: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
   }
 
@@ -173,17 +173,17 @@
 
   button {
     padding: 8px 20px;
-    border: 1px solid #555;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
-    background: #2a2a2a;
-    color: #eee;
+    background: var(--color-surface);
+    color: var(--color-text-brightest);
     font-size: 15px;
     cursor: pointer;
   }
 
   button:hover:not(:disabled) {
-    background: #3a3a3a;
-    border-color: #777;
+    background: var(--color-border);
+    border-color: var(--color-text-muted);
   }
 
   button:disabled {
@@ -193,7 +193,7 @@
 
   .status {
     font-size: 14px;
-    color: #999;
+    color: var(--color-text-muted);
     padding: 4px 8px;
   }
 
@@ -207,17 +207,17 @@
   .save-input-row input[type="text"] {
     flex: 1;
     padding: 6px 10px;
-    border: 1px solid #555;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
-    background: #2a2a2a;
-    color: #eee;
+    background: var(--color-surface);
+    color: var(--color-text-brightest);
     font-size: 14px;
     min-width: 0;
   }
 
   .save-input-row input[type="text"]:focus {
     outline: none;
-    border-color: #888;
+    border-color: var(--color-text-muted);
   }
 
   .save-input-row button {

@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "screeny",
         "width": 1200,
-        "height": 800
+        "height": 800,
+        "backgroundColor": "#191a1c",
+        "visible": false
       }
     ],
     "security": {

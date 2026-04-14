@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "$lib/theme.css";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -12,6 +13,8 @@
   let dropError = $state("");
 
   onMount(() => {
+    invoke("close_splashscreen");
+
     let unlisten: (() => void) | undefined;
 
     getCurrentWebviewWindow()
@@ -77,8 +80,8 @@
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
-    background: #1e1e1e;
-    color: #eee;
+    background: var(--color-bg);
+    color: var(--color-text-brightest);
   }
 
   .app {
@@ -100,8 +103,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(91, 155, 213, 0.15);
-    border: 3px dashed #5b9bd5;
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    border: 3px dashed var(--color-accent);
     border-radius: 8px;
     margin: 8px;
     padding: 8px;
@@ -111,7 +114,7 @@
 
   .drop-overlay p {
     font-size: 22px;
-    color: #5b9bd5;
+    color: var(--color-accent);
     font-weight: 600;
   }
 
@@ -120,7 +123,7 @@
     bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(200, 50, 50, 0.9);
+    background: color-mix(in srgb, var(--color-error) 90%, transparent);
     color: white;
     padding: 8px 16px;
     border-radius: 6px;

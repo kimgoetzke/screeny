@@ -38,7 +38,7 @@
     align-items: center;
     justify-content: center;
     overflow: auto;
-    background: #1e1e1e;
+    background: var(--color-bg);
     min-height: 0;
   }
 
@@ -50,7 +50,7 @@
   }
 
   .empty {
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 20px;
     padding: 32px;
     text-align: center;
