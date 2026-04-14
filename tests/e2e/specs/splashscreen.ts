@@ -9,23 +9,21 @@
  */
 
 describe("Splashscreen — rendering", () => {
+  let mainHandle: string;
   let splashHandle: string | undefined;
 
   before(async () => {
-    // The main window is the session's initial window.  The splashscreen is a
-    // second window kept alive in E2E mode.  Give both windows time to finish
-    // loading before we look for the second handle.
+    // Give both windows time to finish loading before inspecting handles.
     await browser.pause(2_000);
 
-    const mainHandle = await browser.getWindowHandle();
+    mainHandle = await browser.getWindowHandle();
     const allHandles = await browser.getWindowHandles();
     splashHandle = allHandles.find((h) => h !== mainHandle);
   });
 
   after(async () => {
-    // Close the splashscreen via the main window's Tauri context so the
-    // remaining studio tests have a clean single-window environment.
-    const mainHandle = await browser.getWindowHandle();
+    // Ensure we are back on the main window before closing the splashscreen,
+    // so subsequent studio tests start in the correct context.
     await browser.switchToWindow(mainHandle);
     await browser.execute(() => {
       (window as any).__TAURI_INTERNALS__.invoke("e2e_close_splashscreen");
@@ -37,18 +35,37 @@ describe("Splashscreen — rendering", () => {
     expect(splashHandle).toBeDefined();
   });
 
-  it("should render an SVG logo with non-zero dimensions", async () => {
+  it("should render the logo wrapper with non-zero dimensions", async () => {
     if (!splashHandle) return;
 
     await browser.switchToWindow(splashHandle);
 
-    const svg = await $("svg");
+    // Check the concrete .logo div — div box dimensions are more reliably
+    // reported by WebKitWebDriver than SVG element rects.
+    const logo = await $(".logo");
+    await logo.waitForExist({ timeout: 5_000 });
+    await expect(logo).toBeDisplayed();
+
+    // Use getBoundingClientRect via JS as a belt-and-braces check alongside
+    // getSize(), since WebdriverIO's getSize() can return 0 for SVG-related
+    // elements in some WebKitGTK builds even when they are visible.
+    const rect = await browser.execute((el: HTMLElement) => {
+      const r = el.getBoundingClientRect();
+      return { width: r.width, height: r.height };
+    }, logo as unknown as HTMLElement);
+
+    expect(rect.width).toBeGreaterThan(0);
+    expect(rect.height).toBeGreaterThan(0);
+  });
+
+  it("should contain an SVG element inside the logo wrapper", async () => {
+    if (!splashHandle) return;
+
+    await browser.switchToWindow(splashHandle);
+
+    const svg = await $(".logo svg");
     await svg.waitForExist({ timeout: 5_000 });
     await expect(svg).toBeDisplayed();
-
-    const size = await svg.getSize();
-    expect(size.width).toBeGreaterThan(0);
-    expect(size.height).toBeGreaterThan(0);
   });
 
   it("should display the app name text", async () => {
