@@ -1,0 +1,81 @@
+[
+  {
+    "label": "screeny: dev app",
+    "command": "pnpm",
+    "args": ["run", "tauri", "dev"],
+    "use_new_terminal": true,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+    "hide": "never",
+    "save": "all"
+  },
+  {
+    "label": "screeny: dev frontend",
+    "command": "pnpm",
+    "args": ["run", "dev"],
+    "use_new_terminal": true,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+    "hide": "never",
+    "save": "all"
+  },
+  {
+    "label": "screeny: check",
+    "command": "pnpm",
+    "args": ["run", "check"],
+    "reveal": "always",
+    "hide": "never",
+    "save": "all"
+  },
+  {
+    "label": "screeny: check watch",
+    "command": "pnpm",
+    "args": ["run", "check:watch"],
+    "use_new_terminal": true,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+    "hide": "never",
+    "save": "all"
+  },
+  {
+    "label": "screeny: unit tests",
+    "command": "pnpm",
+    "args": ["run", "test:unit"],
+    "reveal": "always",
+    "hide": "on_success",
+    "save": "all"
+  },
+  {
+    "label": "screeny: e2e tests",
+    "command": "pnpm",
+    "args": ["run", "test:e2e"],
+    "reveal": "always",
+    "hide": "never",
+    "save": "all"
+  },
+  {
+    "label": "screeny: build frontend",
+    "command": "pnpm",
+    "args": ["run", "build"],
+    "reveal": "always",
+    "hide": "on_success",
+    "save": "all"
+  },
+  {
+    "label": "screeny: build app",
+    "command": "pnpm",
+    "args": ["run", "tauri", "build"],
+    "reveal": "always",
+    "hide": "never",
+    "save": "all"
+  },
+  {
+    "label": "screeny: rust tests",
+    "command": "cargo",
+    "args": ["test"],
+    "cwd": "$ZED_WORKTREE_ROOT/src-tauri",
+    "reveal": "always",
+    "hide": "on_success",
+    "save": "all"
+  }
+]
