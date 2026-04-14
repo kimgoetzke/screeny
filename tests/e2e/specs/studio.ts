@@ -13,10 +13,7 @@
 async function jsClick(selector: string) {
   const element = await $(selector);
   await element.waitForExist({ timeout: 10_000 });
-  await browser.execute(
-    (el: HTMLElement) => el.click(),
-    element as unknown as HTMLElement,
-  );
+  await browser.execute((el: HTMLElement) => el.click(), element as unknown as HTMLElement);
 }
 
 describe("Studio — app launch", () => {
@@ -29,7 +26,7 @@ describe("Studio — app launch", () => {
   it("should show the empty viewer state", async () => {
     const empty = await $('[data-testid="viewer-empty"]');
     await expect(empty).toBeDisplayed();
-    await expect(empty).toHaveText(expect.stringContaining("Open a GIF"));
+    await expect(empty).toHaveText(expect.stringContaining("Open or drop a GIF to get started"));
   });
 
   it("should show the empty timeline state", async () => {
