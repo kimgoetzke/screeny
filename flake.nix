@@ -70,6 +70,7 @@
                 rust
                 rust-analyzer
                 gcc
+                bashInteractive
               ];
             };
           matrix = {
