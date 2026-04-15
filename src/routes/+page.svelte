@@ -55,7 +55,7 @@
 <div class="app" data-testid="app">
   <Toolbar />
   <div class="viewer-area">
-    <FrameViewer />
+    <FrameViewer showEmptyState={!dragging} />
     {#if dragging}
       <div class="drop-overlay">
         <p>Drop GIF file here</p>

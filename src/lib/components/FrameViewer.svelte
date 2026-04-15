@@ -1,6 +1,7 @@
 <script lang="ts">
   import { frameStore } from "$lib/stores/frames.svelte";
 
+  let { showEmptyState = true }: { showEmptyState?: boolean } = $props();
   let canvas: HTMLCanvasElement | undefined = $state();
 
   $effect(() => {
@@ -24,7 +25,7 @@
 <div class="viewer" data-testid="frame-viewer">
   {#if frameStore.hasFrames}
     <canvas bind:this={canvas} data-testid="frame-canvas"></canvas>
-  {:else}
+  {:else if showEmptyState}
     <div class="empty" data-testid="viewer-empty">
       <p>Open or drop a GIF to get started</p>
     </div>
