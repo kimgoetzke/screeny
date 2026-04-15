@@ -134,6 +134,30 @@
     >
       Export
     </button>
+    {#if frameStore.hasFrames}
+      <button
+        class="icon-btn"
+        onclick={() => frameStore.play()}
+        disabled={frameStore.isPlaying}
+        data-testid="btn-play"
+        title="Play"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <polygon points="3,2 13,8 3,14" fill="currentColor" />
+        </svg>
+      </button>
+      <button
+        class="icon-btn"
+        onclick={() => frameStore.stop()}
+        disabled={!frameStore.isPlaying}
+        data-testid="btn-stop"
+        title="Stop"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="3" y="3" width="10" height="10" fill="currentColor" />
+        </svg>
+      </button>
+    {/if}
   </div>
   {#if showSaveInput}
     <div class="save-input-row" data-testid="save-input-row">
@@ -169,6 +193,14 @@
   .toolbar-actions {
     display: flex;
     gap: 10px;
+    align-items: center;
+  }
+
+  .icon-btn {
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   button {

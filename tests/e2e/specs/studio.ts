@@ -168,3 +168,83 @@ describe("Studio — export GIF", () => {
     await expect(status).toHaveText("Exported successfully");
   });
 });
+
+describe("Studio — GIF playback", () => {
+  // 2 frames remain after the delete-frame suite; frame-thumb-1 is selected.
+
+  it("should show play and stop buttons after frames are loaded", async () => {
+    const playBtn = await $('[data-testid="btn-play"]');
+    await playBtn.waitForExist({ timeout: 5_000 });
+    await expect(playBtn).toBeDisplayed();
+    await expect(await $('[data-testid="btn-stop"]')).toBeDisplayed();
+  });
+
+  it("play button should be enabled and stop button should be disabled initially", async () => {
+    await expect(await $('[data-testid="btn-play"]')).not.toBeDisabled();
+    await expect(await $('[data-testid="btn-stop"]')).toBeDisabled();
+  });
+
+  it("clicking play should disable the play button and enable the stop button", async () => {
+    await jsClick('[data-testid="btn-play"]');
+
+    await expect(await $('[data-testid="btn-play"]')).toBeDisabled();
+    await expect(await $('[data-testid="btn-stop"]')).not.toBeDisabled();
+  });
+
+  it("should advance the active frame in the timeline during playback", async () => {
+    // Playback is running from the previous test. Capture the currently selected frame.
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    let selectedBefore: string | null = null;
+    for (const thumb of thumbs) {
+      const cls = await thumb.getAttribute("class");
+      if (cls?.includes("selected")) {
+        selectedBefore = await thumb.getAttribute("data-testid");
+        break;
+      }
+    }
+
+    // Wait long enough for at least one frame advance (frames are typically ~100ms in test fixture)
+    await browser.pause(500);
+
+    let selectedAfter: string | null = null;
+    for (const thumb of thumbs) {
+      const cls = await thumb.getAttribute("class");
+      if (cls?.includes("selected")) {
+        selectedAfter = await thumb.getAttribute("data-testid");
+        break;
+      }
+    }
+
+    expect(selectedAfter).not.toBe(selectedBefore);
+  });
+
+  it("clicking stop should re-enable play, disable stop, and preserve the current frame", async () => {
+    // Playback is still running. Record which frame is selected just before stopping.
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    let frameBeforeStop: string | null = null;
+    for (const thumb of thumbs) {
+      const cls = await thumb.getAttribute("class");
+      if (cls?.includes("selected")) {
+        frameBeforeStop = await thumb.getAttribute("data-testid");
+        break;
+      }
+    }
+
+    await jsClick('[data-testid="btn-stop"]');
+
+    await expect(await $('[data-testid="btn-play"]')).not.toBeDisabled();
+    await expect(await $('[data-testid="btn-stop"]')).toBeDisabled();
+
+    // The frame should not have changed on stop — no revert to frame 0
+    let frameAfterStop: string | null = null;
+    for (const thumb of thumbs) {
+      const cls = await thumb.getAttribute("class");
+      if (cls?.includes("selected")) {
+        frameAfterStop = await thumb.getAttribute("data-testid");
+        break;
+      }
+    }
+
+    expect(frameAfterStop).toBe(frameBeforeStop);
+  });
+});

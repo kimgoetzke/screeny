@@ -10,3 +10,4 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .direnv
 .vscode
+.ai/planning/2026-04-15 gif-playback/*

@@ -2,6 +2,18 @@ import type { Frame } from "$lib/types";
 
 let frames = $state<Frame[]>([]);
 let selectedFrameId = $state<string | null>(null);
+let isPlaying = $state(false);
+let playbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleNextFrame() {
+  const currentFrame = frames.find((f) => f.id === selectedFrameId);
+  if (!currentFrame) return;
+  playbackTimer = setTimeout(() => {
+    const index = frames.findIndex((f) => f.id === selectedFrameId);
+    selectedFrameId = frames[(index + 1) % frames.length].id;
+    scheduleNextFrame();
+  }, currentFrame.duration);
+}
 
 export const frameStore = {
   get frames() {
@@ -20,7 +32,12 @@ export const frameStore = {
     return frames.length > 0;
   },
 
+  get isPlaying(): boolean {
+    return isPlaying;
+  },
+
   setFrames(newFrames: Frame[]) {
+    frameStore.stop();
     frames = newFrames;
     if (newFrames.length > 0) {
       selectedFrameId = newFrames[0].id;
@@ -70,7 +87,22 @@ export const frameStore = {
     frames = updated;
   },
 
+  play() {
+    if (!frames.length || isPlaying) return;
+    isPlaying = true;
+    scheduleNextFrame();
+  },
+
+  stop() {
+    if (playbackTimer !== null) {
+      clearTimeout(playbackTimer);
+      playbackTimer = null;
+    }
+    isPlaying = false;
+  },
+
   clear() {
+    frameStore.stop();
     frames = [];
     selectedFrameId = null;
   },
