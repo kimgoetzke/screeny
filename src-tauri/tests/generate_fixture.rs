@@ -54,7 +54,12 @@ fn generate_test_gif() {
     println!("Wrote fixture to {}", output.display());
 
     // Verify it round-trips
-    let decoded =
-        screeny_lib::gif::decode::decode_gif_file(&output).unwrap();
-    assert_eq!(decoded.len(), 3);
+    let mut frames_decoded = Vec::new();
+    screeny_lib::gif::decode::decode_gif_stream_path(&output, |event| {
+        if let screeny_lib::gif::DecodeEvent::Frame(frame) = event {
+            frames_decoded.push(frame);
+        }
+    })
+    .unwrap();
+    assert_eq!(frames_decoded.len(), 3);
 }

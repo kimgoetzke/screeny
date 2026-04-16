@@ -1,37 +1,50 @@
 import type { Frame, ExportFrame } from "$lib/types";
 
 export interface DialogProvider {
-  openFile(): Promise<Uint8Array | null>;
+  openFile(): Promise<string | null>;
   saveFile(): Promise<string | null>;
 }
 
 export interface GifBackend {
-  decode(data: Uint8Array): Promise<Frame[]>;
+  decodeStreaming(
+    path: string,
+    onFrame: (frame: Frame) => void,
+    onProgress: (progress: number) => void,
+  ): Promise<void>;
   export(frames: ExportFrame[], path: string): Promise<void>;
 }
 
 export interface ActionResult {
-  frames?: Frame[];
   message?: string;
   error?: string;
 }
 
-export async function openGif(
+export async function openGifStreaming(
   dialog: DialogProvider,
   backend: GifBackend,
+  onFrame: (frame: Frame) => void,
+  onProgress: (progress: number) => void,
 ): Promise<ActionResult> {
-  let data: Uint8Array | null;
+  let path: string | null;
   try {
-    data = await dialog.openFile();
+    path = await dialog.openFile();
   } catch (error) {
     return { error: `Failed to open file dialog: ${error}` };
   }
 
-  if (!data) return {};
+  if (!path) return {};
 
+  let frameCount = 0;
   try {
-    const frames = await backend.decode(data);
-    return { frames, message: `Loaded ${frames.length} frames` };
+    await backend.decodeStreaming(
+      path,
+      (frame) => {
+        frameCount++;
+        onFrame(frame);
+      },
+      onProgress,
+    );
+    return { message: `Loaded ${frameCount} frames` };
   } catch (error) {
     return { error: `Failed to decode GIF: ${error}` };
   }

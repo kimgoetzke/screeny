@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { Channel, invoke } from "@tauri-apps/api/core";
   import { frameStore } from "$lib/stores/frames.svelte";
-  import { openGif, exportGif } from "$lib/actions";
+  import { openGifStreaming, exportGif } from "$lib/actions";
   import type { DialogProvider, GifBackend } from "$lib/actions";
+  import type { DecodeEvent } from "$lib/types";
   import FilePicker from "$lib/components/FilePicker.svelte";
 
   let loading = $state(false);
@@ -10,7 +11,7 @@
   let isE2e = $state(false);
 
   let showFilePicker = $state(false);
-  let filePickerResolve: ((result: Uint8Array | null) => void) | null = null;
+  let filePickerResolve: ((path: string | null) => void) | null = null;
   let filePickerReject: ((error: unknown) => void) | null = null;
 
   let showSaveInput = $state(false);
@@ -39,15 +40,9 @@
     },
   };
 
-  async function handleFilePickerConfirm(path: string) {
+  function handleFilePickerConfirm(path: string) {
     showFilePicker = false;
-    if (!filePickerResolve) return;
-    try {
-      const bytes: number[] = await invoke("read_file_bytes", { path });
-      filePickerResolve(new Uint8Array(bytes));
-    } catch (error) {
-      filePickerReject?.(error);
-    }
+    filePickerResolve?.(path);
     filePickerResolve = null;
     filePickerReject = null;
   }
@@ -68,24 +63,41 @@
   }
 
   const backend: GifBackend = {
-    decode: (data) => invoke("decode_gif_bytes", { data: Array.from(data) }),
+    decodeStreaming: async (path, onFrame, onProgress) => {
+      const channel = new Channel<DecodeEvent>();
+      channel.onmessage = (event) => {
+        if (event.type === "frame") {
+          onFrame(event.data);
+        } else if (event.type === "progress") {
+          const percentage = Math.round(
+            (event.data.bytesRead / event.data.totalBytes) * 100,
+          );
+          onProgress(percentage);
+        }
+      };
+      await invoke("decode_gif_stream", { path, onEvent: channel });
+    },
     export: (frames, path) => invoke("export_gif", { frames, path }),
   };
 
   async function handleOpen() {
     loading = true;
-    statusMessage = "Opening…";
+    statusMessage = "";
+    frameStore.startLoading();
     try {
-      const result = await openGif(getDialog(), backend);
+      const result = await openGifStreaming(
+        getDialog(),
+        backend,
+        (frame) => frameStore.addFrame(frame),
+        (progress) => frameStore.setLoadingProgress(progress),
+      );
       if (result.error) {
         statusMessage = result.error;
-      } else if (result.frames) {
-        frameStore.setFrames(result.frames);
-        statusMessage = result.message ?? "";
       } else {
-        statusMessage = "";
+        statusMessage = result.message ?? "";
       }
     } finally {
+      frameStore.finishLoading();
       loading = false;
     }
   }
@@ -174,6 +186,23 @@
       <button onclick={confirmSave} data-testid="btn-save-confirm">Save</button>
       <button onclick={cancelSave} data-testid="btn-save-cancel">Cancel</button>
     </div>
+  {:else if frameStore.isLoading}
+    <div class="loading-progress" data-testid="loading-progress">
+      <div class="progress-track">
+        <div
+          class="progress-fill"
+          style="width: {frameStore.loadingProgress ?? 0}%"
+        ></div>
+      </div>
+      <span class="progress-label">
+        Loading{frameStore.loadingProgress !== null
+          ? ` ${frameStore.loadingProgress}%`
+          : ""}
+        {#if frameStore.frames.length > 0}
+          &nbsp;({frameStore.frames.length} frames)
+        {/if}
+      </span>
+    </div>
   {:else if statusMessage}
     <span class="status" data-testid="status-message">{statusMessage}</span>
   {/if}
@@ -255,5 +284,36 @@
   .save-input-row button {
     padding: 6px 14px;
     font-size: 14px;
+  }
+
+  .loading-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 3px;
+    transition: width 0.1s ease;
+  }
+
+  .progress-label {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 </style>

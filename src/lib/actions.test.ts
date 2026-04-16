@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { openGif, exportGif } from "./actions";
+import { openGifStreaming, exportGif } from "./actions";
 import type { DialogProvider, GifBackend } from "./actions";
 import type { Frame } from "$lib/types";
 
@@ -9,7 +9,7 @@ function makeFrame(id: string): Frame {
 
 function mockDialog(overrides: Partial<DialogProvider> = {}): DialogProvider {
   return {
-    openFile: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    openFile: vi.fn().mockResolvedValue("/path/to/file.gif"),
     saveFile: vi.fn().mockResolvedValue("/some/export.gif"),
     ...overrides,
   };
@@ -17,30 +17,56 @@ function mockDialog(overrides: Partial<DialogProvider> = {}): DialogProvider {
 
 function mockBackend(overrides: Partial<GifBackend> = {}): GifBackend {
   return {
-    decode: vi.fn().mockResolvedValue([makeFrame("a"), makeFrame("b")]),
+    decodeStreaming: vi.fn().mockResolvedValue(undefined),
     export: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
-describe("openGif", () => {
-  it("should return frames on success", async () => {
-    const result = await openGif(mockDialog(), mockBackend());
+describe("openGifStreaming", () => {
+  it("should return a success message with frame count", async () => {
+    const frames = [makeFrame("a"), makeFrame("b")];
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation((_path, onFrame) => {
+        frames.forEach(onFrame);
+        return Promise.resolve();
+      }),
+    });
+    const onFrame = vi.fn();
+    const onProgress = vi.fn();
 
-    expect(result.frames).toHaveLength(2);
+    const result = await openGifStreaming(mockDialog(), backend, onFrame, onProgress);
+
     expect(result.message).toBe("Loaded 2 frames");
     expect(result.error).toBeUndefined();
+  });
+
+  it("should call onFrame for each received frame", async () => {
+    const frames = [makeFrame("a"), makeFrame("b")];
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation((_path, onFrame) => {
+        frames.forEach(onFrame);
+        return Promise.resolve();
+      }),
+    });
+    const onFrame = vi.fn();
+
+    await openGifStreaming(mockDialog(), backend, onFrame, vi.fn());
+
+    expect(onFrame).toHaveBeenCalledTimes(2);
+    expect(onFrame).toHaveBeenCalledWith(frames[0]);
+    expect(onFrame).toHaveBeenCalledWith(frames[1]);
   });
 
   it("should return empty result when dialog is cancelled", async () => {
     const dialog = mockDialog({ openFile: vi.fn().mockResolvedValue(null) });
     const backend = mockBackend();
 
-    const result = await openGif(dialog, backend);
+    const result = await openGifStreaming(dialog, backend, vi.fn(), vi.fn());
 
-    expect(result.frames).toBeUndefined();
+    expect(result.message).toBeUndefined();
     expect(result.error).toBeUndefined();
-    expect(backend.decode).not.toHaveBeenCalled();
+    expect(backend.decodeStreaming).not.toHaveBeenCalled();
   });
 
   it("should return error when dialog throws", async () => {
@@ -48,35 +74,36 @@ describe("openGif", () => {
       openFile: vi.fn().mockRejectedValue(new Error("portal unavailable")),
     });
 
-    const result = await openGif(dialog, mockBackend());
+    const result = await openGifStreaming(dialog, mockBackend(), vi.fn(), vi.fn());
 
     expect(result.error).toContain("Failed to open file dialog");
     expect(result.error).toContain("portal unavailable");
-    expect(result.frames).toBeUndefined();
   });
 
   it("should return error when decode fails", async () => {
     const backend = mockBackend({
-      decode: vi.fn().mockRejectedValue(new Error("invalid GIF")),
+      decodeStreaming: vi.fn().mockRejectedValue(new Error("invalid GIF")),
     });
 
-    const result = await openGif(mockDialog(), backend);
+    const result = await openGifStreaming(mockDialog(), backend, vi.fn(), vi.fn());
 
     expect(result.error).toContain("Failed to decode GIF");
     expect(result.error).toContain("invalid GIF");
-    expect(result.frames).toBeUndefined();
   });
 
-  it("should pass the file bytes to decode", async () => {
-    const bytes = new Uint8Array([1, 2, 3]);
+  it("should pass the file path to decodeStreaming", async () => {
     const dialog = mockDialog({
-      openFile: vi.fn().mockResolvedValue(bytes),
+      openFile: vi.fn().mockResolvedValue("/some/path/animation.gif"),
     });
     const backend = mockBackend();
 
-    await openGif(dialog, backend);
+    await openGifStreaming(dialog, backend, vi.fn(), vi.fn());
 
-    expect(backend.decode).toHaveBeenCalledWith(bytes);
+    expect(backend.decodeStreaming).toHaveBeenCalledWith(
+      "/some/path/animation.gif",
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 });
 

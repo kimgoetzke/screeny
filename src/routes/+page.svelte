@@ -1,13 +1,13 @@
 <script lang="ts">
   import "$lib/theme.css";
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { Channel, invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import type { DecodeEvent } from "$lib/types";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import FrameViewer from "$lib/components/FrameViewer.svelte";
   import Timeline from "$lib/components/Timeline.svelte";
   import { frameStore } from "$lib/stores/frames.svelte";
-  import type { Frame } from "$lib/types";
 
   let dragging = $state(false);
   let dropError = $state("");
@@ -43,11 +43,24 @@
 
   async function handleDrop(path: string) {
     dropError = "";
+    frameStore.startLoading();
     try {
-      const frames: Frame[] = await invoke("decode_gif", { path });
-      frameStore.setFrames(frames);
+      const channel = new Channel<DecodeEvent>();
+      channel.onmessage = (event) => {
+        if (event.type === "frame") {
+          frameStore.addFrame(event.data);
+        } else if (event.type === "progress") {
+          const percentage = Math.round(
+            (event.data.bytesRead / event.data.totalBytes) * 100,
+          );
+          frameStore.setLoadingProgress(percentage);
+        }
+      };
+      await invoke("decode_gif_stream", { path, onEvent: channel });
     } catch (error) {
       dropError = `Failed to decode GIF: ${error}`;
+    } finally {
+      frameStore.finishLoading();
     }
   }
 </script>

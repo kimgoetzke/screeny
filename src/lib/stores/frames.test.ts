@@ -238,4 +238,80 @@ describe("frameStore", () => {
       expect(frameStore.selectedFrameId).toBeNull();
     });
   });
+
+  describe("addFrame", () => {
+    it("appends a frame to the frames list", () => {
+      frameStore.addFrame(makeFrame("a"));
+
+      expect(frameStore.frames).toHaveLength(1);
+      expect(frameStore.frames[0].id).toBe("a");
+    });
+
+    it("selects the first frame added", () => {
+      frameStore.addFrame(makeFrame("a"));
+
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    it("does not change selection when adding a subsequent frame", () => {
+      frameStore.addFrame(makeFrame("a"));
+      frameStore.addFrame(makeFrame("b"));
+
+      expect(frameStore.selectedFrameId).toBe("a");
+      expect(frameStore.frames).toHaveLength(2);
+    });
+  });
+
+  describe("isLoading", () => {
+    it("is false initially", () => {
+      expect(frameStore.isLoading).toBe(false);
+    });
+
+    it("startLoading sets isLoading to true", () => {
+      frameStore.startLoading();
+
+      expect(frameStore.isLoading).toBe(true);
+    });
+
+    it("finishLoading sets isLoading to false", () => {
+      frameStore.startLoading();
+      frameStore.finishLoading();
+
+      expect(frameStore.isLoading).toBe(false);
+    });
+
+    it("startLoading clears existing frames", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.startLoading();
+
+      expect(frameStore.frames).toHaveLength(0);
+    });
+  });
+
+  describe("loadingProgress", () => {
+    it("is null when not loading", () => {
+      expect(frameStore.loadingProgress).toBeNull();
+    });
+
+    it("startLoading resets progress to 0", () => {
+      frameStore.startLoading();
+
+      expect(frameStore.loadingProgress).toBe(0);
+    });
+
+    it("setLoadingProgress updates loadingProgress", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingProgress(50);
+
+      expect(frameStore.loadingProgress).toBe(50);
+    });
+
+    it("finishLoading clears progress to null", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingProgress(50);
+      frameStore.finishLoading();
+
+      expect(frameStore.loadingProgress).toBeNull();
+    });
+  });
 });

@@ -63,8 +63,21 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gif::decode::decode_gif_file;
+    use crate::gif::DecodeEvent;
+    use crate::gif::decode::decode_gif_stream_path;
     use tempfile::NamedTempFile;
+
+    /// Decode all frames from a file path using the streaming API.
+    fn decode_all_frames(path: &std::path::Path) -> Vec<crate::gif::Frame> {
+        let mut frames = Vec::new();
+        decode_gif_stream_path(path, |event| {
+            if let DecodeEvent::Frame(frame) = event {
+                frames.push(frame);
+            }
+        })
+        .unwrap();
+        frames
+    }
 
     /// Create an ExportFrame from solid RGBA colour.
     fn make_export_frame(colour: [u8; 4], width: u32, height: u32, duration: u32) -> ExportFrame {
@@ -98,7 +111,7 @@ mod tests {
         encode_gif_file(&[frame], output.path()).unwrap();
 
         // Verify the output is a valid GIF by decoding it
-        let decoded = decode_gif_file(output.path()).unwrap();
+        let decoded = decode_all_frames(output.path());
         assert_eq!(decoded.len(), 1);
         assert_eq!(decoded[0].width, 4);
         assert_eq!(decoded[0].height, 4);
@@ -114,7 +127,7 @@ mod tests {
 
         encode_gif_file(&frames, output.path()).unwrap();
 
-        let decoded = decode_gif_file(output.path()).unwrap();
+        let decoded = decode_all_frames(output.path());
         assert_eq!(decoded.len(), 2);
     }
 

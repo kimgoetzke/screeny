@@ -4,6 +4,8 @@ let frames = $state<Frame[]>([]);
 let selectedFrameId = $state<string | null>(null);
 let isPlaying = $state(false);
 let playbackTimer: ReturnType<typeof setTimeout> | null = null;
+let isLoading = $state(false);
+let loadingProgress = $state<number | null>(null);
 
 function scheduleNextFrame() {
   const currentFrame = frames.find((f) => f.id === selectedFrameId);
@@ -105,5 +107,39 @@ export const frameStore = {
     frameStore.stop();
     frames = [];
     selectedFrameId = null;
+    isLoading = false;
+    loadingProgress = null;
+  },
+
+  addFrame(frame: Frame) {
+    frames = [...frames, frame];
+    if (frames.length === 1) {
+      selectedFrameId = frame.id;
+    }
+  },
+
+  get isLoading(): boolean {
+    return isLoading;
+  },
+
+  get loadingProgress(): number | null {
+    return loadingProgress;
+  },
+
+  startLoading() {
+    frameStore.stop();
+    frames = [];
+    selectedFrameId = null;
+    isLoading = true;
+    loadingProgress = 0;
+  },
+
+  finishLoading() {
+    isLoading = false;
+    loadingProgress = null;
+  },
+
+  setLoadingProgress(percentage: number) {
+    loadingProgress = percentage;
   },
 };

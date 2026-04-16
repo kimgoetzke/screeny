@@ -55,20 +55,6 @@ pub fn e2e_check() -> bool {
 }
 
 #[tauri::command]
-pub fn e2e_open_fixture() -> Result<Option<Vec<u8>>, String> {
-    if !is_e2e_mode() {
-        return Err("Not in E2E mode".to_string());
-    }
-    let path = fixture_path()?;
-    let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err(format!("Fixture not found: {path}"));
-    }
-    let bytes = std::fs::read(&p).map_err(|e| format!("Failed to read fixture: {e}"))?;
-    Ok(Some(bytes))
-}
-
-#[tauri::command]
 pub fn e2e_fixture_dir() -> Result<String, String> {
     if !is_e2e_mode() {
         return Err("Not in E2E mode".to_string());

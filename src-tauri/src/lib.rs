@@ -3,8 +3,8 @@ pub mod gif;
 
 use std::path::PathBuf;
 
-use gif::{ExportFrame, Frame};
-use tauri::{window::Color, Manager};
+use gif::ExportFrame;
+use tauri::{ipc::Channel, window::Color, Manager};
 
 #[derive(serde::Serialize, Clone)]
 pub struct DirEntry {
@@ -15,13 +15,10 @@ pub struct DirEntry {
 }
 
 #[tauri::command]
-fn decode_gif(path: String) -> Result<Vec<Frame>, String> {
-    gif::decode::decode_gif_file(&PathBuf::from(path))
-}
-
-#[tauri::command]
-fn decode_gif_bytes(data: Vec<u8>) -> Result<Vec<Frame>, String> {
-    gif::decode::decode_gif_bytes(&data)
+fn decode_gif_stream(path: String, on_event: Channel<gif::DecodeEvent>) -> Result<(), String> {
+    gif::decode::decode_gif_stream_path(&PathBuf::from(path), |event| {
+        on_event.send(event).ok();
+    })
 }
 
 #[tauri::command]
@@ -81,11 +78,6 @@ fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
 }
 
 #[tauri::command]
-fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    std::fs::read(&path).map_err(|e| format!("Failed to read file '{path}': {e}"))
-}
-
-#[tauri::command]
 fn close_splashscreen(app: tauri::AppHandle) {
     if !e2e::is_e2e_mode() {
         if let Some(window) = app.get_webview_window("splashscreen") {
@@ -129,17 +121,14 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            decode_gif,
-            decode_gif_bytes,
+            decode_gif_stream,
             export_gif,
             suggest_export_path,
             home_dir,
             list_dir,
-            read_file_bytes,
             close_splashscreen,
             e2e_close_splashscreen,
             e2e::e2e_check,
-            e2e::e2e_open_fixture,
             e2e::e2e_save_path,
             e2e::e2e_fixture_dir,
         ])
@@ -188,21 +177,4 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[test]
-    fn read_file_bytes_returns_file_contents() {
-        let dir = tempdir().unwrap();
-        let file_path = dir.path().join("test.gif");
-        let content = b"GIF89a content";
-        fs::write(&file_path, content).unwrap();
-
-        let bytes = read_file_bytes(file_path.to_str().unwrap().to_string()).unwrap();
-
-        assert_eq!(bytes, content);
-    }
-
-    #[test]
-    fn read_file_bytes_errors_on_nonexistent_file() {
-        let result = read_file_bytes("/nonexistent/file.gif".to_string());
-        assert!(result.is_err());
-    }
 }
