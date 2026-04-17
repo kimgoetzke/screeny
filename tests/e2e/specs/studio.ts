@@ -248,3 +248,45 @@ describe("Studio — GIF playback", () => {
     expect(frameAfterStop).toBe(frameBeforeStop);
   });
 });
+
+describe("Studio — close project", () => {
+  // At this point 2 frames are loaded (post-delete suite) and playback is stopped.
+
+  it("should show the Close button and no Open button when frames are loaded", async () => {
+    const closeBtn = await $('[data-testid="btn-close"]');
+    await closeBtn.waitForExist({ timeout: 5_000 });
+    await expect(closeBtn).toBeDisplayed();
+    await expect(await $('[data-testid="btn-open"]')).not.toBeExisting();
+  });
+
+  it("should show the confirmation dialog when clicking Close", async () => {
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await expect(dialog).toBeDisplayed();
+  });
+
+  it("should close the dialog and preserve frames when clicking Cancel", async () => {
+    await jsClick('[data-testid="btn-dialog-cancel"]');
+    await expect(await $('[data-testid="dialog"]')).not.toBeExisting();
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+  });
+
+  it("should show the dialog again when clicking Close a second time", async () => {
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await expect(dialog).toBeDisplayed();
+  });
+
+  it("should clear all frames and show the Open button when clicking Continue", async () => {
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    const openBtn = await $('[data-testid="btn-open"]');
+    await openBtn.waitForExist({ timeout: 5_000 });
+    await expect(openBtn).toBeDisplayed();
+    await expect(await $('[data-testid="btn-close"]')).not.toBeExisting();
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(0);
+  });
+});

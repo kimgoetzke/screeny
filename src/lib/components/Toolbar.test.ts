@@ -17,6 +17,30 @@ describe("Toolbar", () => {
     frameStore.clear();
   });
 
+  describe("Open / Close button visibility", () => {
+    it("shows Open button when no frames are loaded", () => {
+      const { body } = render(Toolbar);
+      expect(body).toContain('data-testid="btn-open"');
+    });
+
+    it("does not show Close button when no frames are loaded", () => {
+      const { body } = render(Toolbar);
+      expect(body).not.toContain('data-testid="btn-close"');
+    });
+
+    it("shows Close button when frames are loaded", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      const { body } = render(Toolbar);
+      expect(body).toContain('data-testid="btn-close"');
+    });
+
+    it("does not show Open button when frames are loaded", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      const { body } = render(Toolbar);
+      expect(body).not.toContain('data-testid="btn-open"');
+    });
+  });
+
   it("play and stop buttons are not shown when there are no frames", () => {
     const { body } = render(Toolbar);
     expect(body).not.toContain('data-testid="btn-play"');

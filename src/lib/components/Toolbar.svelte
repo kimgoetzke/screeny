@@ -5,6 +5,7 @@
   import type { DialogProvider, GifBackend } from "$lib/actions";
   import type { DecodeEvent } from "$lib/types";
   import FilePicker from "$lib/components/FilePicker.svelte";
+  import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 
   let loading = $state(false);
   let statusMessage = $state("");
@@ -13,6 +14,8 @@
   let showFilePicker = $state(false);
   let filePickerResolve: ((path: string | null) => void) | null = null;
   let filePickerReject: ((error: unknown) => void) | null = null;
+
+  let showCloseConfirm = $state(false);
 
   let showSaveInput = $state(false);
   let savePath = $state("");
@@ -130,15 +133,42 @@
     saveResolve?.(null);
     saveResolve = null;
   }
+
+  function handleClose() {
+    showCloseConfirm = true;
+  }
+
+  function confirmClose() {
+    frameStore.clear();
+    showCloseConfirm = false;
+  }
+
+  function cancelClose() {
+    showCloseConfirm = false;
+  }
 </script>
 
 {#if showFilePicker}
   <FilePicker onConfirm={handleFilePickerConfirm} onCancel={handleFilePickerCancel} />
 {/if}
 
+{#if showCloseConfirm}
+  <NotificationDialog
+    message={"Any unsaved changes will be lost.\nDo you want to continue?"}
+    confirmLabel="Continue"
+    cancelLabel="Cancel"
+    onConfirm={confirmClose}
+    onCancel={cancelClose}
+  />
+{/if}
+
 <div class="toolbar" data-testid="toolbar">
   <div class="toolbar-actions">
-    <button onclick={handleOpen} disabled={loading} data-testid="btn-open">Open</button>
+    {#if frameStore.hasFrames}
+      <button onclick={handleClose} disabled={loading} data-testid="btn-close">Close</button>
+    {:else}
+      <button onclick={handleOpen} disabled={loading} data-testid="btn-open">Open</button>
+    {/if}
     <button
       onclick={handleExport}
       disabled={loading || !frameStore.hasFrames}
