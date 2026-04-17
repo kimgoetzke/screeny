@@ -193,59 +193,58 @@ describe("Studio — GIF playback", () => {
 
   it("should advance the active frame in the timeline during playback", async () => {
     // Playback is running from the previous test. Capture the currently selected frame.
-    const thumbs = await $$('[data-testid^="frame-thumb-"]');
-    let selectedBefore: string | null = null;
-    for (const thumb of thumbs) {
-      const cls = await thumb.getAttribute("class");
-      if (cls?.includes("selected")) {
-        selectedBefore = await thumb.getAttribute("data-testid");
-        break;
+    const getSelectedThumbId = async (): Promise<string | null> => {
+      const thumbs = await $$('[data-testid^="frame-thumb-"]');
+      for (const thumb of thumbs) {
+        const cls = await thumb.getAttribute("class");
+        if (cls?.includes("selected")) {
+          return thumb.getAttribute("data-testid");
+        }
       }
-    }
+      return null;
+    };
 
-    // Wait long enough for at least one frame advance (frames are typically ~100ms in test fixture)
-    await browser.pause(500);
+    const selectedBefore = await getSelectedThumbId();
 
-    let selectedAfter: string | null = null;
-    for (const thumb of thumbs) {
-      const cls = await thumb.getAttribute("class");
-      if (cls?.includes("selected")) {
-        selectedAfter = await thumb.getAttribute("data-testid");
-        break;
-      }
-    }
+    // Poll until the active frame changes rather than using a fixed pause.
+    // With 2 frames at ~100 ms each the cycle is ~200 ms; 3 s is a safe upper bound.
+    await browser.waitUntil(
+      async () => {
+        const current = await getSelectedThumbId();
+        return current !== null && current !== selectedBefore;
+      },
+      { timeout: 3_000, timeoutMsg: "Active frame did not advance within 3 s" },
+    );
 
-    expect(selectedAfter).not.toBe(selectedBefore);
+    expect(await getSelectedThumbId()).not.toBe(selectedBefore);
   });
 
   it("clicking stop should re-enable play, disable stop, and preserve the current frame", async () => {
-    // Playback is still running. Record which frame is selected just before stopping.
-    const thumbs = await $$('[data-testid^="frame-thumb-"]');
-    let frameBeforeStop: string | null = null;
-    for (const thumb of thumbs) {
-      const cls = await thumb.getAttribute("class");
-      if (cls?.includes("selected")) {
-        frameBeforeStop = await thumb.getAttribute("data-testid");
-        break;
-      }
-    }
-
+    // Playback is still running. Stop it immediately — capturing the frame *before*
+    // stop is racy because the frame can advance between the read and the click.
     await jsClick('[data-testid="btn-stop"]');
 
     await expect(await $('[data-testid="btn-play"]')).not.toBeDisabled();
     await expect(await $('[data-testid="btn-stop"]')).toBeDisabled();
 
-    // The frame should not have changed on stop — no revert to frame 0
-    let frameAfterStop: string | null = null;
-    for (const thumb of thumbs) {
-      const cls = await thumb.getAttribute("class");
-      if (cls?.includes("selected")) {
-        frameAfterStop = await thumb.getAttribute("data-testid");
-        break;
+    // Read which frame is selected now that playback is stopped.
+    const getSelectedThumbId = async (): Promise<string | null> => {
+      const thumbs = await $$('[data-testid^="frame-thumb-"]');
+      for (const thumb of thumbs) {
+        const cls = await thumb.getAttribute("class");
+        if (cls?.includes("selected")) {
+          return thumb.getAttribute("data-testid");
+        }
       }
-    }
+      return null;
+    };
 
-    expect(frameAfterStop).toBe(frameBeforeStop);
+    const frameAtStop = await getSelectedThumbId();
+
+    // Wait longer than one full playback cycle to confirm the frame no longer advances.
+    await browser.pause(500);
+
+    expect(await getSelectedThumbId()).toBe(frameAtStop);
   });
 });
 
