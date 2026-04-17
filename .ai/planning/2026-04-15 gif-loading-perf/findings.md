@@ -158,6 +158,22 @@ The Phase 1 benchmark (`test_fast_compression_is_faster_than_best`, `decode.rs`)
 | ----- | ---------- |
 |       |            |
 
+### Wayland ANR Mechanism (Q4 Research)
+
+How the OS "terminate or wait" dialog is triggered on Wayland/Hyprland, and what actually causes it in this app.
+
+**Detection mechanism:** Hyprland uses the `xdg_wm_base` ping/pong protocol (XDG Shell Wayland extension). The compositor sends a `ping` with a serial; the client must reply with `pong` within ~1.5 s (Hyprland default: `anr_missed_pings = 1`, so one missed pong = ~3 s before ANR dialog).
+
+**Which thread responds to pings:** GDK's Wayland backend wires the ping callback as a GLib source on the **GTK main thread** (the thread running `g_main_loop_run`). The pong is sent synchronously inside that callback. If the GTK main thread is blocked, pongs stop and the ANR fires.
+
+**Does blocking the JS thread cause the ANR?** No. WebKitGTK uses WebKit2's multi-process model: JavaScript runs in a separate `WebKitWebProcess` process. Long JS execution or heavy DOM updates happen in that child process and do **not** block the GTK main thread. Pings continue to be answered.
+
+**Does blocking Rust threads cause the ANR?** No. `tokio::task::spawn_blocking` runs on a dedicated thread pool, separate from the GTK main thread. Heavy CPU work there does not block the GTK main loop.
+
+**Implication for Phase 5:** Making `decode_gif_stream` async (with `spawn_blocking`) is good Tauri practice but will **not** fix the OS ANR dialog. Similarly, reducing JS churn (Phase 6) will not directly fix the ANR either. The true cause of the ANR must be something that blocks the GTK main thread — the most likely candidate is Tauri's IPC channel event delivery mechanism becoming backlogged under heavy frame event throughput and stalling the GTK loop. Phase 6 (batching — fewer channel events per second) is the most likely indirect fix by reducing IPC pressure.
+
+**Sources:** XDG Shell Wayland protocol; GTK/GLib main loop docs; WebKit2 multi-process architecture; Hyprland ANR discussion; Tauri GTK main thread issue (tauri-apps/tauri#11312).
+
 ## Resources
 
 - `src-tauri/src/gif/decode.rs` — main decode logic

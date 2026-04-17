@@ -86,7 +86,7 @@ E2E context: The E2E tests in `tests/e2e/specs/studio.ts` interact via the UI (f
 
 ### Phase 5: Quick Wins — Paint Boundary + Async Rust Command (TDD)
 
-Two independent low-effort fixes that each target a different layer. Apply both together.
+Two independent low-effort fixes. Priority from Q5: immediate loading feedback is the goal. The OS ANR dialog fix is NOT achievable here — see Q4 findings: the ANR is caused by GTK main thread blockage, not JS or Rust threads. Phase 6 (batching) is the actual ANR fix by reducing IPC channel pressure on the GTK loop.
 
 **Option 1 — Paint boundary / loading UI timing:**
 Force the browser to paint the loading state before decode begins, and keep it visible until the UI has genuinely settled (not just until `invoke` resolves).
@@ -95,11 +95,19 @@ Force the browser to paint the loading state before decode begins, and keep it v
 - [ ] Force a paint boundary in `Toolbar.svelte` between `startLoading()` and the `invoke` call (e.g. `await tick()` or `requestAnimationFrame` Promise)
 - [ ] Force a paint boundary in `+page.svelte` drag-and-drop handler between `startLoading()` and the `invoke` call
 - [ ] Defer `finishLoading()` until after a final `await tick()` / `requestAnimationFrame` so queued DOM updates drain before the loading indicator disappears
+- [ ] Write test: `Start` event carries correct `total_frames` count matching the GIF fixture
+- [ ] Write test: progress display shows byte percentage before first `Frame` event, then frame-count after
+- [ ] Add `Start { total_bytes: u64, total_frames: usize }` variant to `DecodeEvent` enum in `gif/mod.rs` and matching TypeScript union in `types.ts`
+- [ ] Implement cheap GIF frame pre-scan in `decode_gif_stream_path` (scan for `0x2C` image descriptor markers to count frames; ~1–2 ms for typical files)
+- [ ] Emit `Start` as the very first channel event before `Progress`/`Frame` events
+- [ ] Update frontend handlers (`Toolbar.svelte`, `+page.svelte`) to track `totalFrames` from `Start`; show byte-based percentage for `Progress` events, switch to "Loading frame X of Y" once the first `Frame` event arrives
+- [ ] Run all Rust tests (`cargo test`)
+- [ ] Run all frontend tests (`pnpm test:unit`)
 - [ ] Run all frontend tests (`pnpm test:unit`)
 - [ ] Follow `tdd` skill (red-green-refactor) for all new code
 
 **Option 3 — Async Rust command:**
-Make `decode_gif_stream` async and run the heavy decode work on a blocking task thread, as Tauri recommends for long-running commands.
+Make `decode_gif_stream` async and run the heavy decode work on a blocking task thread, as Tauri recommends for long-running commands. Note: this will NOT fix the OS ANR dialog (see Q4), but aligns with Tauri best practice.
 
 - [ ] Write test: streaming decode still emits all frames and completes correctly when run via `spawn_blocking`
 - [ ] Change `decode_gif_stream` in `src-tauri/src/lib.rs` from a synchronous to an `async` Tauri command
@@ -112,7 +120,7 @@ Make `decode_gif_stream` async and run the heavy decode work on a blocking task 
 
 ### Phase 6: Frontend Batching — Reduce Render Churn (TDD)
 
-Queue incoming frame events and flush in batches; avoid array copying on every append; stop unnecessary `FrameViewer` redraws during load.
+Primary fix for the OS ANR dialog (Q4): reducing channel event frequency lowers IPC pressure on the GTK main thread. Also the primary fix for faster E2E loading time (Q5 priority 2). Queue incoming frame events and flush in batches; avoid array copying on every append; stop unnecessary `FrameViewer` redraws during load.
 
 - [ ] Write test: batched frame appends result in the correct final frame list
 - [ ] Write test: `FrameViewer` does not redraw when the selected frame index is unchanged
@@ -128,7 +136,9 @@ Key files: `src/lib/stores/frames.svelte.ts:114-119`, `src/lib/components/Timeli
 
 - **Status:** pending
 
-### Phase 7: Frame Payload Redesign — Remove Per-Frame PNG Encode (TDD)
+### Phase 7: Frame Payload Redesign — Remove Per-Frame PNG Encode (TDD) [DEFERRED]
+
+**Deferred per Q3:** complete Phase 6 first, then reevaluate whether Phase 7 is needed.
 
 Stop generating a full PNG base64 data URL for every frame during initial load. Separate frame data by use case: timeline thumbnail, viewer display, and export.
 
@@ -156,7 +166,7 @@ Key files: `src-tauri/src/gif/decode.rs:150-162`, `src-tauri/src/gif/mod.rs`, `s
 2. Does the file picker need to change from returning bytes to returning a path? → Yes, simplifies everything
 3. Should we keep the old `decode_gif` / `decode_gif_bytes` commands? → **No. Remove them.** E2E tests interact via UI (file picker), not direct command invocation. `e2e_open_fixture` is unused. See Q1 response.
 4. What version of `image` crate is `new_with_quality` available in? → Need to verify for 0.25
-5. Byte-level vs frame-count progress? → **Byte-level.** ProgressReader adds ~1 addition + 1 comparison per read() call — effectively zero overhead. Gives smooth percentage with no performance cost. See Q2 response.
+5. Byte-level vs frame-count progress? → **Hybrid (Q6).** Byte-based percentage during file read for early feedback; switch to "frame X of Y" frame-count display once first `Frame` event arrives. Requires GIF pre-scan for total frame count. New `Start { total_bytes, total_frames }` event added to `DecodeEvent`.
 
 ## Decisions Made
 
@@ -165,9 +175,12 @@ Key files: `src-tauri/src/gif/decode.rs:150-162`, `src-tauri/src/gif/mod.rs`, `s
 | Fast PNG: keep defaults — `CompressionType::Fast` + `FilterType::Adaptive` | Phase 1 investigation found these are already the `image 0.25.10` defaults and are optimal. `FilterType::NoFilter` is 10x **slower**. No code change was made. |
 | `tauri::ipc::Channel` for streaming | Purpose-built for command-to-frontend streaming in Tauri 2 |
 | Send file path instead of bytes from file picker | Eliminates `read_file_bytes` + `Array.from()` overhead |
-| Byte-tracking ProgressReader for percentage | Accurate progress without needing frame count upfront. Overhead is ~1 addition per read() — effectively free (confirmed via Q2 analysis). |
+| Hybrid progress display (Q6) | Byte-based % during file read (early feedback); switches to "Loading frame X of Y" once first `Frame` event arrives (accurate encode progress). GIF pre-scan (~1–2 ms) provides `total_frames`. New `Start { total_bytes, total_frames }` event added to `DecodeEvent`. Supersedes earlier byte-only decision. |
 | Incremental `addFrame` instead of bulk `setFrames` | Prevents DOM freeze from hundreds of thumbnails |
 | Remove old decode commands + `e2e_open_fixture` | E2E tests use UI flow, not direct command invocation. `e2e_open_fixture` is unused. No backwards compat needed. |
+| Async Rust command does NOT fix OS ANR dialog | Q4 research: Wayland ANR is triggered by the GTK main thread missing `xdg_wm_base` pings. JS runs in a separate WebKit2 process; Rust blocking threads are also separate from the GTK loop. High-frequency IPC channel delivery is the likely true cause. Phase 6 batching (fewer events) is the actual fix. |
+| Phase 7 deferred until after Phase 6 | Q3: reevaluate need for payload redesign once Phase 6 impact is measured. |
+| UX priority order (Q5) | 1st: app not frozen to OS + immediate loading feedback. 2nd: faster E2E loading. 3rd: accurate progress bar throughout (must not sit at 0% for 20 s then jump to 100%). |
 
 ## Errors Encountered
 

@@ -109,14 +109,36 @@
 | --------- | ----- | ------- | ---------- |
 |           |       | 1       |            |
 
+### Questions Processing Session (2026-04-17)
+
+- **Status:** complete
+- Actions taken:
+  - Processed Q3 (Phase 7 deferral): Phase 7 explicitly deferred until after Phase 6; plan.md updated
+  - Processed Q4 (Wayland ANR mechanism): researched xdg_wm_base ping/pong, WebKit2 multi-process model, GTK main thread; finding: async Rust and JS churn do NOT cause the ANR — GTK main thread blockage from high-frequency IPC channel delivery is the likely true cause; Phase 5/6 notes updated; findings.md updated with full research
+  - Processed Q5 (UX priorities): priorities recorded; progress bar accuracy concern raised as Q6; Phase 5 updated to flag progress bar approach as pending Q6 answer
+  - Added Q6 (progress bar accuracy — byte-based vs frame-count vs spinner)
+- Files created/modified:
+  - `questions.md` (Q3, Q4, Q5 marked processed; Q6 added)
+  - `plan.md` (Phase 5/6/7 notes updated; decisions table extended)
+  - `findings.md` (Wayland ANR research section added)
+  - `progress.md` (this entry)
+
+### Questions Processing Session (2026-04-17, Q6)
+
+- **Status:** complete
+- Actions taken:
+  - Processed Q6 (progress bar approach): hybrid adopted — byte % during file read, "frame X of Y" once streaming begins; requires GIF pre-scan for total frame count; new `Start { total_bytes, total_frames }` `DecodeEvent` variant
+  - plan.md updated: Phase 5 tasks expanded with concrete hybrid implementation steps; Key Question #5 and decisions table updated (supersedes byte-only decision)
+  - questions.md: Q6 marked processed
+- Files created/modified:
+  - `questions.md` (Q6 marked processed)
+  - `plan.md` (Phase 5 tasks, KQ5, decisions table)
+  - `progress.md` (this entry)
+
 ### Phase 5: Quick Wins — Paint Boundary + Async Rust Command
 
 - **Status:** pending
-- Actions taken:
-  - Plan updated: Phases 5, 6, 7 added to plan.md based on post-implementation validation research (`2026-04-17 loading-validation.md`)
-- Files created/modified:
-  - `.ai/planning/2026-04-15 gif-loading-perf/plan.md` (phases 5-7 added, current phase updated to 5)
-  - `.ai/planning/2026-04-15 gif-loading-perf/progress.md` (this entry)
+- Actions taken: none yet
 
 ## 5-Question Reboot Check
 
