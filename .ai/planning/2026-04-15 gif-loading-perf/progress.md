@@ -1,0 +1,133 @@
+# Progress Log
+
+## Session: 2026-04-15
+
+### Phase 0: Research & Planning
+
+- **Status:** complete
+- **Started:** 2026-04-15
+- Actions taken:
+  - Explored entire codebase: Rust backend (decode.rs, lib.rs, mod.rs, encode.rs), frontend (stores, actions, components, page)
+  - Identified 4 root causes: default PNG encoding, monolithic IPC, bulk DOM update, byte round-trip
+  - Evaluated solutions: fast PNG, Tauri Channel streaming, ProgressReader, incremental store updates
+  - Created plan with 4 phases, TDD approach throughout
+- Files created/modified:
+  - `.ai/planning/2026-04-15 gif-loading-perf/findings.md` (created)
+  - `.ai/planning/2026-04-15 gif-loading-perf/plan.md` (created)
+  - `.ai/planning/2026-04-15 gif-loading-perf/questions.md` (created)
+  - `.ai/planning/2026-04-15 gif-loading-perf/progress.md` (created)
+
+### Questions Processing Session
+
+- **Status:** complete
+- **Started:** 2026-04-16
+- Actions taken:
+  - Processed Q1 (E2E): Investigated `e2e.rs`, `studio.ts`, `splashscreen.ts`. E2E tests use UI flow, not direct commands. `e2e_open_fixture` is unused. Old decode commands can be removed.
+  - Processed Q2 (Progress): Analysed ProgressReader overhead — effectively zero. Confirmed byte-level progress approach.
+  - Updated plan.md: Phase 4 now has concrete E2E tasks, new decisions recorded, key questions answered
+  - Updated findings.md: Added E2E analysis section and ProgressReader overhead analysis
+- Files created/modified:
+  - `questions.md` (marked responses as processed)
+  - `plan.md` (updated Phase 4, Key Questions, Decisions)
+  - `findings.md` (added E2E and ProgressReader analysis)
+  - `progress.md` (this entry)
+
+### Phase 1: Rust — Fast PNG Encoding (TDD)
+
+- **Status:** complete
+- Actions taken:
+  - Discovered image 0.25.10 defaults to `CompressionType::Fast + FilterType::Adaptive` — no encoding change needed
+  - Verified `FilterType::NoFilter` is ~10x SLOWER than `Adaptive` for typical image data (filtered data compresses faster)
+  - Added 3 tests to `decode.rs`: `test_fast_png_encoding_produces_valid_data_url`, `test_fast_png_round_trip`, `test_fast_compression_is_faster_than_best` (release-only regression guard)
+  - Updated `encode_canvas_as_data_url` comment to document why `PngEncoder::new()` defaults are already optimal
+  - All 19 Rust tests pass
+- Files created/modified:
+  - `src-tauri/src/gif/decode.rs` — added 3 tests, updated comment on `encode_canvas_as_data_url`
+
+### Phase 2: Rust — Streaming Decode + Progress (TDD)
+
+- **Status:** complete
+- Actions taken:
+  - Added `DecodeEvent` enum to `gif/mod.rs` with adjacently-tagged serde for TypeScript consumption
+  - Implemented `ProgressReader<R>` using `Arc<AtomicU64>` (gif crate takes ownership of reader, so shared atomic is the only way to observe bytes from outside)
+  - Implemented `decode_gif_streaming` — emits Progress + Frame per frame, then Complete
+  - Implemented `decode_gif_stream_path` — testable file-path entry point used by Tauri command
+  - Added `decode_gif_stream` Tauri command to `lib.rs`, registered in invoke handler
+  - All 5 streaming tests pass; 24/24 total Rust tests pass
+- Files created/modified:
+  - `src-tauri/src/gif/mod.rs` — added `DecodeEvent` enum
+  - `src-tauri/src/gif/decode.rs` — added `ProgressReader`, `decode_gif_streaming`, `decode_gif_stream_path`, 5 tests
+  - `src-tauri/src/lib.rs` — added `decode_gif_stream` command, registered it
+
+### Phase 3: Frontend — Streaming Store + Progress UI (TDD)
+
+- **Status:** complete
+- Actions taken:
+  - Added `DecodeEvent` union type to `types.ts` matching Rust's adjacently-tagged enum
+  - Added `addFrame`, `startLoading`, `finishLoading`, `setLoadingProgress`, `isLoading`, `loadingProgress` to `frameStore`; `clear()` now resets loading state too
+  - Replaced `openGif` with `openGifStreaming` in `actions.ts`; `DialogProvider.openFile()` now returns `Promise<string | null>` (path, not bytes); `GifBackend.decode` replaced by `decodeStreaming(path, onFrame, onProgress)`
+  - Updated `Toolbar.svelte`: file picker confirm now resolves with path string directly; backend uses `Channel<DecodeEvent>` + `decode_gif_stream` invoke; `handleOpen` calls `openGifStreaming`; progress bar shown during `frameStore.isLoading`
+  - Updated `+page.svelte`: drag-and-drop uses `Channel<DecodeEvent>` + `decode_gif_stream`, calling `frameStore.addFrame` and `frameStore.setLoadingProgress` incrementally
+  - All 64 frontend tests pass
+- Files created/modified:
+  - `src/lib/types.ts` — added `DecodeEvent` type
+  - `src/lib/stores/frames.svelte.ts` — added loading state + `addFrame`
+  - `src/lib/stores/frames.test.ts` — added 11 new tests
+  - `src/lib/actions.ts` — replaced `openGif` with `openGifStreaming`, updated interfaces
+  - `src/lib/actions.test.ts` — replaced `openGif` tests with `openGifStreaming` tests
+  - `src/lib/components/Toolbar.svelte` — streaming backend, progress bar UI
+  - `src/routes/+page.svelte` — streaming drag-and-drop
+
+### Phase 4: Cleanup + Verification
+
+- **Status:** complete (automated tests; manual verification pending)
+- Actions taken:
+  - Removed `decode_gif_file` and `decode_gif_bytes` from `decode.rs`; existing tests converted to use `collect_frames` helper (internally calls `decode_gif_streaming`)
+  - Removed `decode_gif`, `decode_gif_bytes`, `read_file_bytes` Tauri commands from `lib.rs`; removed their tests
+  - Removed `e2e_open_fixture` from `e2e.rs` and invoke handler in `lib.rs`
+  - Updated `encode.rs` tests: replaced `decode_gif_file` with `decode_all_frames` helper using `decode_gif_stream_path`
+  - Updated `generate_fixture.rs`: replaced `decode_gif_file` with `decode_gif_stream_path`
+  - Updated `lib.rs` import: removed unused `Frame`, kept `ExportFrame`
+  - Rust: 22/22 tests pass (2 `read_file_bytes` tests removed along with the function)
+  - Frontend: 64/64 tests pass
+- Files created/modified:
+  - `src-tauri/src/gif/decode.rs` — removed `decode_gif_file`, `decode_gif_bytes`; added `collect_frames` test helper
+  - `src-tauri/src/gif/encode.rs` — replaced `decode_gif_file` with `decode_all_frames` helper
+  - `src-tauri/src/lib.rs` — removed old commands, tests, updated import
+  - `src-tauri/src/e2e.rs` — removed `e2e_open_fixture`
+  - `src-tauri/tests/generate_fixture.rs` — replaced `decode_gif_file` with `decode_gif_stream_path`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+| ---- | ----- | -------- | ------ | ------ |
+|      |       |          |        |        |
+
+## Error Log
+
+| Timestamp | Error | Attempt | Resolution |
+| --------- | ----- | ------- | ---------- |
+|           |       | 1       |            |
+
+### Phase 5: Quick Wins — Paint Boundary + Async Rust Command
+
+- **Status:** pending
+- Actions taken:
+  - Plan updated: Phases 5, 6, 7 added to plan.md based on post-implementation validation research (`2026-04-17 loading-validation.md`)
+- Files created/modified:
+  - `.ai/planning/2026-04-15 gif-loading-perf/plan.md` (phases 5-7 added, current phase updated to 5)
+  - `.ai/planning/2026-04-15 gif-loading-perf/progress.md` (this entry)
+
+## 5-Question Reboot Check
+
+| Question             | Answer |
+| -------------------- | ------ |
+| Where am I?          | Phase 5 pending — phases 1-4 complete but manual validation showed the app still freezes |
+| Where am I going?    | Phase 5 (paint boundary + async Rust), Phase 6 (frontend batching), Phase 7 (payload redesign) |
+| What's the goal?     | 10x faster GIF loading with progress, no crash dialog |
+| What have I learned? | See findings.md and 2026-04-17 loading-validation.md — streaming moved the bottleneck but didn't remove it; per-frame PNG encode and frontend array churn are the remaining causes |
+| What have I done?    | Phases 1-4 complete (streaming, progress UI, cleanup, all automated tests pass); post-impl research identified 4 fix options; plan extended with phases 5-7 |
+
+---
+
+_Update after completing each phase or encountering errors_
