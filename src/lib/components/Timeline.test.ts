@@ -107,19 +107,19 @@ describe("Timeline", () => {
   });
 
   describe("bulk delete CSS behaviour", () => {
-    it("has a CSS rule that shows delete buttons on all selected frames when any selected delete is hovered", () => {
-      expect(timelineSource).toMatch(
+    it("does NOT have a CSS rule that spreads delete button visibility to all selected frames on hover", () => {
+      expect(timelineSource).not.toMatch(
         /\.frames-strip:has\(\.frame-thumb\.selected\s+\.delete-btn:hover\)\s+\.frame-thumb\.selected\s+\.delete-btn\s*\{[^}]*opacity:\s*1/s,
       );
     });
 
-    it("has a CSS rule that applies the danger hover style to all selected delete buttons when any is hovered", () => {
-      expect(timelineSource).toMatch(
+    it("does NOT have a CSS rule that spreads the danger hover style to all selected delete buttons", () => {
+      expect(timelineSource).not.toMatch(
         /\.frames-strip:has\(\.frame-thumb\.selected\s+\.delete-btn:hover\)\s+\.frame-thumb\.selected\s+\.delete-btn\s*\{[^}]*background:\s*var\(--color-error\)/s,
       );
     });
 
-    it("has a CSS rule that applies a red tint overlay to all selected frames when a delete button is hovered", () => {
+    it("has a CSS rule that applies a red tint overlay to all selected frames when any selected delete button is hovered", () => {
       expect(timelineSource).toMatch(
         /\.frames-strip:has\(\.frame-thumb\.selected\s+\.delete-btn:hover\)\s+\.frame-thumb\.selected::after\s*\{[^}]*background/s,
       );

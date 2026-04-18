@@ -26,10 +26,9 @@
     pointerStartY = event.clientY;
     const frame = frameStore.frames[index];
     // Multi-drag: only when the grabbed frame is part of an active multi-selection
-    isDraggingSelection =
-      frame
-        ? frameStore.selectedFrameIds.has(frame.id) && frameStore.selectedFrameIds.size > 1
-        : false;
+    isDraggingSelection = frame
+      ? frameStore.selectedFrameIds.has(frame.id) && frameStore.selectedFrameIds.size > 1
+      : false;
   }
 
   function handleWindowPointerMove(event: PointerEvent) {
@@ -125,16 +124,13 @@
   {#if frameStore.hasFrames}
     <div class="frames-strip" data-testid="frames-strip" bind:this={framesStripEl}>
       {#if dragActive && insertionX !== null}
-        <div
-          class="insertion-bar"
-          style="left: {insertionX}px;"
-          data-testid="insertion-bar"
-        ></div>
+        <div class="insertion-bar" style="left: {insertionX}px;" data-testid="insertion-bar"></div>
       {/if}
       {#each frameStore.frames as frame, index (frame.id)}
         {@const isSelected = frameStore.selectedFrameIds.has(frame.id)}
         {@const selectionCount = frameStore.selectedFrameIds.size}
-        {@const isBeingDragged = dragActive && (isDraggingSelection ? isSelected : index === dragFrameIndex)}
+        {@const isBeingDragged =
+          dragActive && (isDraggingSelection ? isSelected : index === dragFrameIndex)}
         <div
           class="frame-thumb"
           class:selected={isSelected}
@@ -168,9 +164,12 @@
                 frameStore.deleteFrame(frame.id);
               }
             }}
-            title="Delete frame"
+            title="Delete frame(s)"
           >
-            ×{#if isSelected && selectionCount > 1}<span class="delete-count" data-testid="delete-count-{index}">{selectionCount}</span>{/if}
+            ×{#if isSelected && selectionCount > 1}<span
+                class="delete-count"
+                data-testid="delete-count-{index}">{selectionCount}</span
+              >{/if}
           </button>
         </div>
       {/each}
@@ -264,16 +263,17 @@
 
   .delete-btn {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 6px;
+    right: 6px;
     min-width: 18px;
     height: 18px;
     padding: 0 3px;
-    border: 1px solid transparent;
-    border-radius: 9px;
+    border: 2px solid transparent;
+    border-radius: 3px;
     background: color-mix(in srgb, var(--color-error) 80%, transparent);
     color: var(--color-text-brightest);
     font-size: 14px;
+    font-weight: bold;
     line-height: 1;
     cursor: pointer;
     opacity: 0;
@@ -301,19 +301,11 @@
   .delete-btn:focus-visible {
     opacity: 1;
     background: var(--color-error);
-    border-color: color-mix(in srgb, var(--color-error) 65%, var(--color-text-brightest));
+    border-color: color-mix(in srgb, var(--color-error) 25%, var(--color-text-brightest));
   }
 
-  /* When hovering any selected frame's delete button, show and apply danger style
-     to delete buttons on ALL selected frames */
-  .frames-strip:has(.frame-thumb.selected .delete-btn:hover) .frame-thumb.selected .delete-btn {
-    opacity: 1;
-    background: var(--color-error);
-    border-color: color-mix(in srgb, var(--color-error) 65%, var(--color-text-brightest));
-  }
-
-  /* Red tint on any frame when its own delete button is hovered */
-  .frame-thumb:has(.delete-btn:hover)::after {
+  /* Red tint on all selected frames when any selected frame's delete button is hovered */
+  .frames-strip:has(.frame-thumb.selected .delete-btn:hover) .frame-thumb.selected::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -321,8 +313,8 @@
     pointer-events: none;
   }
 
-  /* Red tint on all selected frames when any selected frame's delete button is hovered */
-  .frames-strip:has(.frame-thumb.selected .delete-btn:hover) .frame-thumb.selected::after {
+  /* Red tint on any frame when its own delete button is hovered */
+  .frame-thumb:has(.delete-btn:hover)::after {
     content: "";
     position: absolute;
     inset: 0;
