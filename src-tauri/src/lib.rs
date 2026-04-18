@@ -115,6 +115,7 @@ pub fn run() {
             .title("screeny")
             .inner_size(360.0, 240.0)
             .resizable(false)
+            .decorations(false)
             .center()
             .background_color(Color(0x19, 0x1a, 0x1c, 0xff))
             .build()?;
