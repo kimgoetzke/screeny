@@ -20,9 +20,10 @@ Status: **In progress**
 - [x] Change Open button to Close button while a GIF is opened
 - [ ] Fix hanging right after GIF is selected/dropped and before it loads
 - [ ] Down show header bar (min/max or close window) during splash screen
-- [ ] Add on-hover button effect(s) for timeline
+- [x] Add on-hover button effect(s) for timeline
 - [ ] Allow bulk-deleting frames
 - [ ] Allow moving frames
+- [ ] Deduplicate frames
 
 ### Planning
 
@@ -32,25 +33,28 @@ Status: **In progress**
 
 #### Improvements to timeline
 
-##### Add on-hover button effect(s) for timeline
-
-When a user hovers over a frame, a button to delete the frame is visible which is correct. What is missing though is that when the user hovers over this (x) button, there's no on-mouse-over effect. Please add one in-line with the colour theme.
-
 ##### Allow bulk-deleting frames
 
-It must be possible to Shift + Left mouse click a frame in the time line to select _all_ frames from (and including) the currently selected frame up until (and including) the clicked frame:
+Please help me implement a new feature in my GIF manipulation app. When a user
+loads a GIF, a timeline is displayed at the bottom of the app which shows each frame of the GIF. This way the user can delete a frame by selecting them and clicking an (x) icon which appears in the top right corner of the frame over which they hover. I want to extend this by allowing users to bulk delete frames. For this, it must be possible to Shift + Left mouse click a frame in the time line to select _all_ frames from (and including) the currently selected frame up until (and including) the clicked frame. This must work in both directions i.e. clicking a frame before or after the current frame. When the current frame is clicked, the current frame should remain selected and no other frames should be added to the selection.
 
-- The delete button that's visible on hover must then be shown on all visible frames that are selected whenever the user hovers over just one
+The first use case for this bulk select ability is a bulk-delete feature for frames:
+
+- The delete button (x) that's currently visible on hover must be shown on all visible frames that are selected (whether that's just one or multiple) whenever the user hovers over just one of them
 - When the user hovers over a button the same on-mouse-over effect applies to buttons on all selected & visible frames, indicating that the action will be applied to all frames
+- If you have better, more best practice ideas to indicate that all frames are being deleted when the (x) of one is clicked, please do propose it as a question; web research for this is acceptable; however, I want to exclude a notification dialog that tells the user that all frames will be deleted as this adds extra clicks to the journey; the indication must be purely visual
+- Use your tdd skill for the implementation
 
 ##### Allow moving frames
 
-Users must be able to move one or more frames by dragging and dropping it/them in the timeline:
+Please help me implement a new feature in my GIF studio app. When a user
+loads a GIF, a timeline is displayed at the bottom of the app which shows each frame of the GIF. This timeline already allows users to select one or more frames and delete them. Now, I want to add the feature to move the position of one or more frames: Users must be able to move one or more frames by dragging and dropping it/them in the timeline.
 
 - Example: Moving the first frame after the second frame must change the order of the frames being displayed in the timeline but also when playing the GIF using the Play button
-- Shift + Left mouse clicking a frame in the timeline that is different from the current frame, multiple frames are selected (all frames from current to the clicked frame)
-  - When multiple frames are selected, and moved with the mouse to a different location, all frames most be moved
+- When multiple frames are selected and moved with the mouse to a different location, all frames must be moved
   - The order of the selected frames must stay the same e.g. if you move 1 + 2 + 3 after frame 4 then 1 -> 2 (because 4 is now 1 and 1 + 1 = 2), 2 -> 3, 3 -> 4 and 4 -> 1 (because it is now the first frame)
+- The exported GIF must reflect the new frame order
+- You must use your tdd skill for the implementation
 
 ## Goals
 
