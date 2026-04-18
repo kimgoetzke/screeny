@@ -314,4 +314,149 @@ describe("frameStore", () => {
       expect(frameStore.loadingProgress).toBeNull();
     });
   });
+
+  describe("selectedFrameIds", () => {
+    it("is empty when no frames loaded", () => {
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+
+    it("contains the first frame id after setFrames", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a"]));
+    });
+
+    it("is reset to empty by clear()", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.clear();
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+
+    it("is reset to empty by startLoading()", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.startLoading();
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+  });
+
+  describe("selectFrame (multi-select reset)", () => {
+    it("resets selectedFrameIds to a single-element set", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b"]));
+    });
+  });
+
+  describe("shiftSelectFrames", () => {
+    it("selects range forward from anchor to clicked frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("d");
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b", "c", "d"]));
+    });
+
+    it("selects range backward from anchor to clicked frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("a");
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b", "c"]));
+    });
+
+    it("collapses to single selection when clicking the current frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("b");
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b"]));
+    });
+
+    it("does nothing when no frame is currently selected", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.clear();
+      frameStore.shiftSelectFrames("a");
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+
+    it("does not change selectedFrameId when extending selection", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("c");
+
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+  });
+
+  describe("deleteSelectedFrames", () => {
+    it("deletes all selected frames", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.deleteSelectedFrames();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "d"]);
+    });
+
+    it("selects the frame immediately after the deleted range", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.deleteSelectedFrames();
+
+      expect(frameStore.selectedFrameId).toBe("d");
+    });
+
+    it("selects the last remaining frame when deleted range was at the end", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.deleteSelectedFrames();
+
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    it("clears selection when all frames are deleted", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.deleteSelectedFrames();
+
+      expect(frameStore.selectedFrameId).toBeNull();
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+
+    it("resets selectedFrameIds to the single newly selected frame after deletion", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.deleteSelectedFrames();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["c"]));
+    });
+
+    it("works for a single selected frame (equivalent to deleteFrame)", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      frameStore.deleteSelectedFrames();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c"]);
+      expect(frameStore.selectedFrameId).toBe("c");
+    });
+  });
+
+  describe("deleteFrame (selectedFrameIds sync)", () => {
+    it("removes a deleted frame from selectedFrameIds when it was part of the selection", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.deleteFrame("c");
+
+      expect(frameStore.selectedFrameIds.has("c")).toBe(false);
+    });
+  });
 });

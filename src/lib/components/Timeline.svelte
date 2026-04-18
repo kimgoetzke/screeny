@@ -32,15 +32,25 @@
     dragFromIndex = null;
     dragOverIndex = null;
   }
+
+  function handleFrameClick(frameId: string, event: MouseEvent) {
+    if (event.shiftKey) {
+      frameStore.shiftSelectFrames(frameId);
+    } else {
+      frameStore.selectFrame(frameId);
+    }
+  }
 </script>
 
 <div class="timeline" data-testid="timeline">
   {#if frameStore.hasFrames}
     <div class="frames-strip" data-testid="frames-strip">
       {#each frameStore.frames as frame, index (frame.id)}
+        {@const isSelected = frameStore.selectedFrameIds.has(frame.id)}
+        {@const selectionCount = frameStore.selectedFrameIds.size}
         <div
           class="frame-thumb"
-          class:selected={frame.id === frameStore.selectedFrameId}
+          class:selected={isSelected}
           class:drag-over={dragOverIndex === index && dragFromIndex !== index}
           draggable="true"
           role="button"
@@ -51,10 +61,10 @@
           ondragover={(e) => handleDragOver(index, e)}
           ondrop={(e) => handleDrop(index, e)}
           ondragend={handleDragEnd}
-          onclick={() => frameStore.selectFrame(frame.id)}
+          onclick={(e) => handleFrameClick(frame.id, e)}
           onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") frameStore.selectFrame(frame.id);
-            if (e.key === "Delete") frameStore.deleteFrame(frame.id);
+            if (e.key === "Delete") frameStore.deleteSelectedFrames();
           }}
         >
           <img src={frame.imageData} alt="Frame {index + 1}" draggable="false" />
@@ -69,11 +79,15 @@
             data-testid="frame-delete-{index}"
             onclick={(e) => {
               e.stopPropagation();
-              frameStore.deleteFrame(frame.id);
+              if (isSelected) {
+                frameStore.deleteSelectedFrames();
+              } else {
+                frameStore.deleteFrame(frame.id);
+              }
             }}
             title="Delete frame"
           >
-            ×
+            ×{#if isSelected && selectionCount > 1}<span class="delete-count" data-testid="delete-count-{index}">{selectionCount}</span>{/if}
           </button>
         </div>
       {/each}
@@ -149,25 +163,68 @@
     position: absolute;
     top: 2px;
     right: 2px;
-    width: 18px;
+    min-width: 18px;
     height: 18px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
+    padding: 0 3px;
+    border: 1px solid transparent;
+    border-radius: 9px;
     background: color-mix(in srgb, var(--color-error) 80%, transparent);
-    color: white;
+    color: var(--color-text-brightest);
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition:
+      opacity 0.15s,
+      background-color 0.15s,
+      border-color 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 2px;
+  }
+
+  .delete-count {
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .frame-thumb:hover .delete-btn {
     opacity: 1;
+  }
+
+  .delete-btn:hover,
+  .delete-btn:focus-visible {
+    opacity: 1;
+    background: var(--color-error);
+    border-color: color-mix(in srgb, var(--color-error) 65%, var(--color-text-brightest));
+  }
+
+  /* When hovering any selected frame's delete button, show and apply danger style
+     to delete buttons on ALL selected frames */
+  .frames-strip:has(.frame-thumb.selected .delete-btn:hover) .frame-thumb.selected .delete-btn {
+    opacity: 1;
+    background: var(--color-error);
+    border-color: color-mix(in srgb, var(--color-error) 65%, var(--color-text-brightest));
+  }
+
+  /* Red tint on any frame when its own delete button is hovered */
+  .frame-thumb:has(.delete-btn:hover)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(220, 38, 38, 0.25);
+    pointer-events: none;
+  }
+
+  /* Red tint on all selected frames when any selected frame's delete button is hovered */
+  .frames-strip:has(.frame-thumb.selected .delete-btn:hover) .frame-thumb.selected::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(220, 38, 38, 0.25);
+    pointer-events: none;
   }
 
   .empty {

@@ -2,6 +2,7 @@ import type { Frame } from "$lib/types";
 
 let frames = $state<Frame[]>([]);
 let selectedFrameId = $state<string | null>(null);
+let selectedFrameIds = $state<Set<string>>(new Set());
 let isPlaying = $state(false);
 let playbackTimer: ReturnType<typeof setTimeout> | null = null;
 let isLoading = $state(false);
@@ -26,6 +27,10 @@ export const frameStore = {
     return selectedFrameId;
   },
 
+  get selectedFrameIds(): ReadonlySet<string> {
+    return selectedFrameIds;
+  },
+
   get selectedFrame(): Frame | undefined {
     return frames.find((f) => f.id === selectedFrameId);
   },
@@ -43,15 +48,32 @@ export const frameStore = {
     frames = newFrames;
     if (newFrames.length > 0) {
       selectedFrameId = newFrames[0].id;
+      selectedFrameIds = new Set([newFrames[0].id]);
     } else {
       selectedFrameId = null;
+      selectedFrameIds = new Set();
     }
   },
 
   selectFrame(id: string) {
     if (frames.some((f) => f.id === id)) {
       selectedFrameId = id;
+      selectedFrameIds = new Set([id]);
     }
+  },
+
+  shiftSelectFrames(id: string) {
+    if (selectedFrameId === null) return;
+    if (id === selectedFrameId) {
+      selectedFrameIds = new Set([selectedFrameId]);
+      return;
+    }
+    const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    const targetIndex = frames.findIndex((f) => f.id === id);
+    if (anchorIndex === -1 || targetIndex === -1) return;
+    const start = Math.min(anchorIndex, targetIndex);
+    const end = Math.max(anchorIndex, targetIndex);
+    selectedFrameIds = new Set(frames.slice(start, end + 1).map((f) => f.id));
   },
 
   deleteFrame(id: string) {
@@ -60,15 +82,47 @@ export const frameStore = {
 
     frames = frames.filter((f) => f.id !== id);
 
-    // Adjust selection
+    // Remove from multi-selection if present
+    if (selectedFrameIds.has(id)) {
+      const updated = new Set(selectedFrameIds);
+      updated.delete(id);
+      selectedFrameIds = updated;
+    }
+
+    // Adjust single selection
     if (selectedFrameId === id) {
       if (frames.length === 0) {
         selectedFrameId = null;
+        selectedFrameIds = new Set();
       } else {
-        // Select the frame at the same index, or the last frame
         const newIndex = Math.min(index, frames.length - 1);
         selectedFrameId = frames[newIndex].id;
+        // Only reset selectedFrameIds if it's now empty
+        if (selectedFrameIds.size === 0) {
+          selectedFrameIds = new Set([selectedFrameId]);
+        }
       }
+    }
+  },
+
+  deleteSelectedFrames() {
+    if (selectedFrameIds.size === 0) return;
+
+    // Find the lowest index among selected frames to pick the successor
+    const selectedSet = selectedFrameIds;
+    const firstSelectedIndex = frames.findIndex((f) => selectedSet.has(f.id));
+
+    frames = frames.filter((f) => !selectedSet.has(f.id));
+
+    if (frames.length === 0) {
+      selectedFrameId = null;
+      selectedFrameIds = new Set();
+    } else {
+      // Select the frame at the same position as the start of the deleted range,
+      // or the last frame if we deleted up to the end
+      const newIndex = Math.min(firstSelectedIndex, frames.length - 1);
+      selectedFrameId = frames[newIndex].id;
+      selectedFrameIds = new Set([selectedFrameId]);
     }
   },
 
@@ -107,6 +161,7 @@ export const frameStore = {
     frameStore.stop();
     frames = [];
     selectedFrameId = null;
+    selectedFrameIds = new Set();
     isLoading = false;
     loadingProgress = null;
   },
@@ -115,6 +170,7 @@ export const frameStore = {
     frames = [...frames, frame];
     if (frames.length === 1) {
       selectedFrameId = frame.id;
+      selectedFrameIds = new Set([frame.id]);
     }
   },
 
@@ -130,6 +186,7 @@ export const frameStore = {
     frameStore.stop();
     frames = [];
     selectedFrameId = null;
+    selectedFrameIds = new Set();
     isLoading = true;
     loadingProgress = 0;
   },

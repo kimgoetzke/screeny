@@ -19,9 +19,9 @@ Status: **In progress**
 - [x] Introduce a generic, re-usable notification dialog
 - [x] Change Open button to Close button while a GIF is opened
 - [ ] Fix hanging right after GIF is selected/dropped and before it loads
-- [ ] Down show header bar (min/max or close window) during splash screen
+- [ ] Don't show header bar (min/max or close window) during splash screen
 - [x] Add on-hover button effect(s) for timeline
-- [ ] Allow bulk-deleting frames
+- [x] Allow bulk-deleting frames
 - [ ] Allow moving frames
 - [ ] Deduplicate frames
 

@@ -17,6 +17,19 @@ async function jsClick(selector: string) {
 }
 
 /**
+ * Shift+click an element via JavaScript, dispatching a MouseEvent with shiftKey=true.
+ * Used for range-selection in the timeline.
+ */
+async function jsShiftClick(selector: string) {
+  const element = await $(selector);
+  await element.waitForExist({ timeout: 10_000 });
+  await browser.execute(
+    (el: HTMLElement) => el.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })),
+    element as unknown as HTMLElement,
+  );
+}
+
+/**
  * Set an input's value via JavaScript, bypassing WebdriverIO interactability checks.
  * Dispatches an `input` event so Svelte's bind:value picks up the change.
  */
@@ -285,6 +298,63 @@ describe("Studio — close project", () => {
     await openBtn.waitForExist({ timeout: 5_000 });
     await expect(openBtn).toBeDisplayed();
     await expect(await $('[data-testid="btn-close"]')).not.toBeExisting();
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(0);
+  });
+});
+
+describe("Studio — bulk delete frames", () => {
+  // The app is in empty state after the close project suite; btn-open is visible.
+
+  it("should reload the GIF fixture for bulk delete tests", async () => {
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-test.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-test.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(3);
+  });
+
+  it("should select a range of frames with shift+click", async () => {
+    // frame-thumb-0 is selected by default after load; shift+click frame-thumb-2 → selects 0–2
+    await jsShiftClick('[data-testid="frame-thumb-2"]');
+    await browser.pause(200);
+
+    for (let i = 0; i <= 2; i++) {
+      const thumb = await $(`[data-testid="frame-thumb-${i}"]`);
+      const cls = await thumb.getAttribute("class");
+      expect(cls).toContain("selected");
+    }
+  });
+
+  it("should delete only the clicked frame when it is not in the selection", async () => {
+    // Select frames 1–2 only (click frame-thumb-1 then shift+click frame-thumb-2)
+    await jsClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(100);
+    await jsShiftClick('[data-testid="frame-thumb-2"]');
+    await browser.pause(100);
+
+    // frame-thumb-0 is NOT in the selection — clicking its delete should remove only it
+    await jsClick('[data-testid="frame-delete-0"]');
+    await browser.pause(300);
+
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+  });
+
+  it("should bulk-delete all selected frames when clicking delete on a selected frame", async () => {
+    // Both remaining frames are still selected from the previous test
+    await jsClick('[data-testid="frame-delete-0"]');
+    await browser.pause(300);
+
     const thumbs = await $$('[data-testid^="frame-thumb-"]');
     expect(thumbs).toHaveLength(0);
   });
