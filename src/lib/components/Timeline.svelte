@@ -96,13 +96,23 @@
     insertionX = null;
   }
 
+  function handleWindowKeyDown(event: KeyboardEvent) {
+    if (!event.ctrlKey || event.key !== "a") return;
+    const tag = (event.target as HTMLElement | null)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    event.preventDefault();
+    frameStore.selectAllFrames();
+  }
+
   // Window-level listeners handle move and release even when the pointer leaves the strip
   $effect(() => {
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
+    window.addEventListener("keydown", handleWindowKeyDown);
     return () => {
       window.removeEventListener("pointermove", handleWindowPointerMove);
       window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("keydown", handleWindowKeyDown);
     };
   });
 

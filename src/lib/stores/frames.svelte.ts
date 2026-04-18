@@ -63,6 +63,14 @@ export const frameStore = {
     }
   },
 
+  selectAllFrames() {
+    if (frames.length === 0) return;
+    selectedFrameIds = new Set(frames.map((f) => f.id));
+    if (selectedFrameId === null) {
+      selectedFrameId = frames[0].id;
+    }
+  },
+
   shiftSelectFrames(id: string) {
     if (selectedFrameId === null) return;
     if (id === selectedFrameId) {

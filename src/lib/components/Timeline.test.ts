@@ -132,6 +132,27 @@ describe("Timeline", () => {
     });
   });
 
+  describe("Ctrl+A select-all keyboard shortcut", () => {
+    it("registers a window-level keydown listener in the $effect", () => {
+      expect(timelineSource).toContain("keydown");
+      expect(timelineSource).toMatch(/window\.addEventListener\s*\(\s*["']keydown["']/);
+    });
+
+    it("handles Ctrl+A by calling selectAllFrames", () => {
+      expect(timelineSource).toMatch(/ctrlKey/);
+      expect(timelineSource).toMatch(/key\s*[!=]==\s*["']a["']/);
+      expect(timelineSource).toContain("selectAllFrames");
+    });
+
+    it("calls preventDefault when handling Ctrl+A", () => {
+      expect(timelineSource).toContain("preventDefault");
+    });
+
+    it("guards against firing inside input or textarea elements", () => {
+      expect(timelineSource).toMatch(/INPUT|TEXTAREA|input|textarea/);
+    });
+  });
+
   describe("multi-frame drag indicator", () => {
     it("applies being-dragged class to selected frames during a multi-frame pointer drag", () => {
       // Verify that the source wires isDraggingSelection to the being-dragged CSS class
