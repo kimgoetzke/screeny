@@ -48,6 +48,10 @@ Reasoning: the change likely spans toolbar UI, toolbar unit tests, frame-store l
 | Likely add a dedicated E2E fixture | Current visible fixture set does not obviously cover adjacent duplicates |
 | Plan two toolbar actions rather than one | User explicitly requested both merge and drop variants |
 
+## Selection reconciliation decision
+
+When `deduplicateAdjacentMerge` or `deduplicateAdjacentDrop` removes a frame that was the active `selectedFrameId`, the store selects `result[0]` (the first remaining frame). This mirrors the simplest recoverable state. `selectedFrameIds` is also reset to a single-element set around the new selection. If the selected frame was not removed, no selection change occurs.
+
 ## Issues Encountered
 
 | Issue | Resolution |

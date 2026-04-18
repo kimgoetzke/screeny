@@ -166,6 +166,38 @@ export const frameStore = {
     loadingProgress = null;
   },
 
+  deduplicateAdjacentMerge() {
+    const result: Frame[] = [];
+    for (const frame of frames) {
+      const previous = result[result.length - 1];
+      if (previous && previous.imageData === frame.imageData) {
+        result[result.length - 1] = { ...previous, duration: previous.duration + frame.duration };
+      } else {
+        result.push(frame);
+      }
+    }
+    frames = result;
+    if (!result.some((f) => f.id === selectedFrameId)) {
+      selectedFrameId = result.length > 0 ? result[0].id : null;
+      selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+    }
+  },
+
+  deduplicateAdjacentDrop() {
+    const result: Frame[] = [];
+    for (const frame of frames) {
+      const previous = result[result.length - 1];
+      if (!previous || previous.imageData !== frame.imageData) {
+        result.push(frame);
+      }
+    }
+    frames = result;
+    if (!result.some((f) => f.id === selectedFrameId)) {
+      selectedFrameId = result.length > 0 ? result[0].id : null;
+      selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+    }
+  },
+
   addFrame(frame: Frame) {
     frames = [...frames, frame];
     if (frames.length === 1) {

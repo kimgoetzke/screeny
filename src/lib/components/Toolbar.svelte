@@ -72,9 +72,7 @@
         if (event.type === "frame") {
           onFrame(event.data);
         } else if (event.type === "progress") {
-          const percentage = Math.round(
-            (event.data.bytesRead / event.data.totalBytes) * 100,
-          );
+          const percentage = Math.round((event.data.bytesRead / event.data.totalBytes) * 100);
           onProgress(percentage);
         }
       };
@@ -199,6 +197,20 @@
           <rect x="3" y="3" width="10" height="10" fill="currentColor" />
         </svg>
       </button>
+      <button
+        onclick={() => frameStore.deduplicateAdjacentMerge()}
+        data-testid="btn-dedup-merge"
+        title="Remove adjacent duplicate frames (merge duration)"
+      >
+        Dedup (merge)
+      </button>
+      <button
+        onclick={() => frameStore.deduplicateAdjacentDrop()}
+        data-testid="btn-dedup-drop"
+        title="Remove adjacent duplicate frames (drop duration)"
+      >
+        Dedup (drop)
+      </button>
     {/if}
   </div>
   {#if showSaveInput}
@@ -219,15 +231,10 @@
   {:else if frameStore.isLoading}
     <div class="loading-progress" data-testid="loading-progress">
       <div class="progress-track">
-        <div
-          class="progress-fill"
-          style="width: {frameStore.loadingProgress ?? 0}%"
-        ></div>
+        <div class="progress-fill" style="width: {frameStore.loadingProgress ?? 0}%"></div>
       </div>
       <span class="progress-label">
-        Loading{frameStore.loadingProgress !== null
-          ? ` ${frameStore.loadingProgress}%`
-          : ""}
+        Loading{frameStore.loadingProgress !== null ? ` ${frameStore.loadingProgress}%` : ""}
         {#if frameStore.frames.length > 0}
           &nbsp;({frameStore.frames.length} frames)
         {/if}

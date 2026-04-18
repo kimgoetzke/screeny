@@ -345,6 +345,27 @@ mod tests {
     }
 
     #[test]
+    fn test_dedup_fixture_adjacent_duplicate_frames() {
+        // The dedup.gif fixture must have:
+        //   frame 0: red,  100 ms
+        //   frame 1: red,  200 ms  ← adjacent duplicate → same imageData as frame 0
+        //   frame 2: blue, 100 ms  ← different
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("tests/fixtures/dedup.gif");
+        let gif_data = std::fs::read(&fixture_path)
+            .unwrap_or_else(|e| panic!("failed to read {}: {e}", fixture_path.display()));
+        let frames = collect_frames(&gif_data);
+        assert_eq!(frames.len(), 3, "expected 3 frames");
+        assert_eq!(frames[0].duration, 100, "frame 0 duration");
+        assert_eq!(frames[1].duration, 200, "frame 1 duration");
+        assert_eq!(frames[2].duration, 100, "frame 2 duration");
+        assert_eq!(frames[0].image_data, frames[1].image_data, "frame 0 and 1 must be identical");
+        assert_ne!(frames[0].image_data, frames[2].image_data, "frame 2 must differ");
+    }
+
+    #[test]
     fn test_data_url_round_trip() {
         let gif_data = create_test_gif(&[[255, 0, 0, 255]], 2, 2, 5);
         let frames = collect_frames(&gif_data);

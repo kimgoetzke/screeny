@@ -359,3 +359,75 @@ describe("Studio — bulk delete frames", () => {
     expect(thumbs).toHaveLength(0);
   });
 });
+
+describe("Studio — deduplicate frames", () => {
+  // App is in empty state (0 frames, btn-open visible) after the bulk-delete suite.
+
+  it("should load the dedup fixture (3 frames: red, red, blue)", async () => {
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-dedup.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-dedup.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const status = await $('[data-testid="status-message"]');
+    await status.waitForExist({ timeout: 10_000 });
+    await expect(status).toHaveText("Loaded 3 frames");
+  });
+
+  it("should show both dedup buttons when frames are loaded", async () => {
+    const dedupMerge = await $('[data-testid="btn-dedup-merge"]');
+    await dedupMerge.waitForExist({ timeout: 5_000 });
+    await expect(dedupMerge).toBeDisplayed();
+    await expect(await $('[data-testid="btn-dedup-drop"]')).toBeDisplayed();
+  });
+
+  it("drop: removes adjacent duplicate and preserves the kept frame's duration", async () => {
+    await jsClick('[data-testid="btn-dedup-drop"]');
+    await browser.pause(300);
+
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+
+    const duration0 = await $('[data-testid="frame-duration-0"]');
+    await expect(duration0).toHaveText("100ms");
+  });
+
+  it("should close the project and reload the dedup fixture for the merge test", async () => {
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    const openBtn = await $('[data-testid="btn-open"]');
+    await openBtn.waitForExist({ timeout: 5_000 });
+
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-dedup.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-dedup.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(3);
+  });
+
+  it("merge: removes adjacent duplicate and adds its duration to the kept frame", async () => {
+    await jsClick('[data-testid="btn-dedup-merge"]');
+    await browser.pause(300);
+
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+
+    const duration0 = await $('[data-testid="frame-duration-0"]');
+    await expect(duration0).toHaveText("300ms");
+  });
+});

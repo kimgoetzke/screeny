@@ -24,6 +24,8 @@ Status: **In progress**
 - [x] Allow bulk-deleting frames
 - [ ] Allow moving frames
 - [ ] Deduplicate frames
+- [ ] Limit deduplicate frames features to current selection if multiple frames are selected
+- [ ] Press Ctrl + A to select all frames
 
 ### Planning
 
@@ -73,14 +75,14 @@ loads a GIF, a timeline is displayed at the bottom of the app which shows each f
 
 ### Planned Features (roughly by priority)
 
-#### Phase 1 — Studio MVP (start here)
+#### Phase 1 — Studio V1
 
 - Open existing GIF
 - Frame management: delete frames, reorder frames, change per-frame duration
 - Export GIF (with size and quality options via gifski)
 - Save/load project files (JSON metadata + cached frame data)
 
-#### Phase 2 — Recording
+#### Phase 2 — Recording V1
 
 - Recorder UI with capture mode selection
 - Rust backend: PipeWire + xdg-desktop-portal (ashpd) for Wayland capture

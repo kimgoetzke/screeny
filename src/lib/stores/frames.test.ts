@@ -6,6 +6,10 @@ function makeFrame(id: string, duration = 100): Frame {
   return { id, imageData: `data:image/png;base64,${id}`, duration, width: 10, height: 10 };
 }
 
+function makeFrameWithData(id: string, imageData: string, duration = 100): Frame {
+  return { id, imageData, duration, width: 10, height: 10 };
+}
+
 describe("frameStore", () => {
   beforeEach(() => {
     frameStore.clear();
@@ -446,6 +450,104 @@ describe("frameStore", () => {
 
       expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c"]);
       expect(frameStore.selectedFrameId).toBe("c");
+    });
+  });
+
+  describe("deduplicateAdjacentMerge", () => {
+    it("merges the adjacent duplicate's duration into the kept frame", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "same", 200),
+      ]);
+      frameStore.deduplicateAdjacentMerge();
+      expect(frameStore.frames).toHaveLength(1);
+      expect(frameStore.frames[0].id).toBe("a");
+      expect(frameStore.frames[0].duration).toBe(300);
+    });
+
+    it("is a no-op when no adjacent duplicates exist", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.deduplicateAdjacentMerge();
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+
+    it("does not remove non-adjacent identical frames", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "different", 100),
+        makeFrameWithData("c", "same", 100),
+      ]);
+      frameStore.deduplicateAdjacentMerge();
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+
+    it("selects the kept frame when the selected frame is removed", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "same", 200),
+      ]);
+      frameStore.selectFrame("b");
+      frameStore.deduplicateAdjacentMerge();
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    it("keeps selection unchanged when the selected frame is retained", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "same", 200),
+      ]);
+      frameStore.selectFrame("a");
+      frameStore.deduplicateAdjacentMerge();
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+  });
+
+  describe("deduplicateAdjacentDrop", () => {
+    it("removes the adjacent duplicate without merging duration", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "same", 200),
+      ]);
+      frameStore.deduplicateAdjacentDrop();
+      expect(frameStore.frames).toHaveLength(1);
+      expect(frameStore.frames[0].id).toBe("a");
+      expect(frameStore.frames[0].duration).toBe(100);
+    });
+
+    it("is a no-op when no adjacent duplicates exist", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.deduplicateAdjacentDrop();
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+
+    it("does not remove non-adjacent identical frames", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "different", 100),
+        makeFrameWithData("c", "same", 100),
+      ]);
+      frameStore.deduplicateAdjacentDrop();
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+
+    it("selects the kept frame when the selected frame is removed", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "same", 200),
+      ]);
+      frameStore.selectFrame("b");
+      frameStore.deduplicateAdjacentDrop();
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    it("keeps selection unchanged when the selected frame is retained", () => {
+      frameStore.setFrames([
+        makeFrameWithData("a", "same", 100),
+        makeFrameWithData("b", "same", 200),
+      ]);
+      frameStore.selectFrame("a");
+      frameStore.deduplicateAdjacentDrop();
+      expect(frameStore.selectedFrameId).toBe("a");
     });
   });
 
