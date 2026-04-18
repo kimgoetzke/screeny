@@ -19,44 +19,36 @@ Status: **In progress**
 - [x] Introduce a generic, re-usable notification dialog
 - [x] Change Open button to Close button while a GIF is opened
 - [ ] Fix hanging right after GIF is selected/dropped and before it loads
-- [ ] Don't show header bar (min/max or close window) during splash screen
+- [x] Don't show header bar (min/max or close window) during splash screen
 - [x] Add on-hover button effect(s) for timeline
 - [x] Allow bulk-deleting frames
-- [ ] Allow moving frames
-- [ ] Deduplicate frames
+- [x] Allow moving frames
+- [x] Deduplicate frames
 - [ ] Limit deduplicate frames features to current selection if multiple frames are selected
 - [ ] Press Ctrl + A to select all frames
+- [ ] Use Ctrl + mouse wheel to zoom in and out
+- [ ] Fix bug where loaded GIF sometimes disappears
+- [ ] Improve delete multi-frame hover button
 
 ### Planning
 
-#### Improvement to tool b1ar
+#### Improve delete multi-frame hover button
 
-<TBC>
+In my app, a user can load a GIF and then modify it.  While a GIF is loaded, a timeline is visible. On the timeline, all frames of the open GIF are showed. When hovering over a frame with the mouse, an (x) button appears allowing the user to delete the frame. The user can also select multiple frames and hover over the current frame to then see the (x) button to delete plus a number indicating the number of frames that are selected and would be deleted. In the case of bulk selecting/deleting frames, the (x) plus number badge are currently displayed on all frames while the user hovers specifically over the delete button of any of the frames in the selection. I don't like it. When hovering over (x) plus number badge of a frame while multiple frames are selected, don't show the (x) plus number badge on all frames - only show it on the frame over which the mouse is hovering. Don't change any other functionality of behaviours. Use your `tdd` skill when writing code. Run all unit test, all Rust tests and all E2E test to make sure you didn't break anything.
 
-#### Improvements to timeline
+#### Limit deduplicate frames features to current selection if multiple frames are selected
 
-##### Allow bulk-deleting frames
+Status: **In progress**
 
-Please help me implement a new feature in my GIF manipulation app. When a user
-loads a GIF, a timeline is displayed at the bottom of the app which shows each frame of the GIF. This way the user can delete a frame by selecting them and clicking an (x) icon which appears in the top right corner of the frame over which they hover. I want to extend this by allowing users to bulk delete frames. For this, it must be possible to Shift + Left mouse click a frame in the time line to select _all_ frames from (and including) the currently selected frame up until (and including) the clicked frame. This must work in both directions i.e. clicking a frame before or after the current frame. When the current frame is clicked, the current frame should remain selected and no other frames should be added to the selection.
+My app has a feature that allows to deduplicate the frames in a GIF image. While a GIF is loaded, the tool bar shows to buttons for two different versions of this deduplication function. I would like you to improve both in a way where, when the user has selected _multiple_ frames, these dedup functions only apply to the selection. If the user has selected a single frame only, then the functions should apply to all frames.
 
-The first use case for this bulk select ability is a bulk-delete feature for frames:
+You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
 
-- The delete button (x) that's currently visible on hover must be shown on all visible frames that are selected (whether that's just one or multiple) whenever the user hovers over just one of them
-- When the user hovers over a button the same on-mouse-over effect applies to buttons on all selected & visible frames, indicating that the action will be applied to all frames
-- If you have better, more best practice ideas to indicate that all frames are being deleted when the (x) of one is clicked, please do propose it as a question; web research for this is acceptable; however, I want to exclude a notification dialog that tells the user that all frames will be deleted as this adds extra clicks to the journey; the indication must be purely visual
-- Use your tdd skill for the implementation
+#### Press Ctrl + A to select all frames
 
-##### Allow moving frames
+My app has a timeline that shows all frames of a GIF when a GIF is loaded. A user can select multiple frames by shift + left clicking on another frame. This will cause all frames between and incl. the current frame and (including) the clicked frame to be selected. I would like you to allow a user to select all frames by pressing Ctrl + A on their keyboard.
 
-Please help me implement a new feature in my GIF studio app. When a user
-loads a GIF, a timeline is displayed at the bottom of the app which shows each frame of the GIF. This timeline already allows users to select one or more frames and delete them. Now, I want to add the feature to move the position of one or more frames: Users must be able to move one or more frames by dragging and dropping it/them in the timeline.
-
-- Example: Moving the first frame after the second frame must change the order of the frames being displayed in the timeline but also when playing the GIF using the Play button
-- When multiple frames are selected and moved with the mouse to a different location, all frames must be moved
-  - The order of the selected frames must stay the same e.g. if you move 1 + 2 + 3 after frame 4 then 1 -> 2 (because 4 is now 1 and 1 + 1 = 2), 2 -> 3, 3 -> 4 and 4 -> 1 (because it is now the first frame)
-- The exported GIF must reflect the new frame order
-- You must use your tdd skill for the implementation
+Please create a plan that uses `tdd` to replicate each issue before attempting to fix it. Run all unit tests, all E2E tests, and all Rust tests to make sure you didn't break anything.
 
 ## Goals
 
