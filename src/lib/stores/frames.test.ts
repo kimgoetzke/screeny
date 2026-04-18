@@ -184,6 +184,15 @@ describe("frameStore", () => {
       expect(frameStore.selectedFrameId).toBe("b");
     });
 
+    it("advances selectedFrameIds after the current frame's duration elapses", () => {
+      frameStore.setFrames([makeFrame("a", 100), makeFrame("b", 200)]);
+      frameStore.play();
+      expect(frameStore.selectedFrameIds.has("a")).toBe(true);
+      vi.advanceTimersByTime(100);
+      expect(frameStore.selectedFrameIds.has("b")).toBe(true);
+      expect(frameStore.selectedFrameIds.has("a")).toBe(false);
+    });
+
     it("wraps back to frame 0 after the last frame", () => {
       frameStore.setFrames([makeFrame("a", 100), makeFrame("b", 200)]);
       frameStore.play();
@@ -548,6 +557,160 @@ describe("frameStore", () => {
       frameStore.selectFrame("a");
       frameStore.deduplicateAdjacentDrop();
       expect(frameStore.selectedFrameId).toBe("a");
+    });
+  });
+
+  describe("moveSelectedFrames", () => {
+    it("moves a group of frames forward (tracer bullet)", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveSelectedFrames(3); // drop on d
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["d", "a", "b", "c"]);
+    });
+
+    it("moves a group of frames backward", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("d");
+      frameStore.moveSelectedFrames(0); // drop on a
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c", "d", "b"]);
+    });
+
+    it("moves a single selected frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.moveSelectedFrames(0); // drop on a
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c", "b"]);
+    });
+
+    it("is a no-op when dropping on a selected frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveSelectedFrames(1); // drop on b (selected)
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c", "d"]);
+    });
+
+    it("is a no-op for an out-of-bounds target index", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("a");
+      frameStore.moveSelectedFrames(99);
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b"]);
+    });
+
+    it("is a no-op when there is no selection", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.clear();
+      frameStore.moveSelectedFrames(0);
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual([]);
+    });
+
+    it("preserves selectedFrameIds after moving", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.moveSelectedFrames(3); // drop on d
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b"]));
+    });
+
+    it("moves a non-contiguous middle group forward", () => {
+      frameStore.setFrames([
+        makeFrame("a"),
+        makeFrame("b"),
+        makeFrame("c"),
+        makeFrame("d"),
+        makeFrame("e"),
+      ]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveSelectedFrames(4); // drop on e
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "d", "e", "b", "c"]);
+    });
+  });
+
+  describe("moveFramesToInsertionPoint", () => {
+    it("moves a group forward to after the last frame (tracer bullet)", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveFramesToInsertionPoint(4); // insertion slot after d
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["d", "a", "b", "c"]);
+    });
+
+    it("moves a group backward to the very beginning", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("d");
+      frameStore.moveFramesToInsertionPoint(0); // insertion slot before a
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["c", "d", "a", "b"]);
+    });
+
+    it("moves a middle group to after the last frame", () => {
+      frameStore.setFrames([
+        makeFrame("a"),
+        makeFrame("b"),
+        makeFrame("c"),
+        makeFrame("d"),
+        makeFrame("e"),
+      ]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveFramesToInsertionPoint(5); // after e
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "d", "e", "b", "c"]);
+    });
+
+    it("is a no-op when the insertion slot is within the selected range", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveFramesToInsertionPoint(2); // between b and c
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c", "d"]);
+    });
+
+    it("is a no-op when there is no selection", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.clear();
+      frameStore.moveFramesToInsertionPoint(1);
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual([]);
+    });
+
+    it("clamps an out-of-bounds insertion index to the end", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.moveFramesToInsertionPoint(99);
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["b", "c", "a"]);
+    });
+
+    it("preserves selectedFrameIds after the move", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.moveFramesToInsertionPoint(4); // after d
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b"]));
+    });
+
+    it("moves a single selected frame using the insertion slot", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.moveFramesToInsertionPoint(1); // between a and b
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c", "b"]);
     });
   });
 

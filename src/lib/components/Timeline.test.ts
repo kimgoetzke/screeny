@@ -131,4 +131,33 @@ describe("Timeline", () => {
       );
     });
   });
+
+  describe("multi-frame drag indicator", () => {
+    it("applies being-dragged class to selected frames during a multi-frame pointer drag", () => {
+      // Verify that the source wires isDraggingSelection to the being-dragged CSS class
+      // so selected frames are visually dimmed while they are being moved.
+      expect(timelineSource).toContain("isDraggingSelection");
+      expect(timelineSource).toContain("being-dragged");
+    });
+
+    it("has a CSS rule that dims being-dragged frames", () => {
+      expect(timelineSource).toMatch(/\.frame-thumb\.being-dragged\s*\{[^}]*opacity/s);
+    });
+
+    it("has a CSS rule for the insertion bar", () => {
+      expect(timelineSource).toMatch(/\.insertion-bar\s*\{[^}]*background:\s*var\(--color-accent\)/s);
+    });
+
+    it("applies being-dragged class to the single dragged frame during a single-frame drag", () => {
+      // being-dragged must also apply for single-frame drags (not just isDraggingSelection).
+      // The condition must reference dragFrameIndex for the non-selection case.
+      expect(timelineSource).toMatch(/isBeingDragged.*dragFrameIndex/s);
+    });
+
+    it("computes insertion bar X position without adding scrollLeft", () => {
+      // insertionX = rect.left - stripRect.left is already content-relative.
+      // Adding scrollLeft overcorrects and pushes the bar off-screen when scrolled.
+      expect(timelineSource).not.toMatch(/stripRect\.left \+ scrollLeft/);
+    });
+  });
 });

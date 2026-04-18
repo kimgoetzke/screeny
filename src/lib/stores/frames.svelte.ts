@@ -14,6 +14,7 @@ function scheduleNextFrame() {
   playbackTimer = setTimeout(() => {
     const index = frames.findIndex((f) => f.id === selectedFrameId);
     selectedFrameId = frames[(index + 1) % frames.length].id;
+    selectedFrameIds = new Set([selectedFrameId]);
     scheduleNextFrame();
   }, currentFrame.duration);
 }
@@ -124,6 +125,53 @@ export const frameStore = {
       selectedFrameId = frames[newIndex].id;
       selectedFrameIds = new Set([selectedFrameId]);
     }
+  },
+
+  moveFramesToInsertionPoint(insertionIndex: number) {
+    if (selectedFrameIds.size === 0) return;
+
+    const selectedInOrder = frames.filter((f) => selectedFrameIds.has(f.id));
+    const nonSelected = frames.filter((f) => !selectedFrameIds.has(f.id));
+
+    // Count how many selected frames sit before the insertion slot so we can
+    // convert from an "original array" index to a "non-selected array" index.
+    const selectedBeforeInsertion = frames
+      .slice(0, insertionIndex)
+      .filter((f) => selectedFrameIds.has(f.id)).length;
+
+    const adjustedIndex = Math.min(
+      Math.max(0, insertionIndex - selectedBeforeInsertion),
+      nonSelected.length,
+    );
+
+    frames = [
+      ...nonSelected.slice(0, adjustedIndex),
+      ...selectedInOrder,
+      ...nonSelected.slice(adjustedIndex),
+    ];
+    // selectedFrameIds is intentionally unchanged — moved frames remain selected
+  },
+
+  moveSelectedFrames(targetIndex: number) {
+    if (selectedFrameIds.size === 0) return;
+
+    const targetFrame = frames[targetIndex];
+    if (!targetFrame) return;
+
+    // Dropping onto a selected frame is a no-op
+    if (selectedFrameIds.has(targetFrame.id)) return;
+
+    const selectedInOrder = frames.filter((f) => selectedFrameIds.has(f.id));
+    const nonSelected = frames.filter((f) => !selectedFrameIds.has(f.id));
+
+    const insertAfterIndex = nonSelected.findIndex((f) => f.id === targetFrame.id);
+
+    frames = [
+      ...nonSelected.slice(0, insertAfterIndex + 1),
+      ...selectedInOrder,
+      ...nonSelected.slice(insertAfterIndex + 1),
+    ];
+    // selectedFrameIds is intentionally left unchanged — moved frames stay selected
   },
 
   reorderFrames(fromIndex: number, toIndex: number) {

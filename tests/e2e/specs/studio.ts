@@ -30,6 +30,42 @@ async function jsShiftClick(selector: string) {
 }
 
 /**
+ * Simulate a pointer-based drag from one element to the right-hand side of another.
+ * The Timeline uses pointer events (not HTML5 DnD) so we dispatch PointerEvents directly:
+ *   pointerdown on source → pointermove (cross threshold) → pointermove (over target) → pointerup
+ * Dropping near the right edge of the target places the insertion slot AFTER that frame.
+ */
+async function jsDrag(fromSelector: string, toSelector: string) {
+  const fromEl = await $(fromSelector);
+  await fromEl.waitForExist({ timeout: 10_000 });
+  const toEl = await $(toSelector);
+  await toEl.waitForExist({ timeout: 10_000 });
+
+  await browser.execute(
+    (from: HTMLElement, to: HTMLElement) => {
+      const fromRect = from.getBoundingClientRect();
+      const toRect = to.getBoundingClientRect();
+      const startX = fromRect.left + fromRect.width / 2;
+      const startY = fromRect.top + fromRect.height / 2;
+      // Land near the right edge of the target so the insertion slot falls AFTER it
+      const endX = toRect.right - 2;
+      const endY = toRect.top + toRect.height / 2;
+
+      from.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: startX, clientY: startY, button: 0 }));
+      // First move must exceed the 5 px threshold to commit the drag
+      window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: startX + 10, clientY: startY }));
+      window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: endX, clientY: endY }));
+      window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: endX, clientY: endY }));
+      // Browsers always fire a click after pointerup — dispatch it so wasJustDragging is
+      // consumed and cleared, preventing it from swallowing the next real click event.
+      from.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: endX, clientY: endY }));
+    },
+    fromEl as unknown as HTMLElement,
+    toEl as unknown as HTMLElement,
+  );
+}
+
+/**
  * Set an input's value via JavaScript, bypassing WebdriverIO interactability checks.
  * Dispatches an `input` event so Svelte's bind:value picks up the change.
  */
@@ -221,15 +257,22 @@ describe("Studio — GIF playback", () => {
 
     // Poll until the active frame changes rather than using a fixed pause.
     // With 2 frames at ~100 ms each the cycle is ~200 ms; 3 s is a safe upper bound.
+    // Capture inside waitUntil to avoid a race where the frame cycles back before the
+    // assertion below re-queries.
+    let advancedTo: string | null = null;
     await browser.waitUntil(
       async () => {
         const current = await getSelectedThumbId();
-        return current !== null && current !== selectedBefore;
+        if (current !== null && current !== selectedBefore) {
+          advancedTo = current;
+          return true;
+        }
+        return false;
       },
-      { timeout: 3_000, timeoutMsg: "Active frame did not advance within 3 s" },
+      { timeout: 3_000, timeoutMsg: "Active frame did not advance within 3 s", interval: 100 },
     );
 
-    expect(await getSelectedThumbId()).not.toBe(selectedBefore);
+    expect(advancedTo).not.toBe(selectedBefore);
   });
 
   it("clicking stop should re-enable play, disable stop, and preserve the current frame", async () => {
@@ -429,5 +472,108 @@ describe("Studio — deduplicate frames", () => {
 
     const duration0 = await $('[data-testid="frame-duration-0"]');
     await expect(duration0).toHaveText("300ms");
+  });
+});
+
+describe("Studio — drag to reorder frames", () => {
+  // State at entry: 2 frames loaded after the dedup-merge suite.
+
+  it("should reload the GIF fixture for single-frame drag tests", async () => {
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    const openBtn = await $('[data-testid="btn-open"]');
+    await openBtn.waitForExist({ timeout: 5_000 });
+
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-test.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-test.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(3);
+  });
+
+  it("should reorder a single unselected frame forward by drag-and-drop", async () => {
+    // Frame 0 is selected by default after load; click frame 1 to select only frame 1,
+    // then drag frame 0 (now unselected) → exercises the single-frame reorderFrames path.
+    await jsClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(100);
+
+    const idAt0Before = await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id");
+
+    // Drag frame 0 onto frame 2 — reorderFrames(0, 2) → frame 0 ends up at position 2.
+    await jsDrag('[data-testid="frame-thumb-0"]', '[data-testid="frame-thumb-2"]');
+    await browser.pause(300);
+
+    const idAt0After = await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id");
+    const idAt2After = await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id");
+
+    expect(idAt0After).not.toBe(idAt0Before); // frame originally at 0 has moved
+    expect(idAt2After).toBe(idAt0Before);      // it is now at position 2
+  });
+
+  it("should reload the fixture for multi-frame drag tests", async () => {
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    const openBtn = await $('[data-testid="btn-open"]');
+    await openBtn.waitForExist({ timeout: 5_000 });
+
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-test.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-test.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(3);
+  });
+
+  it("should move multiple selected frames together by drag-and-drop", async () => {
+    // Record the frame IDs in original order [0, 1, 2].
+    const idAt0 = await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id");
+    const idAt1 = await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id");
+    const idAt2 = await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id");
+
+    // Frame 0 is already selected after load; shift+click frame 1 → selects frames 0 and 1.
+    await jsShiftClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(100);
+
+    // Drag frame 0 (selected, multi-selection active) onto frame 2.
+    // moveSelectedFrames(2): non-selected=[frame2], insert [frame0,frame1] after frame2
+    // → expected order: [frame2, frame0, frame1]
+    await jsDrag('[data-testid="frame-thumb-0"]', '[data-testid="frame-thumb-2"]');
+    await browser.pause(300);
+
+    const newIdAt0 = await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id");
+    const newIdAt1 = await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id");
+    const newIdAt2 = await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id");
+
+    expect(newIdAt0).toBe(idAt2); // frame 2 is now first
+    expect(newIdAt1).toBe(idAt0); // frame 0 is now second
+    expect(newIdAt2).toBe(idAt1); // frame 1 is now third
+  });
+
+  it("should keep the moved frames selected after a multi-frame drag", async () => {
+    // After the previous drag, frames originally at positions 0 and 1 are now at positions 1 and 2.
+    // Both should still carry the 'selected' CSS class.
+    const thumb1 = await $('[data-testid="frame-thumb-1"]');
+    const thumb2 = await $('[data-testid="frame-thumb-2"]');
+    expect(await thumb1.getAttribute("class")).toContain("selected");
+    expect(await thumb2.getAttribute("class")).toContain("selected");
   });
 });

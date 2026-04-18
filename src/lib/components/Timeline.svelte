@@ -1,39 +1,118 @@
 <script lang="ts">
   import { frameStore } from "$lib/stores/frames.svelte";
 
-  let dragFromIndex: number | null = $state(null);
-  let dragOverIndex: number | null = $state(null);
+  // Drag state — pointer-event based to avoid HTML5 DnD unreliability in WebKitGTK/Wayland
+  let dragFrameIndex = $state<number | null>(null);
+  let dragActive = $state(false);
+  let isDraggingSelection = $state(false);
+  let insertionIndex = $state<number | null>(null);
+  let insertionX = $state<number | null>(null);
+  let framesStripEl = $state<HTMLElement | null>(null);
 
-  function handleDragStart(index: number, event: DragEvent) {
-    dragFromIndex = index;
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = "move";
+  // Pointer position at drag start — used to suppress sub-threshold micro-moves
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  // Set briefly after a drag completes so the subsequent click event is swallowed
+  let wasJustDragging = false;
+
+  const DRAG_THRESHOLD = 5; // pixels
+
+  function handleFramePointerDown(index: number, event: PointerEvent) {
+    if (event.button !== 0) return; // left button only
+    event.preventDefault(); // prevent text selection while dragging
+    dragFrameIndex = index;
+    dragActive = false;
+    pointerStartX = event.clientX;
+    pointerStartY = event.clientY;
+    const frame = frameStore.frames[index];
+    // Multi-drag: only when the grabbed frame is part of an active multi-selection
+    isDraggingSelection =
+      frame
+        ? frameStore.selectedFrameIds.has(frame.id) && frameStore.selectedFrameIds.size > 1
+        : false;
+  }
+
+  function handleWindowPointerMove(event: PointerEvent) {
+    if (dragFrameIndex === null || !framesStripEl) return;
+
+    // Commit to a drag once movement exceeds the threshold
+    if (!dragActive) {
+      const dx = event.clientX - pointerStartX;
+      const dy = event.clientY - pointerStartY;
+      if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+      dragActive = true;
     }
-  }
 
-  function handleDragOver(index: number, event: DragEvent) {
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "move";
+    // Determine which insertion slot the cursor is nearest to.
+    // Slot 0 = before frame 0, slot n = after frame n-1.
+    // The midpoint of each frame thumbnail is the boundary between adjacent slots.
+    const thumbs = Array.from(
+      framesStripEl.querySelectorAll<HTMLElement>('[data-testid^="frame-thumb-"]'),
+    );
+    const stripRect = framesStripEl.getBoundingClientRect();
+
+    let newInsertionIndex = thumbs.length;
+    // rect.left - stripRect.left gives the content-relative X position regardless of scroll,
+    // because both values shift equally when the parent timeline scrolls.
+    let newInsertionX =
+      thumbs.length > 0
+        ? thumbs[thumbs.length - 1].getBoundingClientRect().right - stripRect.left
+        : 8;
+
+    for (let i = 0; i < thumbs.length; i++) {
+      const rect = thumbs[i].getBoundingClientRect();
+      if (event.clientX < rect.left + rect.width / 2) {
+        newInsertionIndex = i;
+        newInsertionX = rect.left - stripRect.left;
+        break;
+      }
     }
-    dragOverIndex = index;
+
+    insertionIndex = newInsertionIndex;
+    insertionX = newInsertionX;
   }
 
-  function handleDrop(index: number, event: DragEvent) {
-    event.preventDefault();
-    if (dragFromIndex !== null && dragFromIndex !== index) {
-      frameStore.reorderFrames(dragFromIndex, index);
+  function handleWindowPointerUp(_event: PointerEvent) {
+    if (dragFrameIndex === null) return;
+
+    if (dragActive && insertionIndex !== null) {
+      wasJustDragging = true;
+      if (isDraggingSelection) {
+        frameStore.moveFramesToInsertionPoint(insertionIndex);
+      } else {
+        // Convert insertion slot → reorderFrames parameters.
+        // Slot s maps to post-removal index: s-1 if s > from (dragging forward), else s.
+        const from = dragFrameIndex;
+        const to = insertionIndex > from ? insertionIndex - 1 : insertionIndex;
+        if (to !== from) {
+          frameStore.reorderFrames(from, to);
+        }
+      }
     }
-    dragFromIndex = null;
-    dragOverIndex = null;
+
+    dragFrameIndex = null;
+    dragActive = false;
+    isDraggingSelection = false;
+    insertionIndex = null;
+    insertionX = null;
   }
 
-  function handleDragEnd() {
-    dragFromIndex = null;
-    dragOverIndex = null;
-  }
+  // Window-level listeners handle move and release even when the pointer leaves the strip
+  $effect(() => {
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerup", handleWindowPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+    };
+  });
 
   function handleFrameClick(frameId: string, event: MouseEvent) {
+    // Swallow the click that fires immediately after a drag completes
+    if (wasJustDragging) {
+      wasJustDragging = false;
+      return;
+    }
     if (event.shiftKey) {
       frameStore.shiftSelectFrames(frameId);
     } else {
@@ -42,25 +121,29 @@
   }
 </script>
 
-<div class="timeline" data-testid="timeline">
+<div class="timeline" class:is-dragging={dragActive} data-testid="timeline">
   {#if frameStore.hasFrames}
-    <div class="frames-strip" data-testid="frames-strip">
+    <div class="frames-strip" data-testid="frames-strip" bind:this={framesStripEl}>
+      {#if dragActive && insertionX !== null}
+        <div
+          class="insertion-bar"
+          style="left: {insertionX}px;"
+          data-testid="insertion-bar"
+        ></div>
+      {/if}
       {#each frameStore.frames as frame, index (frame.id)}
         {@const isSelected = frameStore.selectedFrameIds.has(frame.id)}
         {@const selectionCount = frameStore.selectedFrameIds.size}
+        {@const isBeingDragged = dragActive && (isDraggingSelection ? isSelected : index === dragFrameIndex)}
         <div
           class="frame-thumb"
           class:selected={isSelected}
-          class:drag-over={dragOverIndex === index && dragFromIndex !== index}
-          draggable="true"
+          class:being-dragged={isBeingDragged}
           role="button"
           tabindex="0"
           data-testid="frame-thumb-{index}"
           data-frame-id={frame.id}
-          ondragstart={(e) => handleDragStart(index, e)}
-          ondragover={(e) => handleDragOver(index, e)}
-          ondrop={(e) => handleDrop(index, e)}
-          ondragend={handleDragEnd}
+          onpointerdown={(e) => handleFramePointerDown(index, e)}
           onclick={(e) => handleFrameClick(frame.id, e)}
           onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") frameStore.selectFrame(frame.id);
@@ -107,12 +190,36 @@
     overflow-y: hidden;
   }
 
+  /* Prevent text selection and show grabbing cursor during an active drag */
+  .timeline.is-dragging {
+    user-select: none;
+  }
+
+  .timeline.is-dragging,
+  .timeline.is-dragging * {
+    cursor: grabbing !important;
+  }
+
   .frames-strip {
+    position: relative;
     display: flex;
     gap: 4px;
     padding: 8px;
     height: 100%;
     align-items: center;
+  }
+
+  /* Vertical insertion indicator shown while dragging */
+  .insertion-bar {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    background: var(--color-accent);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 10;
+    transform: translateX(-50%);
   }
 
   .frame-thumb {
@@ -126,17 +233,13 @@
     transition: border-color 0.15s;
   }
 
-  .frame-thumb:active {
-    cursor: grabbing;
-  }
-
   .frame-thumb.selected {
     border-color: var(--color-accent);
   }
 
-  .frame-thumb.drag-over {
-    border-color: var(--color-success);
-    border-style: dashed;
+  /* Selected frames being moved together are dimmed to reinforce they are "in flight" */
+  .frame-thumb.being-dragged {
+    opacity: 0.4;
   }
 
   .frame-thumb img {
