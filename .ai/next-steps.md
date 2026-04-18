@@ -25,16 +25,14 @@ Status: **In progress**
 - [x] Allow moving frames
 - [x] Deduplicate frames
 - [ ] Limit deduplicate frames features to current selection if multiple frames are selected
-- [ ] Press Ctrl + A to select all frames
+- [x] Press Ctrl + A to select all frames
 - [ ] Use Ctrl + mouse wheel to zoom in and out
 - [ ] Fix bug where loaded GIF sometimes disappears
 - [ ] Improve delete multi-frame hover button
+- [ ] Add frame inspector side bar
+- [ ] Improve keyboard controls
 
-### Planning
-
-#### Improve delete multi-frame hover button
-
-In my app, a user can load a GIF and then modify it.  While a GIF is loaded, a timeline is visible. On the timeline, all frames of the open GIF are showed. When hovering over a frame with the mouse, an (x) button appears allowing the user to delete the frame. The user can also select multiple frames and hover over the current frame to then see the (x) button to delete plus a number indicating the number of frames that are selected and would be deleted. In the case of bulk selecting/deleting frames, the (x) plus number badge are currently displayed on all frames while the user hovers specifically over the delete button of any of the frames in the selection. I don't like it. When hovering over (x) plus number badge of a frame while multiple frames are selected, don't show the (x) plus number badge on all frames - only show it on the frame over which the mouse is hovering. Don't change any other functionality of behaviours. Use your `tdd` skill when writing code. Run all unit test, all Rust tests and all E2E test to make sure you didn't break anything.
+### Prompt planning
 
 #### Limit deduplicate frames features to current selection if multiple frames are selected
 
@@ -44,11 +42,24 @@ My app has a feature that allows to deduplicate the frames in a GIF image. While
 
 You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
 
-#### Press Ctrl + A to select all frames
+#### Add frame inspector side bar
 
-My app has a timeline that shows all frames of a GIF when a GIF is loaded. A user can select multiple frames by shift + left clicking on another frame. This will cause all frames between and incl. the current frame and (including) the clicked frame to be selected. I would like you to allow a user to select all frames by pressing Ctrl + A on their keyboard.
+When no GIF is loaded, the bar should be visible but just say "No frame selected". When a GIF is loaded, there is always a frame selected (default is first frame), so this frame should be selected for the inspector too. The inspector window provides additional insights and controls that apply to only the selected frame(s).
 
-Please create a plan that uses `tdd` to replicate each issue before attempting to fix it. Run all unit tests, all E2E tests, and all Rust tests to make sure you didn't break anything.
+When a single frame is selected, the frame inspector should:
+- Show frame number
+- Show frame duration
+- Allow changing frame duration
+- Allow duplicating frame
+- <TBC>
+
+#### Improve keyboard support
+
+- Left/right should move the current frame selection to the left/right while a GIF is loaded, otherwise nothing
+- Page up/down should scroll the timeline left/right
+- Delete should remove the current selection
+- Shift + left/right should expand/reduce the frame selection towards the left/right
+- Space should start playback while its stopped and stop it while its playing
 
 ## Goals
 
@@ -58,12 +69,6 @@ Please create a plan that uses `tdd` to replicate each issue before attempting t
 
 - Options: number of frames, capture mode (fullscreen with monitor selection / window / select area)
 - Visual pause/continue and stop controls during recording
-
-#### Studio UI — three sections:
-
-- Toolbar at the top
-- Main viewer — current frame rendered to canvas
-- Timeline at the bottom — scrollable strip of frame thumbnails in sequence
 
 ### Planned Features (roughly by priority)
 
@@ -85,7 +90,9 @@ Please create a plan that uses `tdd` to replicate each issue before attempting t
 - Import frames from other GIFs
 - Text overlay
 - Crop / resize
-- Possibly: mouse movement highlight, key press visualisation, image overlay
+- Highlight mouse movement highlight
+- Key strokes overlay
+- Image overlay
 
 ## Key Constraints
 

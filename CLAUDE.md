@@ -1,6 +1,6 @@
 ## Project Overview
 
-A cross-platform GIF recording and editing application inspired by [ScreenToGif](https://www.screentogif.com/), targeting Linux/Wayland (Hyprland) as the must-have platform, with Windows and macOS as stretch goals.
+A minimalist GIF recording and editing application inspired by [ScreenToGif](https://www.screentogif.com/), targeting Linux/Wayland (Hyprland) as the must-have platform, with Windows as a stretch goal.
 
 ### Tech Stack
 
