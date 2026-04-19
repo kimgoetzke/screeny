@@ -861,3 +861,171 @@ describe("Studio — zoom indicator", () => {
     expect(levelAfter).toBe(levelBefore);
   });
 });
+
+describe("Studio — inspector panel", () => {
+  // Entry state: 2 frames loaded (after zoom indicator suite).
+
+  it("inspector panel is always visible", async () => {
+    const inspector = await $('[data-testid="inspector"]');
+    await inspector.waitForExist({ timeout: 5_000 });
+    await expect(inspector).toBeDisplayed();
+  });
+
+  it("shows frame indicator for the selected frame", async () => {
+    // 2 frames loaded, frame 1 selected from previous suite
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    const indicator = await $('[data-testid="inspector-frame-indicator"]');
+    await expect(indicator).toHaveText("Frame 1 of 2");
+  });
+
+  it("shows the duration input with the selected frame's duration", async () => {
+    const input = await $('[data-testid="inspector-duration-input"]');
+    await input.waitForExist({ timeout: 5_000 });
+    await expect(input).toBeDisplayed();
+  });
+
+  it("editing duration updates the frame duration shown in the timeline", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    await jsSetValue('[data-testid="inspector-duration-input"]', "350");
+    await browser.pause(300);
+    const duration = await $('[data-testid="frame-duration-0"]');
+    await expect(duration).toHaveText("350ms");
+  });
+
+  it("multi-select shows the bulk-edit tag and dedup buttons in the inspector", async () => {
+    // Shift+click frame 1 to extend selection to 0–1
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    await jsShiftClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(200);
+
+    const bulkTag = await $('[data-testid="inspector-bulk-edit"]');
+    await bulkTag.waitForExist({ timeout: 5_000 });
+    await expect(bulkTag).toBeDisplayed();
+
+    await expect(await $('[data-testid="inspector-dedup-merge"]')).toBeDisplayed();
+    await expect(await $('[data-testid="inspector-dedup-drop"]')).toBeDisplayed();
+  });
+
+  it("shows 'Frames x - y of z' indicator for multi-select", async () => {
+    // 2 frames selected (0 and 1 of 2 total)
+    const indicator = await $('[data-testid="inspector-frame-indicator"]');
+    await expect(indicator).toHaveText("Frames 1 - 2 of 2");
+  });
+
+  it("duplicate button inserts a copy after the selection", async () => {
+    // Select only frame 0, then duplicate
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    await jsClick('[data-testid="inspector-btn-duplicate"]');
+    await browser.pause(300);
+
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(3);
+  });
+
+  it("delete button removes the selected frame", async () => {
+    // 3 frames now; select frame 2 (the last) and delete via inspector
+    await jsClick('[data-testid="frame-thumb-2"]');
+    await browser.pause(100);
+    await jsClick('[data-testid="inspector-btn-delete"]');
+    await browser.pause(300);
+
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+  });
+
+  it("minimise button hides the panel content", async () => {
+    await jsClick('[data-testid="inspector-minimise"]');
+    await browser.pause(200);
+
+    await expect(await $('[data-testid="inspector-frame-indicator"]')).not.toBeExisting();
+    await expect(await $('[data-testid="inspector-restore"]')).toBeExisting();
+  });
+
+  it("restore button shows the panel content again", async () => {
+    await jsClick('[data-testid="inspector-restore"]');
+    await browser.pause(200);
+
+    const indicator = await $('[data-testid="inspector-frame-indicator"]');
+    await indicator.waitForExist({ timeout: 5_000 });
+    await expect(indicator).toBeDisplayed();
+    await expect(await $('[data-testid="inspector-minimise"]')).toBeExisting();
+  });
+
+  it("inspector panel footer is always present regardless of minimised state", async () => {
+    // Expanded state: footer present
+    await expect(await $('[data-testid="inspector-footer"]')).toBeExisting();
+
+    // Minimise then check again
+    await jsClick('[data-testid="inspector-minimise"]');
+    await browser.pause(200);
+    await expect(await $('[data-testid="inspector-footer"]')).toBeExisting();
+
+    // Restore for subsequent tests
+    await jsClick('[data-testid="inspector-restore"]');
+    await browser.pause(200);
+  });
+
+  it("inspector panel is floating with a gap from the window edges", async () => {
+    const inspector = await $('[data-testid="inspector"]');
+    await inspector.waitForExist({ timeout: 5_000 });
+
+    const result = await browser.execute(() => {
+      const el = document.querySelector('[data-testid="inspector"]');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, right: r.right };
+    });
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    const windowSize = await browser.getWindowSize();
+    // Gap of 8px on the right side
+    expect(windowSize.width - result.right).toBeGreaterThanOrEqual(6);
+    // Gap of 8px from the top
+    expect(result.y).toBeGreaterThanOrEqual(6);
+  });
+
+  it("zoom indicator repositions when inspector is minimised", async () => {
+    const zoomEl = await $('[data-testid="zoom-indicator"]');
+    if (!(await zoomEl.isExisting())) {
+      // Zoom indicator only shows when frames are loaded; skip if not visible
+      return;
+    }
+
+    const xExpanded = await browser.execute(() => {
+      const el = document.querySelector('[data-testid="zoom-indicator"]');
+      return el ? el.getBoundingClientRect().x : null;
+    });
+
+    await jsClick('[data-testid="inspector-minimise"]');
+    await browser.pause(300);
+
+    const xMinimised = await browser.execute(() => {
+      const el = document.querySelector('[data-testid="zoom-indicator"]');
+      return el ? el.getBoundingClientRect().x : null;
+    });
+
+    // When inspector minimises, zoom indicator should move right (closer to the edge)
+    if (xExpanded !== null && xMinimised !== null) {
+      expect(xMinimised).toBeGreaterThan(xExpanded);
+    }
+
+    // Restore
+    await jsClick('[data-testid="inspector-restore"]');
+    await browser.pause(200);
+  });
+
+  it("duration label reads 'Duration:' in the same row as the input", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    const durationRow = await $('[data-testid="inspector-duration"]');
+    await durationRow.waitForExist({ timeout: 5_000 });
+    const text = await durationRow.getText();
+    expect(text).toContain("Duration:");
+  });
+});

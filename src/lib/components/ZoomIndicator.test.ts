@@ -58,4 +58,20 @@ describe("ZoomIndicator", () => {
 
     expect(body).not.toContain('data-testid="zoom-indicator"');
   });
+
+  it("applies rightOffset as inline right style", () => {
+    const { body } = render(ZoomIndicator, {
+      props: { scale: 1, isModified: false, onReset: vi.fn(), visible: true, rightOffset: 268 },
+    });
+
+    expect(body).toContain("right: 268px");
+  });
+
+  it("defaults right to 10px when rightOffset is not provided", () => {
+    const { body } = render(ZoomIndicator, {
+      props: { scale: 1, isModified: false, onReset: vi.fn(), visible: true },
+    });
+
+    expect(body).toContain("right: 10px");
+  });
 });

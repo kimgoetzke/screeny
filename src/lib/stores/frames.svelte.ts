@@ -397,6 +397,44 @@ export const frameStore = {
     }
   },
 
+  duplicateSelectedFrames() {
+    if (selectedFrameIds.size === 0) return;
+
+    // Collect selected frames in their current array order
+    const selectedInOrder = frames.filter((f) => selectedFrameIds.has(f.id));
+
+    // Find the index of the last selected frame (insertion point)
+    const lastSelectedIndex = frames.reduce(
+      (max, f, i) => (selectedFrameIds.has(f.id) ? i : max),
+      -1,
+    );
+
+    const duplicates: Frame[] = selectedInOrder.map((f) => ({
+      ...f,
+      id: crypto.randomUUID(),
+    }));
+
+    frames = [
+      ...frames.slice(0, lastSelectedIndex + 1),
+      ...duplicates,
+      ...frames.slice(lastSelectedIndex + 1),
+    ];
+
+    // Select the newly inserted duplicates
+    const duplicateIds = new Set(duplicates.map((f) => f.id));
+    selectedFrameIds = duplicateIds;
+    selectedFrameId = duplicates[0].id;
+    selectionActiveId = duplicates[duplicates.length - 1].id;
+  },
+
+  setFrameDuration(duration: number) {
+    if (selectedFrameIds.size === 0) return;
+    const clamped = Math.min(Math.max(1, duration), 9999);
+    frames = frames.map((f) =>
+      selectedFrameIds.has(f.id) ? { ...f, duration: clamped } : f,
+    );
+  },
+
   addFrame(frame: Frame) {
     frames = [...frames, frame];
     if (frames.length === 1) {

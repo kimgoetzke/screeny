@@ -8,10 +8,16 @@
   import FrameViewer from "$lib/components/FrameViewer.svelte";
   import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
   import Timeline from "$lib/components/Timeline.svelte";
+  import Inspector from "$lib/components/Inspector.svelte";
   import { frameStore } from "$lib/stores/frames.svelte";
 
   let dragging = $state(false);
   let dropError = $state("");
+
+  let inspectorMinimised = $state(false);
+  // ZoomIndicator sits 20px to the left of the inspector panel.
+  // Expanded: 240px + 8px gap + 20px = 268px. Minimised: 32px + 8px gap + 20px = 60px.
+  let zoomRightOffset = $derived(inspectorMinimised ? 60 : 268);
 
   let viewerScale = $state(1);
   let viewerPanX = $state(0);
@@ -80,11 +86,13 @@
   <Toolbar />
   <div class="viewer-area">
     <FrameViewer showEmptyState={!dragging} bind:scale={viewerScale} bind:panX={viewerPanX} bind:panY={viewerPanY} />
+    <Inspector bind:minimised={inspectorMinimised} />
     <ZoomIndicator
       scale={viewerScale}
       isModified={viewerScale !== 1 || viewerPanX !== 0 || viewerPanY !== 0}
       onReset={resetView}
       visible={frameStore.hasFrames}
+      rightOffset={zoomRightOffset}
     />
     {#if dragging}
       <div class="drop-overlay">

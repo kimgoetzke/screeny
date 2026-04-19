@@ -4,16 +4,18 @@
     isModified,
     onReset,
     visible,
+    rightOffset = 10,
   }: {
     scale: number;
     isModified: boolean;
     onReset: () => void;
     visible: boolean;
+    rightOffset?: number;
   } = $props();
 </script>
 
 {#if visible}
-  <div class="zoom-indicator" data-testid="zoom-indicator">
+  <div class="zoom-indicator" data-testid="zoom-indicator" style:right="{rightOffset}px">
     <!-- Magnifying glass icon -->
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
       <circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" />
@@ -36,7 +38,6 @@
   .zoom-indicator {
     position: absolute;
     top: 10px;
-    right: 10px;
     display: flex;
     align-items: center;
     gap: 4px;
