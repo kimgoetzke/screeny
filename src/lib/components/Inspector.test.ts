@@ -46,7 +46,7 @@ describe("Inspector", () => {
       frameStore.selectFrame("b");
       const { body } = render(Inspector);
 
-      expect(body).toContain("Frame 2 of 3");
+      expect(body).toContain("Frame 2 / 3");
     });
 
     it("does not show bulk-edit tag", () => {
@@ -92,7 +92,7 @@ describe("Inspector", () => {
       frameStore.shiftSelectFrames("c");
       const { body } = render(Inspector);
 
-      expect(body).toContain("Frames 2 - 3 of 4");
+      expect(body).toContain("Frames 2-3 / 4");
     });
 
     it("shows bulk-edit tag", () => {

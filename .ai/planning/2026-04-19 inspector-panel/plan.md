@@ -6,7 +6,7 @@ Add a collapsible inspector side panel that shows frame info and provides durati
 
 ## Current Phase
 
-Phase 5 (complete)
+Phase 6 (complete)
 
 ## Phases
 
@@ -95,6 +95,52 @@ Fix six visual/UX issues reported after initial implementation.
 - [x] Update planning docs per `planning` skill — mark Phase 5 complete
 - **Status:** complete (E2E requires built app to run)
 
+### Phase 6: Inspector Improvements & Bug Fixes (TDD)
+
+Fix 8 reported issues: Shift+scroll bug, CSS improvements (frame indicator all caps, more spacing, toggle button right-aligned, equal-width action buttons, spin button styling), Ctrl+I shortcut, and drag-and-drop overlay overlap.
+
+**Files to change:** `Inspector.svelte`, `Inspector.test.ts`, `+page.svelte`, `tests/e2e/specs/studio.ts`, plus a possible new `+page.test.ts` for source inspection.
+
+**TDD RED — write failing tests first:**
+- [x] RED: Add source inspection tests in `src/routes/+page.test.ts` (new file):
+  - `+page.svelte` contains a `keydown` window listener
+  - Handles `ctrlKey` + key `"i"` / `"I"`
+  - Toggles `inspectorMinimised`
+- [x] RED: Add E2E tests for all 8 changes — they will fail until built app is available
+
+**TDD GREEN — implement all changes in `Inspector.svelte`:**
+- [x] Fixed pre-existing regression: "No frame(s) selected" → "No frame selected"
+- [x] Fix `handleDurationWheel`: fall back to `event.deltaX` when `event.deltaY === 0`; guard against both-zero (no-op)
+- [x] CSS: `.frame-indicator` — added `text-transform: uppercase; letter-spacing: 0.05em`
+- [x] CSS: `.inspector-body` — increased `gap` from `12px` to `24px`
+- [x] CSS: `.inspector-footer` — changed `justify-content: center` to `justify-content: flex-end`
+- [x] CSS: `.action-buttons button` — added `flex: 1`
+- [x] CSS: Duration input spin buttons removed via `appearance: textfield` + `::-webkit-inner-spin-button { display: none }`
+
+**TDD GREEN — implement changes in `+page.svelte`:**
+- [x] Added Ctrl+I window `keydown` listener in a `$effect`; follows `Timeline.svelte` pattern
+- [x] Added `dropOverlayRightMargin = $derived(inspectorMinimised ? 48 : 256)`; applied as `style:margin-right` on `.drop-overlay`
+
+**TDD REFACTOR:**
+- [x] Clean up done
+- [x] Run unit tests (`pnpm test:unit`) — 227/227 pass
+
+**E2E tests in `tests/e2e/specs/studio.ts`:**
+- [x] Ctrl+I minimises / restores the inspector
+- [x] Shift+wheel (WebKit deltaX path) increases/decreases duration by ~100
+- [x] Frame indicator text is all caps
+- [x] Toggle button is right-aligned in footer
+- [x] Drop overlay right boundary does not overlap inspector when expanded
+- [x] Updated existing `toHaveText("Frame 1 of 2")` → `"FRAME 1 OF 2"` and multi-select equivalent
+- [x] Added `jsWheel` and `jsWheelShift` helper functions
+
+**Full regression:**
+- [x] All unit tests (`pnpm test:unit`) — 227/227 pass
+- [x] Rust tests (`cargo test`) — 0 failed
+- [ ] Run E2E tests (`pnpm test:e2e`) — requires built app; skipped
+- [x] Updated planning docs per `planning` skill — Phase 6 marked complete
+- **Status:** complete (E2E requires built app to run)
+
 ## Key Questions
 
 1. ~~Duration display for multi-select with mixed durations~~ — **Resolved**: show "Mixed" placeholder, empty value; standard HTML placeholder behaviour (Q1)
@@ -120,6 +166,15 @@ Fix six visual/UX issues reported after initial implementation.
 | Minimised inspector width: 32px | Just enough to show the 24px SVG toggle button with 4px padding each side |
 | Duration row flattened: label + input + unit on one line | User-requested; input gets `flex: 1` to fill remaining space |
 | Bulk edit tag: `align-self: flex-start` | Prevents it from stretching to full flex-column width |
+| Shift+scroll fix via `deltaX` fallback | WebKit converts Shift+vertical-scroll to horizontal scroll, setting `deltaY=0` and `deltaX≠0`; checking `deltaX` when `deltaY===0` restores correct behaviour |
+| Frame indicator all caps via CSS `text-transform: uppercase` | Consistent with `.inspector-title` styling; HTML content stays unchanged so existing unit tests don't break |
+| Inspector body gap: 12px → 24px | User-requested; doubles spacing between all body sections |
+| Toggle button footer: `justify-content: flex-end` | Right-aligns button so it stays at the same absolute position when panel is minimised (both states share the same right edge at `right: 8px`) |
+| Action buttons: `flex: 1` | Equal width filling the full panel; no label text, so equal space is the right default |
+| Duration input native spinners removed | Hid via `appearance: textfield` + `::-webkit-inner-spin-button { display: none }`; mouse wheel already handles increment so no functionality loss |
+| Ctrl+I keyboard shortcut in `+page.svelte` | Global shortcut belongs in the page, not the component; follows same `$effect` + `window.addEventListener` pattern as `Timeline.svelte` |
+| Drop overlay: Option 1 (dynamic right margin) | `inspectorMinimised` is already tracked in `+page.svelte`; simple `$derived` for margin-right eliminates overlap without layout complexity |
+| Drop overlay right margin: 48px (minimised) / 256px (expanded) | 8px outer gap + panel width + 8px inner gap; symmetrical with panel positioning |
 
 ## Errors Encountered
 

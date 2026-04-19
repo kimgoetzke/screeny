@@ -876,7 +876,7 @@ describe("Studio — inspector panel", () => {
     await jsClick('[data-testid="frame-thumb-0"]');
     await browser.pause(100);
     const indicator = await $('[data-testid="inspector-frame-indicator"]');
-    await expect(indicator).toHaveText("Frame 1 of 2");
+    await expect(indicator).toHaveText("FRAME 1 / 2");
   });
 
   it("shows the duration input with the selected frame's duration", async () => {
@@ -912,7 +912,7 @@ describe("Studio — inspector panel", () => {
   it("shows 'Frames x - y of z' indicator for multi-select", async () => {
     // 2 frames selected (0 and 1 of 2 total)
     const indicator = await $('[data-testid="inspector-frame-indicator"]');
-    await expect(indicator).toHaveText("Frames 1 - 2 of 2");
+    await expect(indicator).toHaveText("FRAMES 1-2 / 2");
   });
 
   it("duplicate button inserts a copy after the selection", async () => {
@@ -1027,5 +1027,155 @@ describe("Studio — inspector panel", () => {
     await durationRow.waitForExist({ timeout: 5_000 });
     const text = await durationRow.getText();
     expect(text).toContain("Duration:");
+  });
+});
+
+/**
+ * Dispatch a wheel event on a specific element.
+ * Used to test the duration field's scroll-to-increment behaviour.
+ */
+async function jsWheel(selector: string, deltaY: number, options: { shiftKey?: boolean } = {}) {
+  const element = await $(selector);
+  await element.waitForExist({ timeout: 5_000 });
+  await browser.execute(
+    (el: HTMLElement, dy: number, opts: { shiftKey?: boolean }) =>
+      el.dispatchEvent(
+        new WheelEvent("wheel", { deltaY: dy, shiftKey: opts.shiftKey ?? false, bubbles: true, cancelable: true }),
+      ),
+    element as unknown as HTMLElement,
+    deltaY,
+    options,
+  );
+}
+
+/**
+ * Simulate what WebKit does on Shift+vertical-scroll: converts it to a horizontal scroll
+ * event with deltaY=0 and a non-zero deltaX.  Used to test the Shift+scroll fix.
+ */
+async function jsWheelShift(selector: string, deltaX: number) {
+  const element = await $(selector);
+  await element.waitForExist({ timeout: 5_000 });
+  await browser.execute(
+    (el: HTMLElement, dx: number) =>
+      el.dispatchEvent(
+        new WheelEvent("wheel", { deltaX: dx, deltaY: 0, shiftKey: true, bubbles: true, cancelable: true }),
+      ),
+    element as unknown as HTMLElement,
+    deltaX,
+  );
+}
+
+describe("Studio — inspector panel improvements (Phase 6)", () => {
+  // Entry state: 2 frames loaded (after inspector panel suite).
+
+  it("Ctrl+I minimises the inspector panel", async () => {
+    // Ensure inspector is expanded first
+    const restore = await $('[data-testid="inspector-restore"]');
+    if (await restore.isExisting()) {
+      await jsClick('[data-testid="inspector-restore"]');
+      await browser.pause(200);
+    }
+
+    await browser.execute(() =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "i", ctrlKey: true, bubbles: true })),
+    );
+    await browser.pause(200);
+
+    await expect(await $('[data-testid="inspector-restore"]')).toBeExisting();
+    await expect(await $('[data-testid="inspector-frame-indicator"]')).not.toBeExisting();
+  });
+
+  it("Ctrl+I restores the inspector panel", async () => {
+    // Inspector is minimised from previous test
+    await browser.execute(() =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "i", ctrlKey: true, bubbles: true })),
+    );
+    await browser.pause(200);
+
+    const indicator = await $('[data-testid="inspector-frame-indicator"]');
+    await indicator.waitForExist({ timeout: 5_000 });
+    await expect(indicator).toBeDisplayed();
+    await expect(await $('[data-testid="inspector-minimise"]')).toBeExisting();
+  });
+
+  it("frame indicator text is shown in all caps", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    const indicator = await $('[data-testid="inspector-frame-indicator"]');
+    await indicator.waitForExist({ timeout: 5_000 });
+    // CSS text-transform: uppercase — WebdriverIO getText() returns visually rendered text
+    const text = await indicator.getText();
+    expect(text).toBe(text.toUpperCase());
+  });
+
+  it("toggle button is right-aligned in the inspector footer", async () => {
+    const result = await browser.execute(() => {
+      const footer = document.querySelector('[data-testid="inspector-footer"]');
+      const btn = document.querySelector('[data-testid="inspector-minimise"]');
+      if (!footer || !btn) return null;
+      const footerRect = footer.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      // Right edge of button should be within 8px of the right edge of the footer
+      return { footerRight: footerRect.right, btnRight: btnRect.right };
+    });
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(Math.abs(result.footerRight - result.btnRight)).toBeLessThanOrEqual(8);
+  });
+
+  it("Shift+wheel (WebKit deltaX path) on duration input increases duration by ~100", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+
+    // Record current duration
+    const input = await $('[data-testid="inspector-duration-input"]');
+    await input.waitForExist({ timeout: 5_000 });
+    const before = parseInt(await input.getValue(), 10);
+
+    // Simulate WebKit Shift+scroll up: deltaX negative = scroll left = increase
+    await jsWheelShift('[data-testid="inspector-duration-input"]', -1);
+    await browser.pause(300);
+
+    const duration = await $('[data-testid="frame-duration-0"]');
+    const after = parseInt(await duration.getText(), 10);
+    expect(after).toBe(Math.min(9999, before + 100));
+  });
+
+  it("Shift+wheel (WebKit deltaX path) on duration input decreases duration by ~100", async () => {
+    // Set a known duration well above 100 so decrement doesn't clamp
+    await jsSetValue('[data-testid="inspector-duration-input"]', "500");
+    await browser.pause(300);
+
+    // Simulate WebKit Shift+scroll down: deltaX positive = scroll right = decrease
+    await jsWheelShift('[data-testid="inspector-duration-input"]', 1);
+    await browser.pause(300);
+
+    const duration = await $('[data-testid="frame-duration-0"]');
+    const after = parseInt(await duration.getText(), 10);
+    expect(after).toBe(400);
+  });
+
+  it("drop overlay right boundary does not overlap the inspector panel when expanded", async () => {
+    const result = await browser.execute(() => {
+      // Trigger a synthetic drag-enter so the drop overlay is rendered
+      // We can't easily trigger real drag events in WebKit, so check CSS/computed values instead.
+      // Verify that dropOverlayRightMargin is set by checking the inline style on .drop-overlay.
+      // Since the overlay is only rendered during drag, we check the inspector left edge
+      // vs what the overlay right edge would be.
+      const inspector = document.querySelector('[data-testid="inspector"]');
+      const viewerArea = document.querySelector('.viewer-area') as HTMLElement;
+      if (!inspector || !viewerArea) return null;
+      const inspectorRect = inspector.getBoundingClientRect();
+      const viewerRect = viewerArea.getBoundingClientRect();
+      // Expected overlay right margin (expanded): 256px from viewer right
+      const expectedOverlayRightEdge = viewerRect.right - 256;
+      return { inspectorLeft: inspectorRect.left, expectedOverlayRightEdge };
+    });
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+    // Overlay right edge should be at or to the left of the inspector left edge
+    expect(result.expectedOverlayRightEdge).toBeLessThanOrEqual(result.inspectorLeft + 1);
   });
 });

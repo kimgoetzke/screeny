@@ -73,12 +73,30 @@
 | Timestamp | Error | Attempt | Resolution |
 | --------- | ----- | ------- | ---------- |
 
+### Phase 6: Inspector Improvements & Bug Fixes
+
+- **Status:** complete
+- Actions taken:
+  - TDD RED: Created `src/routes/+page.test.ts` with 3 source inspection tests for Ctrl+I
+  - Discovered pre-existing regression: Inspector.svelte showed "No frame(s) selected" but test expected "No frame selected" — fixed
+  - TDD GREEN: Fixed `handleDurationWheel` deltaX fallback for WebKit Shift+scroll
+  - TDD GREEN: CSS changes in Inspector.svelte — all caps, 24px gap, footer right-align, action buttons flex:1, spin buttons removed
+  - TDD GREEN: Added Ctrl+I window keydown handler to +page.svelte
+  - TDD GREEN: Added `dropOverlayRightMargin` derived state and applied to `.drop-overlay`
+  - Added Phase 6 E2E suite with 7 tests; updated existing frame indicator text assertions to uppercase
+  - All 227/227 unit tests pass; Rust tests pass (0 failed); E2E skipped (requires built app)
+- Files created/modified:
+  - `src/lib/components/Inspector.svelte` — scroll fix, CSS improvements, "No frame selected" text fix
+  - `src/routes/+page.svelte` — Ctrl+I shortcut, drop overlay right margin
+  - `src/routes/+page.test.ts` — new file; 3 source inspection tests
+  - `tests/e2e/specs/studio.ts` — Phase 6 suite (7 E2E tests), jsWheel/jsWheelShift helpers, updated uppercase assertions
+
 ## 5-Question Reboot Check
 
 | Question             | Answer                                              |
 | -------------------- | --------------------------------------------------- |
-| Where am I?          | Phase 1 (pending — awaiting user answers to Qs)     |
-| Where am I going?    | Phases 2–4: component, integration, E2E             |
-| What's the goal?     | Collapsible inspector panel with frame controls      |
-| What have I learned? | See findings.md                                     |
-| What have I done?    | Codebase research, planning docs created             |
+| Where am I?          | Phase 6 complete                                           |
+| Where am I going?    | All phases complete                                        |
+| What's the goal?     | Inspector panel UI improvements and bug fixes              |
+| What have I learned? | See findings.md — Phase 6 research findings section        |
+| What have I done?    | All 6 phases complete; 227/227 unit tests; Rust tests pass |

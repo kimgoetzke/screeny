@@ -10,17 +10,17 @@
   let isMultiSelect = $derived(selectedFrameIds.size > 1);
 
   let frameIndicator = $derived.by(() => {
-    if (!selectedFrameId || frames.length === 0) return "No frame(s) selected";
+    if (!selectedFrameId || frames.length === 0) return "No frame selected";
     if (!isMultiSelect) {
       const index = frames.findIndex((f) => f.id === selectedFrameId) + 1;
-      return `Frame ${index} of ${frames.length}`;
+      return `Frame ${index} / ${frames.length}`;
     }
     const selectedIndices = frames
       .map((f, i) => (selectedFrameIds.has(f.id) ? i + 1 : null))
       .filter((i): i is number => i !== null);
     const first = Math.min(...selectedIndices);
     const last = Math.max(...selectedIndices);
-    return `Frames ${first} - ${last} of ${frames.length}`;
+    return `Frames ${first}-${last} / ${frames.length}`;
   });
 
   let durationValue = $derived.by(() => {
@@ -47,9 +47,13 @@
 
   function handleDurationWheel(event: WheelEvent) {
     event.preventDefault();
-    const delta = event.shiftKey ? (event.deltaY < 0 ? 100 : -100) : event.deltaY < 0 ? 1 : -1;
-    const current = selectedFrame?.duration ?? parseInt(durationValue, 10) ?? 100;
-    if (!isNaN(current)) {
+    // WebKit converts Shift+vertical-scroll to horizontal scroll (deltaY=0, deltaX≠0).
+    // Fall back to deltaX so Shift+scroll still adjusts by ±100.
+    const scroll = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+    if (scroll === 0) return;
+    const delta = event.shiftKey ? (scroll < 0 ? 100 : -100) : scroll < 0 ? 1 : -1;
+    const current = selectedFrame?.duration ?? parseInt(durationValue, 10);
+    if (current !== undefined && !isNaN(current)) {
       frameStore.setFrameDuration(current + delta);
     }
   }
@@ -90,12 +94,14 @@
             <button
               onclick={() => frameStore.deduplicateAdjacentMerge()}
               data-testid="inspector-dedup-merge"
-              title="Remove adjacent duplicate frames (merge duration)">Dedup (merge)</button
+              title="Remove adjacent duplicate frames (merge duration of duplicates)"
+              >Dedup (merge duration)</button
             >
             <button
               onclick={() => frameStore.deduplicateAdjacentDrop()}
               data-testid="inspector-dedup-drop"
-              title="Remove adjacent duplicate frames (drop duration)">Dedup (drop)</button
+              title="Remove adjacent duplicate frames (drop duration of duplicates)"
+              >Dedup (drop duration)</button
             >
           </div>
         {/if}
@@ -200,9 +206,9 @@
 <style>
   .inspector {
     position: absolute;
-    right: 8px;
-    top: 8px;
-    bottom: 8px;
+    right: 15px;
+    top: 20px;
+    bottom: 20px;
     width: 240px;
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
@@ -237,7 +243,7 @@
     padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 24px;
     overflow-y: auto;
     flex: 1;
   }
@@ -245,7 +251,7 @@
   .inspector-footer {
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     padding: 4px;
     margin-top: auto;
     border-top: 1px solid var(--color-border);
@@ -277,6 +283,8 @@
     color: var(--color-text-muted);
     font-size: 15px;
     padding: 10px 0px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .bulk-edit-tag {
@@ -286,10 +294,10 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    padding: 2px 6px;
+    padding: 4px 8px;
     border-radius: 3px;
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-brightest);
   }
 
   .duration-row {
@@ -320,6 +328,16 @@
   .duration-row input[type="number"]:focus {
     outline: none;
     border-color: var(--color-text-muted);
+  }
+
+  /* Remove browser-native spin buttons — mouse wheel handles increment/decrement */
+  .duration-row input[type="number"] {
+    appearance: textfield;
+  }
+
+  .duration-row input[type="number"]::-webkit-inner-spin-button,
+  .duration-row input[type="number"]::-webkit-outer-spin-button {
+    display: none;
   }
 
   .duration-unit {
@@ -355,6 +373,7 @@
   }
 
   .action-buttons button {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;

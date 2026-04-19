@@ -18,6 +18,23 @@
   // ZoomIndicator sits 20px to the left of the inspector panel.
   // Expanded: 240px + 8px gap + 20px = 268px. Minimised: 32px + 8px gap + 20px = 60px.
   let zoomRightOffset = $derived(inspectorMinimised ? 60 : 268);
+  // Drop overlay right margin: 10px outer gap + panel width + 10px inner gap (matches CSS margin: 10px).
+  // Minimised: 10+32+10 = 52px. Expanded: 10+240+10 = 260px.
+  let dropOverlayRightMargin = $derived(inspectorMinimised ? 52 : 260);
+
+  function handleWindowKeyDown(event: KeyboardEvent) {
+    if (event.ctrlKey && (event.key === "i" || event.key === "I")) {
+      event.preventDefault();
+      inspectorMinimised = !inspectorMinimised;
+    }
+  }
+
+  $effect(() => {
+    window.addEventListener("keydown", handleWindowKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleWindowKeyDown);
+    };
+  });
 
   let viewerScale = $state(1);
   let viewerPanX = $state(0);
@@ -67,9 +84,7 @@
         if (event.type === "frame") {
           frameStore.addFrame(event.data);
         } else if (event.type === "progress") {
-          const percentage = Math.round(
-            (event.data.bytesRead / event.data.totalBytes) * 100,
-          );
+          const percentage = Math.round((event.data.bytesRead / event.data.totalBytes) * 100);
           frameStore.setLoadingProgress(percentage);
         }
       };
@@ -85,7 +100,12 @@
 <div class="app" data-testid="app">
   <Toolbar />
   <div class="viewer-area">
-    <FrameViewer showEmptyState={!dragging} bind:scale={viewerScale} bind:panX={viewerPanX} bind:panY={viewerPanY} />
+    <FrameViewer
+      showEmptyState={!dragging}
+      bind:scale={viewerScale}
+      bind:panX={viewerPanX}
+      bind:panY={viewerPanY}
+    />
     <Inspector bind:minimised={inspectorMinimised} />
     <ZoomIndicator
       scale={viewerScale}
@@ -95,7 +115,7 @@
       rightOffset={zoomRightOffset}
     />
     {#if dragging}
-      <div class="drop-overlay">
+      <div class="drop-overlay" style:margin-right="{dropOverlayRightMargin}px">
         <p>Drop GIF file here</p>
       </div>
     {/if}
@@ -144,7 +164,7 @@
     background: color-mix(in srgb, var(--color-accent) 15%, transparent);
     border: 3px dashed var(--color-accent);
     border-radius: 8px;
-    margin: 8px;
+    margin: 10px;
     padding: 8px;
     z-index: 10;
     pointer-events: none;

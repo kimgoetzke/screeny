@@ -5,6 +5,17 @@
 **Multi-phase: Yes**
 Reasoning: 6+ files to create/modify, ~400+ lines of new code across store methods, component, tests, and E2E.
 
+## Requirements (Phase 6 additions)
+
+- Ctrl+I keyboard shortcut to toggle inspector minimised/expanded
+- Duration input spin buttons styled consistently with app buttons (removed native; wheel increment still works)
+- Toggle button right-aligned in the inspector footer (not centred), so the same click target works in both states
+- Frame indicator text ("Frame x of y" / "Frames x - y of z") in all caps
+- More spacing between inspector body elements (except title)
+- Duplicate and delete buttons: equal width, filling the full panel width
+- Fix drag-and-drop overlay overlapping inspector panel (Option 1: dynamic right margin)
+- Fix Shift+scroll bug: WebKit converts Shift+vertical-scroll to horizontal (deltaY=0, deltaX≠0); fix by falling back to deltaX
+
 ## Requirements (Phase 5 additions)
 
 - Inspector panel must be **floating**: rounded corners, gap of 8px from top toolbar, right edge of window, and bottom timeline
@@ -65,6 +76,31 @@ Reasoning: 6+ files to create/modify, ~400+ lines of new code across store metho
 
 Current `.viewer-area` is `position: relative; flex: 1; display: flex;`. The `FrameViewer` is the only flex child (the overlay elements are absolute-positioned). Adding `Inspector` as a second flex child to the right is straightforward — `FrameViewer` keeps `flex: 1` and `Inspector` gets a fixed width.
 
+### Phase 6 research findings
+
+**Shift+scroll bug root cause:**
+`handleDurationWheel` uses `event.deltaY < 0 ? 100 : -100` for Shift+scroll. On WebKit (Tauri on Linux), holding Shift while scrolling converts the vertical scroll to horizontal: `deltaY` becomes `0` and `deltaX` becomes non-zero. With `deltaY = 0`, `0 < 0` is always `false`, so the delta is always `-100` regardless of scroll direction. Result: `current + (-100)` for a frame with duration ≤ 100 clamps to 1. Fix: `const scroll = event.deltaY !== 0 ? event.deltaY : event.deltaX; if (scroll === 0) return;` then use `scroll` in the direction check.
+
+**Keyboard shortcut pattern (Ctrl+I):**
+`Timeline.svelte` uses `$effect(() => { window.addEventListener("keydown", handler); return () => window.removeEventListener(...) })`. Source inspection tests in `Timeline.test.ts` verify this by reading the source file. Same pattern will be used in `+page.svelte`. New file `src/routes/+page.test.ts` will hold source inspection tests for Ctrl+I.
+
+**Toggle button alignment:**
+Currently `.inspector-footer` has `justify-content: center`. Both expanded (240px) and minimised (32px) panels share the same `right: 8px` anchor. Changing to `justify-content: flex-end` means the button always sits at the right edge of the panel — which is always the same pixel position from the viewport's right edge (right: 8px + 4px padding = right edge at 12px from viewport). This makes the toggle button a stable click target.
+
+**Drop overlay overlap:**
+`.drop-overlay` uses `inset: 0; margin: 8px` making it fill the full viewer-area. The inspector sits at `right: 8px` with width 240px/32px. Applying `style:margin-right="{dropOverlayRightMargin}px"` overrides the CSS `margin-right: 8px` shorthand. Values: minimised = 8+32+8 = 48px, expanded = 8+240+8 = 256px. `inspectorMinimised` is already tracked in `+page.svelte` via `$bindable()` bind.
+
+**CSS-only changes (no unit test equivalent):**
+SSR tests check HTML strings, not CSS properties. These changes are verified via E2E tests only:
+- `text-transform: uppercase` on `.frame-indicator`
+- `gap: 24px` on `.inspector-body`
+- `justify-content: flex-end` on `.inspector-footer`
+- `flex: 1` on `.action-buttons button`
+- `appearance: textfield` + `::-webkit-inner-spin-button { display: none }` on duration input
+
+**Existing E2E test that needs updating:**
+`expect(indicator).toHaveText("Frame 1 of 2")` — WebdriverIO `getText()` returns CSS-transformed text, so this assertion will need to become `"FRAME 1 OF 2"` once text-transform is applied. Same for `"Frames 1 - 2 of 2"` → `"FRAMES 1 - 2 OF 2"`.
+
 ## Technical Decisions
 
 | Decision | Rationale |
@@ -82,6 +118,15 @@ Current `.viewer-area` is `position: relative; flex: 1; display: flex;`. The `Fr
 | Single toggle button with dynamic `data-testid` | `data-testid` switches `inspector-minimise` ↔ `inspector-restore` — existing tests still pass |
 | Bulk edit tag: `align-self: flex-start` | Flex column stretches children by default; override prevents 100% width |
 | Duration row: label + input + unit on one line, input `flex: 1` | User requirement; natural CSS flex layout |
+| Shift+scroll fix: fallback to `deltaX` | WebKit sends `deltaY=0, deltaX≠0` on Shift+scroll; `deltaX` carries the direction |
+| Toggle footer `justify-content: flex-end` | Right-aligns toggle button so its position is stable (same absolute px) across both minimised and expanded states |
+| Frame indicator uppercase via CSS `text-transform` | Consistent with `.inspector-title`; HTML unchanged so SSR unit tests still pass |
+| Inspector body gap: 12px → 24px | Doubles element spacing per user request |
+| Action buttons `flex: 1` | Each button fills half the panel width equally |
+| Input spinners removed (`appearance: textfield`) | Native spinners look out of place; mouse wheel handles increment/decrement |
+| Ctrl+I in `+page.svelte` `$effect` | Global shortcut, not component-scoped; follows Timeline.svelte pattern |
+| Drop overlay Option 1 (dynamic right margin) | `inspectorMinimised` already in `+page.svelte`; `$derived` margin is minimal change |
+| Drop overlay margins: 48px / 256px | 8px outer gap + panel width + 8px inner gap; matches inspector's spatial footprint |
 
 ## Issues Encountered
 
