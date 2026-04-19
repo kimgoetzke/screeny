@@ -40,6 +40,10 @@ Status: **In progress**
 
 ### Prompt planning
 
+#### Remove dedup buttons from the tool bar
+
+We have recently implemented a inspector panel. This is the dedicated place for "frame management" and as such the dedup buttons in the top toolbar feel redudant. Can you please remove them? Don't remove the underlying functionality though since it is used by dedup buttons in the inspector panel.
+
 #### Add inspector side bar
 
 Status: **In progress**
@@ -71,6 +75,40 @@ I would like you to plan an "inspector" side panel for my application.
 - When minimising the panel by clicking "->|", the panel should move out of sight to the right until only enough space for the "restore" button is left so that the screen is almost but not entirely clear and the button should transform into the "|<-" button
 
 Feel free to do web research on anything that you want to confirm against best practice, for example.
+
+You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
+
+**Improvements 1**
+
+The implementation is technically done but there are still some problems:
+- Inspector panel shjould be "floating"; it should have rounded corners and there should be a gap between it and the top toolbar, the right side of the window, and the buttom timeline
+- The zoom indicator is overlapping with the inspector panel but it should be always 20px on the left of it regardless of when it's closed or opened
+- Minimising the inspector panel also doesn't work as expected:
+  - The icon at the top when visible and at the bottom when minimised but the icon should stay at the bottom at all times
+  - The icon is not a real icon but text which is particularly visible when you look at the arrow, can you make it the industry standard icon for moving a pane in and out (i.e the icon version of "->|" and "|<-"?
+- The bulk edit tag should not be 100% of the width but just as wide as the text
+- The duration text should be in the same like as the editable field and be normal case and read "Duration:" 
+- The duration row therefore contains the text, the field and the "ms" unit; all of which should always be stretched to 100%
+
+Can you please extend the existing plan to address them?
+
+You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
+
+**Improvements 2**
+
+Can you please extend the existing plan with the follwing additional improvements and bug fixes?
+
+- Pressing `Ctrl` + `I` should toggle the state of the inspector between minimised and fully visible
+- The arrow up/down buttonns inside the frame duration field where you can change the duration should be styled consistently with the rest of the buttons in this app (currently it has some default styling that looks out of place)
+- The icon to minimise/fully show the inspector panel is horizontally centered at the bottom but it should be at the right, in the exact position where it'll be when the inspector panel is minimised so that you can effectively keep clicking at the same place to toggle the visibility of the panel back and forth
+- Please show the "Frame x of y" text at the top of the panel in all caps
+- Please add a lot more spacing between the elements in the inspector (except for the title, the title is perfect in every was as-is)
+- Can you please change the widths of the duplication and delete buttons to be of equal width while filling the full widths of the inspector panel?
+- The drag-and-drop indicator for opening a GIF overlaps with the inspector panel which looks wrong
+  - Option 1: Exclude the inspector panel for the drag-and-drop indicator area but this requires automatically adjusting based on whether the inspector panel is visible or not
+  - Option 2: Reduce the drag-and-drop area indicator's size to be centered and of equal widths and height but without ever overlapping with the inspector panel (this means dynamically adjusting the size as the application window as it grows or shrinks too)
+  - Please choose whichever you have higher confidence in achieving well
+- Using the mouse wheel to expand/reduce the frame duration while hovering over the frame duration field works but holding `Shift` while scrolling was supposed to increase/reduce the duration in increments of 100 per "scroll tick" which does not work; instead it causes the duration to drop to exactly 1 and not move, regardless in which direction you scroll; please fix this!
 
 You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
 
