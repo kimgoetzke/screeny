@@ -49,6 +49,8 @@ You must implement this using your `tdd` skill. Also, please write and E2E test 
 
 #### Improve keyboard support
 
+Status: **In progress**
+
 Can you plan how to improve keyboard/mouse support and a form of zoom level indicator in my application? My goal is to retain current keybindings (e.g. Ctrl + A to select all frames) and add the following new ones:
 - Left/right should move the current frame selection to the left/right while a GIF is loaded, otherwise nothing
 - Page up/down should scroll the timeline left/right
