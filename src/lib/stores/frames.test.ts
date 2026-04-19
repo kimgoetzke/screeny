@@ -509,6 +509,73 @@ describe("frameStore", () => {
       frameStore.deduplicateAdjacentMerge();
       expect(frameStore.selectedFrameId).toBe("a");
     });
+
+    describe("selection-scoped (≥2 frames selected)", () => {
+      it("deduplicates only the selected frames and leaves non-selected frames unchanged", () => {
+        // [red(100ms), red(200ms), blue(100ms), blue(150ms)]
+        // select frames 0–1 (both red); blue frames must NOT be merged
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "red", 200),
+          makeFrameWithData("c", "blue", 100),
+          makeFrameWithData("d", "blue", 150),
+        ]);
+        frameStore.selectFrame("a");
+        frameStore.shiftSelectFrames("b");
+        frameStore.deduplicateAdjacentMerge();
+
+        expect(frameStore.frames).toHaveLength(3);
+        expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c", "d"]);
+        expect(frameStore.frames[0].duration).toBe(300);
+        expect(frameStore.frames[1].duration).toBe(100);
+        expect(frameStore.frames[2].duration).toBe(150);
+      });
+
+      it("is a no-op for the selection when there are no adjacent duplicates within it", () => {
+        // select frames with different imageData — nothing to merge
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "blue", 100),
+          makeFrameWithData("c", "red", 100),
+          makeFrameWithData("d", "red", 200),
+        ]);
+        // select "a" and "b" — no adjacent duplicates within selection
+        frameStore.selectFrame("a");
+        frameStore.shiftSelectFrames("b");
+        frameStore.deduplicateAdjacentMerge();
+
+        expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c", "d"]);
+      });
+
+      it("sets selectedFrameIds to the surviving selected frames after merge", () => {
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "red", 200),
+          makeFrameWithData("c", "blue", 100),
+          makeFrameWithData("d", "blue", 150),
+        ]);
+        frameStore.selectFrame("a");
+        frameStore.shiftSelectFrames("b");
+        frameStore.deduplicateAdjacentMerge();
+
+        // "b" was merged into "a" and removed; only "a" survives from the selection
+        expect(frameStore.selectedFrameIds).toEqual(new Set(["a"]));
+      });
+
+      it("updates selectedFrameId to the first surviving selected frame when anchor is removed", () => {
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "red", 200),
+          makeFrameWithData("c", "blue", 100),
+        ]);
+        // anchor is "b" (will be removed by merge)
+        frameStore.selectFrame("b");
+        frameStore.shiftSelectFrames("a"); // range "a"–"b", anchor stays "b"
+        frameStore.deduplicateAdjacentMerge();
+
+        expect(frameStore.selectedFrameId).toBe("a");
+      });
+    });
   });
 
   describe("deduplicateAdjacentDrop", () => {
@@ -557,6 +624,73 @@ describe("frameStore", () => {
       frameStore.selectFrame("a");
       frameStore.deduplicateAdjacentDrop();
       expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    describe("selection-scoped (≥2 frames selected)", () => {
+      it("drops duplicates only within the selection and leaves non-selected frames unchanged", () => {
+        // [red(100ms), red(200ms), blue(100ms), blue(150ms)]
+        // select frames 0–1; blue frames must NOT be dropped
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "red", 200),
+          makeFrameWithData("c", "blue", 100),
+          makeFrameWithData("d", "blue", 150),
+        ]);
+        frameStore.selectFrame("a");
+        frameStore.shiftSelectFrames("b");
+        frameStore.deduplicateAdjacentDrop();
+
+        expect(frameStore.frames).toHaveLength(3);
+        expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c", "d"]);
+        // drop semantics: kept frame duration is unchanged
+        expect(frameStore.frames[0].duration).toBe(100);
+        expect(frameStore.frames[1].duration).toBe(100);
+        expect(frameStore.frames[2].duration).toBe(150);
+      });
+
+      it("is a no-op for the selection when there are no adjacent duplicates within it", () => {
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "blue", 100),
+          makeFrameWithData("c", "red", 100),
+          makeFrameWithData("d", "red", 200),
+        ]);
+        // select "a" and "b" — no adjacent duplicates within selection
+        frameStore.selectFrame("a");
+        frameStore.shiftSelectFrames("b");
+        frameStore.deduplicateAdjacentDrop();
+
+        expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c", "d"]);
+      });
+
+      it("sets selectedFrameIds to the surviving selected frames after drop", () => {
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "red", 200),
+          makeFrameWithData("c", "blue", 100),
+          makeFrameWithData("d", "blue", 150),
+        ]);
+        frameStore.selectFrame("a");
+        frameStore.shiftSelectFrames("b");
+        frameStore.deduplicateAdjacentDrop();
+
+        // "b" was dropped; only "a" survives from the selection
+        expect(frameStore.selectedFrameIds).toEqual(new Set(["a"]));
+      });
+
+      it("updates selectedFrameId to the first surviving selected frame when anchor is removed", () => {
+        frameStore.setFrames([
+          makeFrameWithData("a", "red", 100),
+          makeFrameWithData("b", "red", 200),
+          makeFrameWithData("c", "blue", 100),
+        ]);
+        // anchor is "b" (will be dropped)
+        frameStore.selectFrame("b");
+        frameStore.shiftSelectFrames("a"); // range "a"–"b", anchor stays "b"
+        frameStore.deduplicateAdjacentDrop();
+
+        expect(frameStore.selectedFrameId).toBe("a");
+      });
     });
   });
 

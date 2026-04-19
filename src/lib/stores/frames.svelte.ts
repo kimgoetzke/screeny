@@ -223,34 +223,97 @@ export const frameStore = {
   },
 
   deduplicateAdjacentMerge() {
-    const result: Frame[] = [];
-    for (const frame of frames) {
-      const previous = result[result.length - 1];
-      if (previous && previous.imageData === frame.imageData) {
-        result[result.length - 1] = { ...previous, duration: previous.duration + frame.duration };
-      } else {
-        result.push(frame);
+    if (selectedFrameIds.size > 1) {
+      const selectedInOrder = frames.filter((f) => selectedFrameIds.has(f.id));
+      const dedupedSelection: Frame[] = [];
+      for (const frame of selectedInOrder) {
+        const previous = dedupedSelection[dedupedSelection.length - 1];
+        if (previous && previous.imageData === frame.imageData) {
+          dedupedSelection[dedupedSelection.length - 1] = {
+            ...previous,
+            duration: previous.duration + frame.duration,
+          };
+        } else {
+          dedupedSelection.push(frame);
+        }
       }
-    }
-    frames = result;
-    if (!result.some((f) => f.id === selectedFrameId)) {
-      selectedFrameId = result.length > 0 ? result[0].id : null;
-      selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+      let emittedSelection = false;
+      const result: Frame[] = [];
+      for (const frame of frames) {
+        if (selectedFrameIds.has(frame.id)) {
+          if (!emittedSelection) {
+            result.push(...dedupedSelection);
+            emittedSelection = true;
+          }
+        } else {
+          result.push(frame);
+        }
+      }
+      frames = result;
+      const survivingSelectedIds = new Set(dedupedSelection.map((f) => f.id));
+      selectedFrameIds = survivingSelectedIds;
+      if (!survivingSelectedIds.has(selectedFrameId!)) {
+        selectedFrameId = dedupedSelection.length > 0 ? dedupedSelection[0].id : null;
+      }
+    } else {
+      const result: Frame[] = [];
+      for (const frame of frames) {
+        const previous = result[result.length - 1];
+        if (previous && previous.imageData === frame.imageData) {
+          result[result.length - 1] = { ...previous, duration: previous.duration + frame.duration };
+        } else {
+          result.push(frame);
+        }
+      }
+      frames = result;
+      if (!result.some((f) => f.id === selectedFrameId)) {
+        selectedFrameId = result.length > 0 ? result[0].id : null;
+        selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+      }
     }
   },
 
   deduplicateAdjacentDrop() {
-    const result: Frame[] = [];
-    for (const frame of frames) {
-      const previous = result[result.length - 1];
-      if (!previous || previous.imageData !== frame.imageData) {
-        result.push(frame);
+    if (selectedFrameIds.size > 1) {
+      const selectedInOrder = frames.filter((f) => selectedFrameIds.has(f.id));
+      const dedupedSelection: Frame[] = [];
+      for (const frame of selectedInOrder) {
+        const previous = dedupedSelection[dedupedSelection.length - 1];
+        if (!previous || previous.imageData !== frame.imageData) {
+          dedupedSelection.push(frame);
+        }
       }
-    }
-    frames = result;
-    if (!result.some((f) => f.id === selectedFrameId)) {
-      selectedFrameId = result.length > 0 ? result[0].id : null;
-      selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+      let emittedSelection = false;
+      const result: Frame[] = [];
+      for (const frame of frames) {
+        if (selectedFrameIds.has(frame.id)) {
+          if (!emittedSelection) {
+            result.push(...dedupedSelection);
+            emittedSelection = true;
+          }
+        } else {
+          result.push(frame);
+        }
+      }
+      frames = result;
+      const survivingSelectedIds = new Set(dedupedSelection.map((f) => f.id));
+      selectedFrameIds = survivingSelectedIds;
+      if (!survivingSelectedIds.has(selectedFrameId!)) {
+        selectedFrameId = dedupedSelection.length > 0 ? dedupedSelection[0].id : null;
+      }
+    } else {
+      const result: Frame[] = [];
+      for (const frame of frames) {
+        const previous = result[result.length - 1];
+        if (!previous || previous.imageData !== frame.imageData) {
+          result.push(frame);
+        }
+      }
+      frames = result;
+      if (!result.some((f) => f.id === selectedFrameId)) {
+        selectedFrameId = result.length > 0 ? result[0].id : null;
+        selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+      }
     }
   },
 

@@ -6,7 +6,7 @@ When multiple frames are selected, `deduplicateAdjacentMerge` and `deduplicateAd
 
 ## Current Phase
 
-Phase 1
+Phase 6 (complete)
 
 ## Phases
 
@@ -25,12 +25,12 @@ Phase 1
 
 Use the `tdd` skill. Steps:
 
-- [ ] Write `tests/fixtures/create-dedup-selection-fixture.mjs`:
+- [x] Write `tests/fixtures/create-dedup-selection-fixture.mjs`:
   - 4-frame GIF: `[red(100ms), red(200ms), blue(100ms), blue(150ms)]`
   - Output: `tests/fixtures/dedup-selection.gif`
-- [ ] Run the script to generate the binary fixture
-- [ ] Update `findings.md` and `progress.md`
-- **Status:** pending
+- [x] Run the script to generate the binary fixture
+- [x] Update `findings.md` and `progress.md`
+- **Status:** complete
 
 ### Phase 3: Unit tests (TDD — red phase)
 
@@ -48,11 +48,11 @@ Use the `tdd` skill. Add tests to `src/lib/stores/frames.test.ts`:
 
 Run `pnpm test:unit` after adding tests to confirm they are **red** (failing).
 
-- [ ] Add selection-scoped unit tests for merge
-- [ ] Add selection-scoped unit tests for drop
-- [ ] Run tests — confirm red
-- [ ] Update `findings.md` and `progress.md`
-- **Status:** pending
+- [x] Add selection-scoped unit tests for merge
+- [x] Add selection-scoped unit tests for drop
+- [x] Run tests — confirm red
+- [x] Update `findings.md` and `progress.md`
+- **Status:** complete
 
 ### Phase 4: Implementation (TDD — green phase)
 
@@ -76,11 +76,11 @@ else:
 
 Run `pnpm test:unit` after implementing to confirm tests are **green**.
 
-- [ ] Modify `deduplicateAdjacentMerge` to be selection-aware
-- [ ] Modify `deduplicateAdjacentDrop` to be selection-aware
-- [ ] Run `pnpm test:unit` — confirm green
-- [ ] Update `findings.md` and `progress.md`
-- **Status:** pending
+- [x] Modify `deduplicateAdjacentMerge` to be selection-aware
+- [x] Modify `deduplicateAdjacentDrop` to be selection-aware
+- [x] Run `pnpm test:unit` — confirm green
+- [x] Update `findings.md` and `progress.md`
+- **Status:** complete
 
 ### Phase 5: E2E tests
 
@@ -102,16 +102,16 @@ Tests:
 
 Note: E2E tests cannot be run automatically (require a built Tauri app + tauri-driver + WebKitWebDriver). Document this limitation in `progress.md`.
 
-- [ ] Add `Studio — deduplicate frames (selection-scoped)` describe block
-- [ ] Update `progress.md`
-- **Status:** pending
+- [x] Add `Studio — deduplicate frames (selection-scoped)` describe block
+- [x] Update `progress.md`
+- **Status:** complete (cannot run — requires built Tauri app + tauri-driver + WebKitWebDriver)
 
 ### Phase 6: Delivery
 
-- [ ] Ensure all unit tests pass (`pnpm test:unit`)
-- [ ] Confirm all planning files are up-to-date per the `planning` skill
-- [ ] Summarise deliverables for user
-- **Status:** pending
+- [x] Ensure all unit tests pass (`pnpm test:unit`)
+- [x] Confirm all planning files are up-to-date per the `planning` skill
+- [x] Summarise deliverables for user
+- **Status:** complete
 
 ## Key Questions
 

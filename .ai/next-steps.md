@@ -24,23 +24,15 @@ Status: **In progress**
 - [x] Allow bulk-deleting frames
 - [x] Allow moving frames
 - [x] Deduplicate frames
-- [ ] Limit deduplicate frames features to current selection if multiple frames are selected
+- [x] Limit deduplicate frames features to current selection if multiple frames are selected
 - [x] Press Ctrl + A to select all frames
 - [ ] Use Ctrl + mouse wheel to zoom in and out
+- [ ] Improve keyboard controls
 - [ ] Fix bug where loaded GIF sometimes disappears
 - [ ] Improve delete multi-frame hover button
 - [ ] Add frame inspector side bar
-- [ ] Improve keyboard controls
 
 ### Prompt planning
-
-#### Limit deduplicate frames features to current selection if multiple frames are selected
-
-Status: **In progress**
-
-My app has a feature that allows to deduplicate the frames in a GIF image. While a GIF is loaded, the tool bar shows to buttons for two different versions of this deduplication function. I would like you to improve both in a way where, when the user has selected _multiple_ frames, these dedup functions only apply to the selection. If the user has selected a single frame only, then the functions should apply to all frames.
-
-You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
 
 #### Add frame inspector side bar
 
@@ -53,13 +45,30 @@ When a single frame is selected, the frame inspector should:
 - Allow duplicating frame
 - <TBC>
 
+You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
+
 #### Improve keyboard support
 
+Can you plan how to improve keyboard/mouse support and a form of zoom level indicator in my application? My goal is to retain current keybindings (e.g. Ctrl + A to select all frames) and add the following new ones:
 - Left/right should move the current frame selection to the left/right while a GIF is loaded, otherwise nothing
 - Page up/down should scroll the timeline left/right
 - Delete should remove the current selection
 - Shift + left/right should expand/reduce the frame selection towards the left/right
 - Space should start playback while its stopped and stop it while its playing
+- Ctrl + mouse wheel should zoom in/out the current frame in the main section
+- While a GIF is loaded, you should be able to move it around the main frame wile holding the right mouse button or while holding Shift + left mouse button
+- When changing the current frame, the position and zoom level of the image should remain modified (if it was modified) instead of resetting
+- We need some kind of zoom level indicator that has at least two features: a) it displays the current zoom level as an indicator and b) as soon as the zoom level or position of the GIF has been modified by the user, it should show a "reset" button/icon
+  - This indicator should be shown as a small number at the top right of the main section
+  - It should only be visible once a GIF has been loaded; the indicator should not be visible if no GIF is loaded
+  - Between the indicator and the tool bar as well as the right side of the window should be a small gap of about 10px
+  - The indicator should have the same background colour as the timeline, and the same small border with the same border colour
+  - It should be on top of any GIF if the frame is zoomed in to a degree where it no longer fits the screen without overlapping with the indicator 
+  - If you can create icons, I strongly encourage you to use icons such as a magnifying class and some form of icon for the reset button
+
+If required, feel free to do web research for anything where your output could be improved by it.
+
+You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
 
 ## Goals
 

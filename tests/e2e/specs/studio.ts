@@ -577,3 +577,138 @@ describe("Studio — drag to reorder frames", () => {
     expect(await thumb2.getAttribute("class")).toContain("selected");
   });
 });
+
+describe("Studio — deduplicate frames (selection-scoped)", () => {
+  // Prerequisites:
+  //   - Tauri app built, tauri-driver and WebKitWebDriver on PATH
+  //   - tests/fixtures/dedup-selection.gif exists (4-frame fixture)
+  //     [red(100ms), red(200ms), blue(100ms), blue(150ms)]
+  //
+  // NOTE: These tests cannot be run automatically; they require a full Tauri build.
+
+  /** Close the current project (without confirmation dialog if already empty) and load dedup-selection.gif. */
+  async function loadDedupSelectionFixture() {
+    // Close existing project if frames are loaded
+    const closeBtn = await $('[data-testid="btn-close"]');
+    const closeBtnExists = await closeBtn.isExisting();
+    if (closeBtnExists) {
+      await jsClick('[data-testid="btn-close"]');
+      const dialog = await $('[data-testid="dialog"]');
+      await dialog.waitForExist({ timeout: 5_000 });
+      await jsClick('[data-testid="btn-dialog-confirm"]');
+      const openBtn = await $('[data-testid="btn-open"]');
+      await openBtn.waitForExist({ timeout: 5_000 });
+    }
+
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-dedup-selection.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-dedup-selection.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+  }
+
+  it("should load the dedup-selection fixture (4 frames)", async () => {
+    await loadDedupSelectionFixture();
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(4);
+  });
+
+  it("merge (selection-scoped): merges only the selected duplicate frames; non-selected frames unchanged", async () => {
+    // Frame 0 is selected by default (anchor); shift+click frame 1 → selects frames 0–1 (both red)
+    await jsShiftClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(200);
+
+    await jsClick('[data-testid="btn-dedup-merge"]');
+    await browser.pause(300);
+
+    // 3 frames remain: [red(300ms), blue(100ms), blue(150ms)]
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(3);
+
+    const duration0 = await $('[data-testid="frame-duration-0"]');
+    await expect(duration0).toHaveText("300ms");
+
+    // Non-selected blue frames must be untouched
+    const duration1 = await $('[data-testid="frame-duration-1"]');
+    await expect(duration1).toHaveText("100ms");
+
+    const duration2 = await $('[data-testid="frame-duration-2"]');
+    await expect(duration2).toHaveText("150ms");
+  });
+
+  it("should reload the dedup-selection fixture for the drop test", async () => {
+    await loadDedupSelectionFixture();
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(4);
+  });
+
+  it("drop (selection-scoped): drops only the selected duplicate frame; non-selected frames unchanged", async () => {
+    // Frame 0 is selected (anchor); shift+click frame 1 → selects frames 0–1
+    await jsShiftClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(200);
+
+    await jsClick('[data-testid="btn-dedup-drop"]');
+    await browser.pause(300);
+
+    // 3 frames remain: [red(100ms), blue(100ms), blue(150ms)]
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(3);
+
+    const duration0 = await $('[data-testid="frame-duration-0"]');
+    await expect(duration0).toHaveText("100ms");
+
+    const duration1 = await $('[data-testid="frame-duration-1"]');
+    await expect(duration1).toHaveText("100ms");
+
+    const duration2 = await $('[data-testid="frame-duration-2"]');
+    await expect(duration2).toHaveText("150ms");
+  });
+
+  it("should reload the dedup-selection fixture for the single-select merge test", async () => {
+    await loadDedupSelectionFixture();
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(4);
+  });
+
+  it("merge (single-select): deduplicates all frames when only one frame is selected", async () => {
+    // Default: frame 0 is selected (single-select) → all-frames path
+    await jsClick('[data-testid="btn-dedup-merge"]');
+    await browser.pause(300);
+
+    // 2 frames remain: [red(300ms), blue(250ms)]
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+
+    const duration0 = await $('[data-testid="frame-duration-0"]');
+    await expect(duration0).toHaveText("300ms");
+
+    const duration1 = await $('[data-testid="frame-duration-1"]');
+    await expect(duration1).toHaveText("250ms");
+  });
+
+  it("should reload the dedup-selection fixture for the single-select drop test", async () => {
+    await loadDedupSelectionFixture();
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(4);
+  });
+
+  it("drop (single-select): deduplicates all frames when only one frame is selected", async () => {
+    // Default: frame 0 is selected (single-select) → all-frames path
+    await jsClick('[data-testid="btn-dedup-drop"]');
+    await browser.pause(300);
+
+    // 2 frames remain: [red(100ms), blue(100ms)]
+    const thumbs = await $$('[data-testid^="frame-thumb-"]');
+    expect(thumbs).toHaveLength(2);
+
+    const duration0 = await $('[data-testid="frame-duration-0"]');
+    await expect(duration0).toHaveText("100ms");
+
+    const duration1 = await $('[data-testid="frame-duration-1"]');
+    await expect(duration1).toHaveText("100ms");
+  });
+});
