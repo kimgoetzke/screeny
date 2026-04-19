@@ -10,7 +10,7 @@
   let isMultiSelect = $derived(selectedFrameIds.size > 1);
 
   let frameIndicator = $derived.by(() => {
-    if (!selectedFrameId || frames.length === 0) return "No frame selected";
+    if (!selectedFrameId || frames.length === 0) return "No frame(s) selected";
     if (!isMultiSelect) {
       const index = frames.findIndex((f) => f.id === selectedFrameId) + 1;
       return `Frame ${index} of ${frames.length}`;
@@ -47,7 +47,7 @@
 
   function handleDurationWheel(event: WheelEvent) {
     event.preventDefault();
-    const delta = event.shiftKey ? (event.deltaY < 0 ? 100 : -100) : (event.deltaY < 0 ? 1 : -1);
+    const delta = event.shiftKey ? (event.deltaY < 0 ? 100 : -100) : event.deltaY < 0 ? 1 : -1;
     const current = selectedFrame?.duration ?? parseInt(durationValue, 10) ?? 100;
     if (!isNaN(current)) {
       frameStore.setFrameDuration(current + delta);
@@ -90,13 +90,13 @@
             <button
               onclick={() => frameStore.deduplicateAdjacentMerge()}
               data-testid="inspector-dedup-merge"
-              title="Remove adjacent duplicate frames (merge duration)"
-            >Dedup (merge)</button>
+              title="Remove adjacent duplicate frames (merge duration)">Dedup (merge)</button
+            >
             <button
               onclick={() => frameStore.deduplicateAdjacentDrop()}
               data-testid="inspector-dedup-drop"
-              title="Remove adjacent duplicate frames (drop duration)"
-            >Dedup (drop)</button>
+              title="Remove adjacent duplicate frames (drop duration)">Dedup (drop)</button
+            >
           </div>
         {/if}
 
@@ -108,8 +108,26 @@
           >
             <!-- Duplicate icon: two overlapping squares -->
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <rect x="4" y="4" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5" rx="1" />
-              <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5" rx="1" />
+              <rect
+                x="4"
+                y="4"
+                width="8"
+                height="8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                rx="1"
+              />
+              <rect
+                x="2"
+                y="2"
+                width="8"
+                height="8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                rx="1"
+              />
             </svg>
           </button>
           <button
@@ -119,8 +137,13 @@
           >
             <!-- Bin icon -->
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-              <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3a.5.5 0 0 0 0 1H6v-.5a.5.5 0 0 0-.5-.5H2.5z"/>
+              <path
+                d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+              />
+              <path
+                fill-rule="evenodd"
+                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3a.5.5 0 0 0 0 1H6v-.5a.5.5 0 0 0-.5-.5H2.5z"
+              />
             </svg>
           </button>
         </div>
@@ -137,17 +160,37 @@
     >
       {#if minimised}
         <!-- Restore: vertical bar on right, arrow pointing left -->
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="13" y1="2" x2="13" y2="14"/>
-          <line x1="10" y1="8" x2="2" y2="8"/>
-          <polyline points="5,5 2,8 5,11"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="13" y1="2" x2="13" y2="14" />
+          <line x1="10" y1="8" x2="2" y2="8" />
+          <polyline points="5,5 2,8 5,11" />
         </svg>
       {:else}
         <!-- Minimise: vertical bar on right, arrow pointing right -->
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="13" y1="2" x2="13" y2="14"/>
-          <line x1="2" y1="8" x2="10" y2="8"/>
-          <polyline points="7,5 10,8 7,11"/>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="13" y1="2" x2="13" y2="14" />
+          <line x1="2" y1="8" x2="10" y2="8" />
+          <polyline points="7,5 10,8 7,11" />
         </svg>
       {/if}
     </button>
@@ -231,8 +274,9 @@
   }
 
   .frame-indicator {
-    font-size: 12px;
     color: var(--color-text-muted);
+    font-size: 15px;
+    padding: 10px 0px;
   }
 
   .bulk-edit-tag {
