@@ -9,6 +9,26 @@
  *   - tests/fixtures/test.gif exists (3-frame fixture)
  */
 
+/** Dispatch a window-level keydown event, as if the user pressed a key. */
+async function dispatchKey(key: string, options: { shiftKey?: boolean } = {}) {
+  await browser.execute(
+    (k: string, opts: { shiftKey?: boolean }) =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, ...opts })),
+    key,
+    options,
+  );
+}
+
+/** Dispatch a Ctrl+wheel event on the frame viewer to trigger cursor-centred zoom. */
+async function ctrlWheel(deltaY: number) {
+  await browser.execute((dy: number) => {
+    const viewer = document.querySelector('[data-testid="frame-viewer"]')!;
+    viewer.dispatchEvent(
+      new WheelEvent("wheel", { deltaY: dy, ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+  }, deltaY);
+}
+
 /** Click an element via JavaScript to bypass WebKitWebDriver interactability checks. */
 async function jsClick(selector: string) {
   const element = await $(selector);
@@ -710,5 +730,134 @@ describe("Studio — deduplicate frames (selection-scoped)", () => {
 
     const duration1 = await $('[data-testid="frame-duration-1"]');
     await expect(duration1).toHaveText("100ms");
+  });
+});
+
+describe("Studio — keyboard navigation", () => {
+  // Entry state: 2 frames loaded (after dedup-selection suite)
+
+  it("zoom indicator is not visible when no GIF is loaded", async () => {
+    // Close the current project to reach empty state
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    const openBtn = await $('[data-testid="btn-open"]');
+    await openBtn.waitForExist({ timeout: 5_000 });
+    // In empty state the zoom indicator must not be rendered
+    await expect(await $('[data-testid="zoom-indicator"]')).not.toBeExisting();
+  });
+
+  it("should load the GIF fixture for keyboard navigation tests", async () => {
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-test.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-test.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(3);
+  });
+
+  it("zoom indicator shows 100% when a GIF is loaded", async () => {
+    const indicator = await $('[data-testid="zoom-indicator"]');
+    await indicator.waitForExist({ timeout: 5_000 });
+    await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+  });
+
+  it("ArrowRight moves selection to the next frame", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    await dispatchKey("ArrowRight");
+    await browser.pause(200);
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("class")).toContain("selected");
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).not.toContain("selected");
+  });
+
+  it("ArrowLeft moves selection to the previous frame", async () => {
+    // frame 1 selected from previous test
+    await dispatchKey("ArrowLeft");
+    await browser.pause(200);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).toContain("selected");
+  });
+
+  it("Shift+ArrowRight extends selection to include the next frame", async () => {
+    // frame 0 selected; Shift+ArrowRight adds frame 1
+    await dispatchKey("ArrowRight", { shiftKey: true });
+    await browser.pause(200);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).toContain("selected");
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("class")).toContain("selected");
+  });
+
+  it("Space key starts playback", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]'); // reset to single selection
+    await browser.pause(100);
+    await dispatchKey(" ");
+    await browser.pause(200);
+    await expect(await $('[data-testid="btn-play"]')).toBeDisabled();
+  });
+
+  it("Space key stops playback", async () => {
+    await dispatchKey(" ");
+    await browser.pause(200);
+    await expect(await $('[data-testid="btn-play"]')).not.toBeDisabled();
+  });
+
+  it("Delete key removes the selected frame", async () => {
+    await jsClick('[data-testid="frame-thumb-1"]'); // select frame 1 only
+    await browser.pause(100);
+    await dispatchKey("Delete");
+    await browser.pause(300);
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(2);
+  });
+});
+
+describe("Studio — zoom indicator", () => {
+  // Entry state: 2 frames loaded (after keyboard nav suite deleted one)
+
+  it("Ctrl+wheel zooms in and the indicator updates above 100%", async () => {
+    await ctrlWheel(-100); // negative deltaY = zoom in
+    await browser.pause(300);
+    const text = await (await $('[data-testid="zoom-level"]')).getText();
+    expect(parseInt(text)).toBeGreaterThan(100);
+  });
+
+  it("reset button appears when zoom is not at 100%", async () => {
+    await expect(await $('[data-testid="zoom-reset"]')).toBeExisting();
+  });
+
+  it("clicking the reset button resets zoom to 100% and hides the reset button", async () => {
+    await jsClick('[data-testid="zoom-reset"]');
+    await browser.pause(200);
+    await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+    await expect(await $('[data-testid="zoom-reset"]')).not.toBeExisting();
+  });
+
+  it("zoom level persists when navigating between frames", async () => {
+    // Zoom in by dispatching three wheel events
+    await browser.execute(() => {
+      const viewer = document.querySelector('[data-testid="frame-viewer"]')!;
+      for (let i = 0; i < 3; i++) {
+        viewer.dispatchEvent(
+          new WheelEvent("wheel", { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true }),
+        );
+      }
+    });
+    await browser.pause(300);
+    const levelBefore = await (await $('[data-testid="zoom-level"]')).getText();
+
+    // Navigate to the next frame with ArrowRight
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await browser.pause(100);
+    await dispatchKey("ArrowRight");
+    await browser.pause(200);
+
+    const levelAfter = await (await $('[data-testid="zoom-level"]')).getText();
+    expect(levelAfter).toBe(levelBefore);
   });
 });

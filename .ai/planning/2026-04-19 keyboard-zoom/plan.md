@@ -6,7 +6,7 @@ Add keyboard navigation (arrow keys, Page Up/Down, Delete, Space, Shift+arrows),
 
 ## Current Phase
 
-Phase 1
+Phase 6
 
 ## Phases
 
@@ -14,26 +14,26 @@ Phase 1
 
 Add selection navigation and playback toggle methods to the frame store, driven by unit tests.
 
-- [ ] Use `tdd` skill throughout
-- [ ] Write failing tests for `selectNextFrame()` — moves selection to next frame, clamps at end, no-op when no frames
-- [ ] Implement `selectNextFrame()`
-- [ ] Write failing tests for `selectPreviousFrame()` — moves selection to previous frame, clamps at start
-- [ ] Implement `selectPreviousFrame()`
-- [ ] Write failing tests for `extendSelectionRight()` — adds next frame to `selectedFrameIds`, moves `selectedFrameId` anchor right
-- [ ] Implement `extendSelectionRight()`
-- [ ] Write failing tests for `extendSelectionLeft()` — adds previous frame to `selectedFrameIds`, moves anchor left
-- [ ] Implement `extendSelectionLeft()`
-- [ ] Write failing tests for `togglePlayback()` — calls `play()` if stopped, `stop()` if playing
-- [ ] Implement `togglePlayback()`
-- [ ] Run all unit tests to confirm green
-- [ ] Update planning files per `planning` skill
-- **Status:** pending
+- [x] Use `tdd` skill throughout
+- [x] Write failing tests for `selectNextFrame()` — moves selection to next frame, clamps at end, no-op when no frames
+- [x] Implement `selectNextFrame()`
+- [x] Write failing tests for `selectPreviousFrame()` — moves selection to previous frame, clamps at start
+- [x] Implement `selectPreviousFrame()`
+- [x] Write failing tests for `extendSelectionRight()` — adds next frame to `selectedFrameIds`, moves `selectedFrameId` anchor right
+- [x] Implement `extendSelectionRight()`
+- [x] Write failing tests for `extendSelectionLeft()` — adds previous frame to `selectedFrameIds`, moves anchor left
+- [x] Implement `extendSelectionLeft()`
+- [x] Write failing tests for `togglePlayback()` — calls `play()` if stopped, `stop()` if playing
+- [x] Implement `togglePlayback()`
+- [x] Run all unit tests to confirm green
+- [x] Update planning files per `planning` skill
+- **Status:** complete
 
 ### Phase 2: Keyboard shortcut wiring
 
 Wire global keyboard event handlers to the new store methods and existing actions.
 
-- [ ] In `Timeline.svelte`, expand the existing `handleWindowKeyDown` to handle:
+- [x] In `Timeline.svelte`, expand the existing `handleWindowKeyDown` to handle:
   - `ArrowLeft` → `frameStore.selectPreviousFrame()` (only if `frameStore.hasFrames`, prevent default)
   - `ArrowRight` → `frameStore.selectNextFrame()` (only if `frameStore.hasFrames`, prevent default)
   - `Shift+ArrowLeft` → `frameStore.extendSelectionLeft()` (prevent default)
@@ -42,82 +42,72 @@ Wire global keyboard event handlers to the new store methods and existing action
   - `Space` → `frameStore.togglePlayback()` (only if `frameStore.hasFrames` and not in INPUT/TEXTAREA, prevent default)
   - `PageUp` → scroll timeline left by ~300px (need ref to `.timeline` element)
   - `PageDown` → scroll timeline right by ~300px
-- [ ] Ensure existing Ctrl+A still works
-- [ ] Ensure no conflicts with browser defaults (prevent default where needed)
-- [ ] Ensure selected frame is scrolled into view in timeline when navigating with arrow keys
-- [ ] Update planning files per `planning` skill
-- **Status:** pending
+- [x] Ensure existing Ctrl+A still works
+- [x] Ensure no conflicts with browser defaults (prevent default where needed)
+- [x] Ensure selected frame is scrolled into view in timeline when navigating with arrow keys
+- [x] Update planning files per `planning` skill
+- **Status:** complete
 
 ### Phase 3: Zoom and pan in FrameViewer (TDD for logic)
 
 Implement Ctrl+wheel zoom, right-click/Shift+left-click pan, and persistent zoom/pan state.
 
-- [ ] Use `tdd` skill throughout
-- [ ] Add component state to `FrameViewer.svelte`: `scale` (number, default 1), `panX` (number, default 0), `panY` (number, default 0)
-- [ ] Apply CSS `transform: scale(${scale}) translate(${panX}px, ${panY}px)` to canvas
-- [ ] Set `transform-origin: center center` on canvas
-- [ ] Remove `max-width: 100%; max-height: 100%` constraints when zoomed (so zoomed image can overflow)
-- [ ] Handle `wheel` event on `.viewer`: if Ctrl held, adjust `scale` (zoom in/out, 0.1–10x). **Cursor-centred zoom**: adjust `panX`/`panY` so the point under the cursor stays fixed. Use `event.deltaY` direction. Prevent default to avoid page scroll.
-- [ ] Handle `pointerdown` on `.viewer`: if right button (button === 2) or (Shift + left button), start pan mode. Track pointer movement, update `panX`/`panY`. Suppress context menu for right-click.
-- [ ] Handle `pointermove` and `pointerup` for pan drag
-- [ ] Ensure zoom/pan state persists across frame changes (don't reset in `$effect`)
-- [ ] Expose `scale`, `panX`, `panY`, and `resetView()` method as bindable props or via a callback so ZoomIndicator can read/control them
-- [ ] Add `data-testid` attributes for E2E testing
-- [ ] Update planning files per `planning` skill
-- **Status:** pending
+- [x] Use `tdd` skill throughout
+- [x] Add component state to `FrameViewer.svelte`: `scale` (number, default 1), `panX` (number, default 0), `panY` (number, default 0)
+- [x] Apply CSS `transform: scale(${scale}) translate(${panX}px, ${panY}px)` to canvas
+- [x] Set `transform-origin: center center` on canvas
+- [x] Remove `max-width: 100%; max-height: 100%` constraints when zoomed (so zoomed image can overflow)
+- [x] Handle `wheel` event on `.viewer`: if Ctrl held, adjust `scale` (zoom in/out, 0.1–10x). **Cursor-centred zoom**: adjust `panX`/`panY` so the point under the cursor stays fixed. Use `event.deltaY` direction. Prevent default to avoid page scroll.
+- [x] Handle `pointerdown` on `.viewer`: if right button (button === 2) or (Shift + left button), start pan mode. Track pointer movement, update `panX`/`panY`. Suppress context menu for right-click.
+- [x] Handle `pointermove` and `pointerup` for pan drag
+- [x] Ensure zoom/pan state persists across frame changes (don't reset in `$effect`)
+- [x] Expose `scale`, `panX`, `panY`, and `resetView()` method as bindable props or via a callback so ZoomIndicator can read/control them
+- [x] Add `data-testid` attributes for E2E testing
+- [x] Update planning files per `planning` skill
+- **Status:** complete
 
 ### Phase 4: Zoom indicator component (TDD)
 
 Create the `ZoomIndicator.svelte` component.
 
-- [ ] Use `tdd` skill throughout — write SSR render tests for the component
-- [ ] Create `src/lib/components/ZoomIndicator.svelte`
-- [ ] Props: `scale` (number), `isModified` (boolean — true when scale ≠ 1 or pan ≠ 0,0), `onReset` (callback), `visible` (boolean)
-- [ ] Display: magnifying glass icon + `${Math.round(scale * 100)}%` text
-- [ ] Show reset button/icon only when `isModified` is true
-- [ ] Styling:
-  - Position: absolute, top-right of `.viewer-area`, with 10px gap from top and right
-  - Background: `var(--color-bg-elevated)`
-  - Border: `1px solid var(--color-border)`
-  - Border-radius: 4px (match other UI elements)
-  - `z-index: 20` (above canvas content, below dialogs)
-  - Font-size: 12px, `var(--color-text)` colour
-  - Padding: 4px 8px
-- [ ] SVG icons: inline, 14x14 or 16x16, `fill="currentColor"`, `aria-hidden="true"`
-  - Magnifying glass: circle + diagonal line
-  - Reset: circular arrow or crosshair-reset icon
-- [ ] Wire into `FrameViewer.svelte` or `+page.svelte` — render inside `.viewer-area`
-- [ ] Only show when `frameStore.hasFrames` is true
-- [ ] `data-testid="zoom-indicator"`, `data-testid="zoom-level"`, `data-testid="zoom-reset"`
-- [ ] Update planning files per `planning` skill
-- **Status:** pending
+- [x] Use `tdd` skill throughout — write SSR render tests for the component
+- [x] Create `src/lib/components/ZoomIndicator.svelte`
+- [x] Props: `scale` (number), `isModified` (boolean — true when scale ≠ 1 or pan ≠ 0,0), `onReset` (callback), `visible` (boolean)
+- [x] Display: magnifying glass icon + `${Math.round(scale * 100)}%` text
+- [x] Show reset button/icon only when `isModified` is true
+- [x] Styling: absolute, top-right, bg-elevated, border, z-index 20, 12px font, 4px 8px padding
+- [x] SVG icons: inline, 14×14, `fill="currentColor"`, `aria-hidden="true"`
+- [x] Wire into `+page.svelte` — rendered inside `.viewer-area`; parent holds viewerScale/panX/panY state
+- [x] Only show when `frameStore.hasFrames` is true
+- [x] `data-testid="zoom-indicator"`, `data-testid="zoom-level"`, `data-testid="zoom-reset"`
+- [x] Update planning files per `planning` skill
+- **Status:** complete
 
 ### Phase 5: E2E tests
 
 Write E2E tests covering the new keyboard and zoom features.
 
-- [ ] Add test suite "Keyboard Navigation" in `tests/e2e/specs/studio.ts`:
-  - Arrow keys move selection left/right
-  - Shift+arrow keys extend selection
-  - Delete removes selected frames
-  - Space toggles playback
-  - Page Up/Down scrolls timeline
-- [ ] Add test suite "Zoom & Pan":
-  - Ctrl+wheel zooms in/out (check zoom indicator shows updated percentage)
-  - Zoom indicator visible when GIF loaded, hidden when not
-  - Reset button appears when zoomed, clicking it resets to 100%
-  - Zoom persists across frame changes (zoom in, navigate to next frame, check zoom indicator still shows same level)
-- [ ] Use `browser.execute()` to dispatch keyboard and wheel events
-- [ ] Follow existing test patterns (`jsClick`, `data-testid` selectors, `browser.pause`)
-- [ ] Update planning files per `planning` skill
-- **Status:** pending
+- [x] Add test suite "Keyboard Navigation" in `tests/e2e/specs/studio.ts`:
+  - ArrowRight/Left move selection, Shift+ArrowRight extends selection
+  - Delete removes selected frames; Space toggles playback on/off
+  - Zoom indicator hidden when no GIF; shows 100% when loaded
+  - (PageUp/Down scrolling skipped — not meaningful with 2–3 frames)
+- [x] Add test suite "Zoom & Pan":
+  - Ctrl+wheel zooms in and indicator shows >100%
+  - Reset button appears when zoomed, clicking it resets to 100% and hides button
+  - Zoom persists across frame changes (ArrowRight navigation)
+- [x] Use `browser.execute()` to dispatch keyboard and wheel events
+- [x] Added `dispatchKey()` and `ctrlWheel()` helpers following existing patterns
+- [x] Follow existing test patterns (`jsClick`, `data-testid` selectors, `browser.pause`)
+- [x] Update planning files per `planning` skill
+- **Status:** complete
 
 ### Phase 6: Final verification & planning cleanup
 
-- [ ] Run full unit test suite (`pnpm test:unit`)
-- [ ] Verify all keyboard shortcuts work as specified
-- [ ] Update all planning files to final state per `planning` skill
-- **Status:** pending
+- [x] Run full unit test suite (`pnpm test:unit`) — 181/181 pass
+- [x] Verify all keyboard shortcuts work as specified
+- [x] Update all planning files to final state per `planning` skill
+- **Status:** complete
 
 ## Key Questions
 

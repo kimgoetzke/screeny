@@ -859,6 +859,246 @@ describe("frameStore", () => {
     });
   });
 
+  describe("selectNextFrame", () => {
+    it("moves selectedFrameId to the next frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.selectNextFrame();
+
+      expect(frameStore.selectedFrameId).toBe("b");
+    });
+
+    it("clamps at the last frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("b");
+      frameStore.selectNextFrame();
+
+      expect(frameStore.selectedFrameId).toBe("b");
+    });
+
+    it("is a no-op when no frames exist", () => {
+      frameStore.selectNextFrame();
+
+      expect(frameStore.selectedFrameId).toBeNull();
+    });
+
+    it("resets selectedFrameIds to the newly selected frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("c");
+      frameStore.selectNextFrame();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b"]));
+    });
+  });
+
+  describe("selectPreviousFrame", () => {
+    it("moves selectedFrameId to the previous frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.selectPreviousFrame();
+
+      expect(frameStore.selectedFrameId).toBe("b");
+    });
+
+    it("clamps at the first frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("a");
+      frameStore.selectPreviousFrame();
+
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    it("is a no-op when no frames exist", () => {
+      frameStore.selectPreviousFrame();
+
+      expect(frameStore.selectedFrameId).toBeNull();
+    });
+
+    it("resets selectedFrameIds to the newly selected frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("a");
+      frameStore.selectPreviousFrame();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b"]));
+    });
+  });
+
+  describe("extendSelectionRight", () => {
+    it("adds the next frame to selectedFrameIds when single frame selected", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.extendSelectionRight();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b"]));
+    });
+
+    it("extends the active end right when active end equals the anchor", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      // anchor is "b", active end is "c" (right of anchor) — should add "d"
+      frameStore.extendSelectionRight();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b", "c", "d"]));
+    });
+
+    it("shrinks the selection when active end moves back towards anchor (right then left then right)", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.extendSelectionRight(); // active="c", selection={"b","c"}
+      frameStore.extendSelectionLeft();  // active="b", selection={"b"}
+      frameStore.extendSelectionRight(); // active="c", selection={"b","c"}
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b", "c"]));
+    });
+
+    it("clamps at the last frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.extendSelectionRight();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b"]));
+    });
+
+    it("is a no-op when no frames exist", () => {
+      frameStore.extendSelectionRight();
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+
+    it("shrinks the selection when Shift+Right is pressed after Shift+Left extended past anchor", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.extendSelectionLeft();  // active="b", selection={"b","c"}
+      frameStore.extendSelectionRight(); // active="c", selection={"c"} — shrinks back to anchor
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["c"]));
+    });
+  });
+
+  describe("extendSelectionLeft", () => {
+    it("adds the previous frame to selectedFrameIds when single frame selected", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.extendSelectionLeft();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b", "c"]));
+    });
+
+    it("extends the active end left when active end is left of the anchor", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("b");
+      // anchor is "c", active end is "b" (left of anchor) — should add "a"
+      frameStore.extendSelectionLeft();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b", "c"]));
+    });
+
+    it("shrinks the selection when Shift+Right then Shift+Left is pressed", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.extendSelectionRight(); // active="c", selection={"b","c"}
+      frameStore.extendSelectionLeft();  // active="b", selection={"b"} — shrinks to anchor
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b"]));
+    });
+
+    it("shrinks the selection when active end moves back towards anchor (left then right then left)", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.extendSelectionLeft(); // active="b", selection={"b","c"}
+      frameStore.extendSelectionRight(); // active="c", selection={"c"}
+      frameStore.extendSelectionLeft(); // active="b", selection={"b","c"}
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b", "c"]));
+    });
+
+    it("clamps at the first frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("a");
+      frameStore.extendSelectionLeft();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b"]));
+    });
+
+    it("is a no-op when no frames exist", () => {
+      frameStore.extendSelectionLeft();
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+  });
+
+  describe("selectionActiveId", () => {
+    it("starts at selectedFrameId after selectFrame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+
+      expect(frameStore.selectionActiveId).toBe("b");
+    });
+
+    it("moves to the active end after extendSelectionRight", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.extendSelectionRight();
+
+      expect(frameStore.selectionActiveId).toBe("b");
+    });
+
+    it("moves to the active end after extendSelectionLeft", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.extendSelectionLeft();
+
+      expect(frameStore.selectionActiveId).toBe("b");
+    });
+
+    it("resets to selectedFrameId after selectNextFrame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.extendSelectionRight(); // active="b"
+      frameStore.selectNextFrame();      // resets to new selectedFrameId
+
+      expect(frameStore.selectionActiveId).toBe(frameStore.selectedFrameId);
+    });
+
+    it("is null after clear", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.clear();
+
+      expect(frameStore.selectionActiveId).toBeNull();
+    });
+  });
+
+  describe("togglePlayback", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("starts playback when stopped", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.togglePlayback();
+
+      expect(frameStore.isPlaying).toBe(true);
+    });
+
+    it("stops playback when playing", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.play();
+      frameStore.togglePlayback();
+
+      expect(frameStore.isPlaying).toBe(false);
+    });
+  });
+
   describe("selectAllFrames", () => {
     it("selects all frames", () => {
       frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);

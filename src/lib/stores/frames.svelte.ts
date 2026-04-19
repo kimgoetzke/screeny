@@ -3,6 +3,10 @@ import type { Frame } from "$lib/types";
 let frames = $state<Frame[]>([]);
 let selectedFrameId = $state<string | null>(null);
 let selectedFrameIds = $state<Set<string>>(new Set());
+// Tracks the "active end" of a keyboard range selection. The anchor is
+// selectedFrameId and stays fixed; selectionActiveId moves with each
+// Shift+Arrow press. The selection is always the range [anchor, active].
+let selectionActiveId = $state<string | null>(null);
 let isPlaying = $state(false);
 let playbackTimer: ReturnType<typeof setTimeout> | null = null;
 let isLoading = $state(false);
@@ -32,6 +36,10 @@ export const frameStore = {
     return selectedFrameIds;
   },
 
+  get selectionActiveId(): string | null {
+    return selectionActiveId;
+  },
+
   get selectedFrame(): Frame | undefined {
     return frames.find((f) => f.id === selectedFrameId);
   },
@@ -50,9 +58,11 @@ export const frameStore = {
     if (newFrames.length > 0) {
       selectedFrameId = newFrames[0].id;
       selectedFrameIds = new Set([newFrames[0].id]);
+      selectionActiveId = newFrames[0].id;
     } else {
       selectedFrameId = null;
       selectedFrameIds = new Set();
+      selectionActiveId = null;
     }
   },
 
@@ -60,6 +70,65 @@ export const frameStore = {
     if (frames.some((f) => f.id === id)) {
       selectedFrameId = id;
       selectedFrameIds = new Set([id]);
+      selectionActiveId = id;
+    }
+  },
+
+  selectNextFrame() {
+    if (selectedFrameId === null || frames.length === 0) return;
+    const currentIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    if (currentIndex === -1) return;
+    const nextIndex = Math.min(currentIndex + 1, frames.length - 1);
+    selectedFrameId = frames[nextIndex].id;
+    selectedFrameIds = new Set([selectedFrameId]);
+    selectionActiveId = selectedFrameId;
+  },
+
+  selectPreviousFrame() {
+    if (selectedFrameId === null || frames.length === 0) return;
+    const currentIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    if (currentIndex === -1) return;
+    const previousIndex = Math.max(currentIndex - 1, 0);
+    selectedFrameId = frames[previousIndex].id;
+    selectedFrameIds = new Set([selectedFrameId]);
+    selectionActiveId = selectedFrameId;
+  },
+
+  extendSelectionRight() {
+    if (frames.length === 0 || selectedFrameId === null) return;
+    const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    if (anchorIndex === -1) return;
+    const currentActiveIndex =
+      selectionActiveId !== null
+        ? frames.findIndex((f) => f.id === selectionActiveId)
+        : anchorIndex;
+    const newActiveIndex = Math.min(currentActiveIndex + 1, frames.length - 1);
+    selectionActiveId = frames[newActiveIndex].id;
+    const start = Math.min(anchorIndex, newActiveIndex);
+    const end = Math.max(anchorIndex, newActiveIndex);
+    selectedFrameIds = new Set(frames.slice(start, end + 1).map((f) => f.id));
+  },
+
+  extendSelectionLeft() {
+    if (frames.length === 0 || selectedFrameId === null) return;
+    const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    if (anchorIndex === -1) return;
+    const currentActiveIndex =
+      selectionActiveId !== null
+        ? frames.findIndex((f) => f.id === selectionActiveId)
+        : anchorIndex;
+    const newActiveIndex = Math.max(currentActiveIndex - 1, 0);
+    selectionActiveId = frames[newActiveIndex].id;
+    const start = Math.min(anchorIndex, newActiveIndex);
+    const end = Math.max(anchorIndex, newActiveIndex);
+    selectedFrameIds = new Set(frames.slice(start, end + 1).map((f) => f.id));
+  },
+
+  togglePlayback() {
+    if (isPlaying) {
+      frameStore.stop();
+    } else {
+      frameStore.play();
     }
   },
 
@@ -69,12 +138,14 @@ export const frameStore = {
     if (selectedFrameId === null) {
       selectedFrameId = frames[0].id;
     }
+    selectionActiveId = frames[frames.length - 1].id;
   },
 
   shiftSelectFrames(id: string) {
     if (selectedFrameId === null) return;
     if (id === selectedFrameId) {
       selectedFrameIds = new Set([selectedFrameId]);
+      selectionActiveId = selectedFrameId;
       return;
     }
     const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);
@@ -83,6 +154,7 @@ export const frameStore = {
     const start = Math.min(anchorIndex, targetIndex);
     const end = Math.max(anchorIndex, targetIndex);
     selectedFrameIds = new Set(frames.slice(start, end + 1).map((f) => f.id));
+    selectionActiveId = id;
   },
 
   deleteFrame(id: string) {
@@ -103,14 +175,19 @@ export const frameStore = {
       if (frames.length === 0) {
         selectedFrameId = null;
         selectedFrameIds = new Set();
+        selectionActiveId = null;
       } else {
         const newIndex = Math.min(index, frames.length - 1);
         selectedFrameId = frames[newIndex].id;
+        selectionActiveId = selectedFrameId;
         // Only reset selectedFrameIds if it's now empty
         if (selectedFrameIds.size === 0) {
           selectedFrameIds = new Set([selectedFrameId]);
         }
       }
+    } else if (selectionActiveId === id) {
+      // Active end was deleted — reset it to the anchor
+      selectionActiveId = selectedFrameId;
     }
   },
 
@@ -126,12 +203,14 @@ export const frameStore = {
     if (frames.length === 0) {
       selectedFrameId = null;
       selectedFrameIds = new Set();
+      selectionActiveId = null;
     } else {
       // Select the frame at the same position as the start of the deleted range,
       // or the last frame if we deleted up to the end
       const newIndex = Math.min(firstSelectedIndex, frames.length - 1);
       selectedFrameId = frames[newIndex].id;
       selectedFrameIds = new Set([selectedFrameId]);
+      selectionActiveId = selectedFrameId;
     }
   },
 
@@ -218,6 +297,7 @@ export const frameStore = {
     frames = [];
     selectedFrameId = null;
     selectedFrameIds = new Set();
+    selectionActiveId = null;
     isLoading = false;
     loadingProgress = null;
   },
@@ -338,6 +418,7 @@ export const frameStore = {
     frames = [];
     selectedFrameId = null;
     selectedFrameIds = new Set();
+    selectionActiveId = null;
     isLoading = true;
     loadingProgress = 0;
   },

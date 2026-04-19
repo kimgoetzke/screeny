@@ -8,6 +8,7 @@
   let insertionIndex = $state<number | null>(null);
   let insertionX = $state<number | null>(null);
   let framesStripEl = $state<HTMLElement | null>(null);
+  let timelineEl = $state<HTMLElement | null>(null);
 
   // Pointer position at drag start — used to suppress sub-threshold micro-moves
   let pointerStartX = 0;
@@ -96,12 +97,68 @@
     insertionX = null;
   }
 
+  function scrollFrameIntoView(frameId: string) {
+    if (!framesStripEl) return;
+    const thumb = framesStripEl.querySelector<HTMLElement>(`[data-frame-id="${frameId}"]`);
+    thumb?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
   function handleWindowKeyDown(event: KeyboardEvent) {
-    if (!event.ctrlKey || event.key !== "a") return;
     const tag = (event.target as HTMLElement | null)?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
-    event.preventDefault();
-    frameStore.selectAllFrames();
+    const inInput = tag === "INPUT" || tag === "TEXTAREA";
+
+    // Ctrl+A: select all frames
+    if (event.ctrlKey && event.key === "a" && !inInput) {
+      event.preventDefault();
+      frameStore.selectAllFrames();
+      return;
+    }
+
+    // All remaining shortcuts are blocked when focus is in a text field
+    if (inInput) return;
+
+    switch (event.key) {
+      case "ArrowLeft": {
+        if (!frameStore.hasFrames) break;
+        event.preventDefault();
+        if (event.shiftKey) {
+          frameStore.extendSelectionLeft();
+          if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
+        } else {
+          frameStore.selectPreviousFrame();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        }
+        break;
+      }
+      case "ArrowRight": {
+        if (!frameStore.hasFrames) break;
+        event.preventDefault();
+        if (event.shiftKey) {
+          frameStore.extendSelectionRight();
+          if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
+        } else {
+          frameStore.selectNextFrame();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        }
+        break;
+      }
+      case "Delete":
+        frameStore.deleteSelectedFrames();
+        break;
+      case " ":
+        if (!frameStore.hasFrames) break;
+        event.preventDefault();
+        frameStore.togglePlayback();
+        break;
+      case "PageUp":
+        event.preventDefault();
+        if (timelineEl) timelineEl.scrollLeft -= 300;
+        break;
+      case "PageDown":
+        event.preventDefault();
+        if (timelineEl) timelineEl.scrollLeft += 300;
+        break;
+    }
   }
 
   // Window-level listeners handle move and release even when the pointer leaves the strip
@@ -130,7 +187,7 @@
   }
 </script>
 
-<div class="timeline" class:is-dragging={dragActive} data-testid="timeline">
+<div class="timeline" class:is-dragging={dragActive} data-testid="timeline" bind:this={timelineEl}>
   {#if frameStore.hasFrames}
     <div class="frames-strip" data-testid="frames-strip" bind:this={framesStripEl}>
       {#if dragActive && insertionX !== null}
@@ -152,8 +209,7 @@
           onpointerdown={(e) => handleFramePointerDown(index, e)}
           onclick={(e) => handleFrameClick(frame.id, e)}
           onkeydown={(e) => {
-            if (e.key === "Enter" || e.key === " ") frameStore.selectFrame(frame.id);
-            if (e.key === "Delete") frameStore.deleteSelectedFrames();
+            if (e.key === "Enter") frameStore.selectFrame(frame.id);
           }}
         >
           <img src={frame.imageData} alt="Frame {index + 1}" draggable="false" />

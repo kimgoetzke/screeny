@@ -6,9 +6,14 @@
 
 Status: **Completed**
 
+- [x] Create application skeleton
+- [x] Replace white startup with small, themed splash screen
+- [x] Show three sections: tool bar, main section, timeline
+- [x] Allow opening and saving GIFs
+- [x] Allow drag-and-drop GIF into main section to open GIF
+- [x] Show GIF frames in timeline
 - [x] Create full-stack E2E tests
 - [x] Fix: `Failed to open file dialog: Failed to send open dialog request: A portal frontend implementing `org.freedesktop.portal.FileChooser` was not found`
-- [x] Allow drag-and-drop GIF into main section to open GIF
 - [x] Improve styling
 - [x] Improve GIF loading speed
 
@@ -26,51 +31,48 @@ Status: **In progress**
 - [x] Deduplicate frames
 - [x] Limit deduplicate frames features to current selection if multiple frames are selected
 - [x] Press Ctrl + A to select all frames
-- [ ] Use Ctrl + mouse wheel to zoom in and out
-- [ ] Improve keyboard controls
+- [x] Use Ctrl + mouse wheel to zoom in and out
+- [x] Improve keyboard controls
 - [ ] Fix bug where loaded GIF sometimes disappears
-- [ ] Improve delete multi-frame hover button
-- [ ] Add frame inspector side bar
+- [x] Improve multi-frame delete button hover
+- [ ] Add inspector side bar
+- [ ] Remove dedup buttons from the tool bar
 
 ### Prompt planning
 
-#### Add frame inspector side bar
-
-When no GIF is loaded, the bar should be visible but just say "No frame selected". When a GIF is loaded, there is always a frame selected (default is first frame), so this frame should be selected for the inspector too. The inspector window provides additional insights and controls that apply to only the selected frame(s).
-
-When a single frame is selected, the frame inspector should:
-- Show frame number
-- Show frame duration
-- Allow changing frame duration
-- Allow duplicating frame
-- <TBC>
-
-You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
-
-#### Improve keyboard support
+#### Add inspector side bar
 
 Status: **In progress**
 
-Can you plan how to improve keyboard/mouse support and a form of zoom level indicator in my application? My goal is to retain current keybindings (e.g. Ctrl + A to select all frames) and add the following new ones:
-- Left/right should move the current frame selection to the left/right while a GIF is loaded, otherwise nothing
-- Page up/down should scroll the timeline left/right
-- Delete should remove the current selection
-- Shift + left/right should expand/reduce the frame selection towards the left/right
-- Space should start playback while its stopped and stop it while its playing
-- Ctrl + mouse wheel should zoom in/out the current frame in the main section
-- While a GIF is loaded, you should be able to move it around the main frame wile holding the right mouse button or while holding Shift + left mouse button
-- When changing the current frame, the position and zoom level of the image should remain modified (if it was modified) instead of resetting
-- We need some kind of zoom level indicator that has at least two features: a) it displays the current zoom level as an indicator and b) as soon as the zoom level or position of the GIF has been modified by the user, it should show a "reset" button/icon
-  - This indicator should be shown as a small number at the top right of the main section
-  - It should only be visible once a GIF has been loaded; the indicator should not be visible if no GIF is loaded
-  - Between the indicator and the tool bar as well as the right side of the window should be a small gap of about 10px
-  - The indicator should have the same background colour as the timeline, and the same small border with the same border colour
-  - It should be on top of any GIF if the frame is zoomed in to a degree where it no longer fits the screen without overlapping with the indicator 
-  - If you can create icons, I strongly encourage you to use icons such as a magnifying class and some form of icon for the reset button
+I would like you to plan an "inspector" side panel for my application.
+- When no GIF is loaded, the panel should be visible but just say "No frame selected"
+- When a GIF is loaded, there is always a frame selected (default is first frame), so this frame should be selected for the inspector too
+- The inspector window provides additional insights and controls that apply to only the selected frame(s)
+- It has a title at the top that says "Inspector"
+- When a single frame is selected it indicates "Frame x of z" where x is the number of the frame and z is the last frame in the GIF
+- When multiple frames are selected is indicates "Frames x - y of z" where x is the first frame in the selection, y is the last frame in the selection and z is the last frame in the GIF
+- When multiple frames are selected, there should also be a colour indicator below the above e.g. a tag saying "Bulk edit" but other suggestions welcome
+- Any actions taken in the inspector apply to all selected frames, so when multiple frames are selected, any action is a bulk-action (hence the tag above)
+- To begin with, the info shown and actions available in the inspector are extremely limited, we'll build on it over time
+- The first action you can take is change the frame duration, so we need a section that allows you do do that
+  - The current frame duration should be shown
+  - The unit (i.e. ms) should be visible but it should not be possible to change it
+  - However, the user can increase the duration down to 1 and up to 9999 by typing a number
+  - It should also be possible to change the number by using the mouse wheel over the duration input field: one "tick" in the scroll wheel should increase/decrease by 1; doing the same while holding Shift should increase/decrease by 100
+- Next, we want to display the two dedup buttons from the top tool bar here but only when multiple frames are selected
+  - Clicking any of them will only apply the respective dedup function to the selection, not all frames
+- Then there should be a row of buttons
+  - One button should be the typical duplicate icon
+    - Clicking this icon should duplicate the frame by adding the duplicate to the right of the current frame
+    - Clicking this icon while multiple frames are selected should duplicate the entire selection and insert it to the right of the current selection
+  - Then we need a bin icon that allows you to delete the frame(s) 
+- It bottom right of there should be an icon looking like "->|" that allows the user to minimise the inspector
+- While the inspector is minimised the icon should reverse to a "|<-" which, when clicked, will restore the inspector panel again
+- When minimising the panel by clicking "->|", the panel should move out of sight to the right until only enough space for the "restore" button is left so that the screen is almost but not entirely clear and the button should transform into the "|<-" button
 
-If required, feel free to do web research for anything where your output could be improved by it.
+Feel free to do web research on anything that you want to confirm against best practice, for example.
 
-You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. E2E tests for deduping already exists.
+You must implement this using your `tdd` skill. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
 
 ## Goals
 

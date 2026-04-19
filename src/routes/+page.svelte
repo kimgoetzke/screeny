@@ -6,11 +6,22 @@
   import type { DecodeEvent } from "$lib/types";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import FrameViewer from "$lib/components/FrameViewer.svelte";
+  import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
   import Timeline from "$lib/components/Timeline.svelte";
   import { frameStore } from "$lib/stores/frames.svelte";
 
   let dragging = $state(false);
   let dropError = $state("");
+
+  let viewerScale = $state(1);
+  let viewerPanX = $state(0);
+  let viewerPanY = $state(0);
+
+  function resetView() {
+    viewerScale = 1;
+    viewerPanX = 0;
+    viewerPanY = 0;
+  }
 
   onMount(() => {
     invoke("close_splashscreen");
@@ -68,7 +79,13 @@
 <div class="app" data-testid="app">
   <Toolbar />
   <div class="viewer-area">
-    <FrameViewer showEmptyState={!dragging} />
+    <FrameViewer showEmptyState={!dragging} bind:scale={viewerScale} bind:panX={viewerPanX} bind:panY={viewerPanY} />
+    <ZoomIndicator
+      scale={viewerScale}
+      isModified={viewerScale !== 1 || viewerPanX !== 0 || viewerPanY !== 0}
+      onReset={resetView}
+      visible={frameStore.hasFrames}
+    />
     {#if dragging}
       <div class="drop-overlay">
         <p>Drop GIF file here</p>
