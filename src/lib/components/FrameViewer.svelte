@@ -21,7 +21,9 @@
   let lastPointerY = 0;
   let displayPanX = $derived(frameStore.hasFrames ? panX : 0);
   let displayCentreOffsetX = $derived(frameStore.hasFrames ? centreOffsetX : 0);
-  let stageTransform = $derived(`transform: scale(${scale}) translate(${displayPanX}px, ${panY}px)`);
+  let stageTransform = $derived(
+    `transform: scale(${scale}) translate(${displayPanX}px, ${panY}px)`,
+  );
 
   const MIN_SCALE = 0.1;
   const MAX_SCALE = 10;
@@ -120,7 +122,11 @@
     {/if}
   </div>
   {#if !frameStore.hasFrames && showEmptyState}
-    <div class="empty" data-testid="viewer-empty" style:transform="translateX({displayCentreOffsetX}px)">
+    <div
+      class="empty"
+      data-testid="viewer-empty"
+      style:transform="translateX({displayCentreOffsetX}px)"
+    >
       <p>Open or drop a GIF to get started</p>
     </div>
   {/if}
@@ -181,15 +187,15 @@
     pointer-events: none;
     background-image:
       linear-gradient(
-        color-mix(in srgb, var(--color-text-muted) 22%, transparent) 1px,
+        color-mix(in srgb, var(--color-text-muted) 12%, transparent) 1px,
         transparent 1px
       ),
       linear-gradient(
         90deg,
-        color-mix(in srgb, var(--color-text-muted) 22%, transparent) 1px,
+        color-mix(in srgb, var(--color-text-muted) 12%, transparent) 1px,
         transparent 1px
       );
-    background-size: 24px 24px;
+    background-size: 32px 32px;
     background-position: center center;
   }
 

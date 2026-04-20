@@ -269,6 +269,31 @@ export const frameStore = {
     // selectedFrameIds is intentionally unchanged — moved frames remain selected
   },
 
+  moveSelectedFramesToStart() {
+    frameStore.moveFramesToInsertionPoint(0);
+  },
+
+  moveSelectedFrameLeft() {
+    const firstSelectedIndex = frames.findIndex((frame) => selectedFrameIds.has(frame.id));
+    if (firstSelectedIndex <= 0) return;
+
+    frameStore.moveFramesToInsertionPoint(firstSelectedIndex - 1);
+  },
+
+  moveSelectedFrameRight() {
+    const lastSelectedIndex = frames.reduce(
+      (index, frame, currentIndex) => (selectedFrameIds.has(frame.id) ? currentIndex : index),
+      -1,
+    );
+    if (lastSelectedIndex === -1 || lastSelectedIndex >= frames.length - 1) return;
+
+    frameStore.moveFramesToInsertionPoint(lastSelectedIndex + 2);
+  },
+
+  moveSelectedFramesToEnd() {
+    frameStore.moveFramesToInsertionPoint(frames.length);
+  },
+
   moveSelectedFrames(targetIndex: number) {
     if (selectedFrameIds.size === 0) return;
 

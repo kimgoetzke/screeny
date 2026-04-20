@@ -81,12 +81,20 @@ Target layout:
 | `data-testid="inspector-move-buttons"` | Consistent with existing `inspector-actions` testid |
 | Individual testids for each button | `inspector-btn-move-start`, `inspector-btn-move-left`, `inspector-btn-move-right`, `inspector-btn-move-end` |
 | Wrap both rows in a shared bottom container | Lets `margin-top: auto` push both rows as a unit |
+| Assert E2E order via `data-frame-id` | More stable than relying on visual text or selection state alone |
+
+## Implementation Findings
+
+- The store changes stayed small because `moveFramesToInsertionPoint` already handled original-array insertion maths correctly.
+- `selectedFrameId` and `selectedFrameIds` stay valid after these moves without extra selection-reset logic, so the buttons can rely on existing store behaviour.
+- The inspector layout change only needed a shared `bottom-actions` wrapper; dedup controls remain above it and keep their existing conditional rendering.
+- E2E coverage works well as a stateful sequence after reloading `test.gif`, matching the rest of `studio.ts`.
 
 ## Issues Encountered
 
 | Issue | Resolution |
 |-------|------------|
-|       |            |
+| `cargo test` from repo root failed because `Cargo.toml` lives under `src-tauri/` | Run Rust tests from `src-tauri/` |
 
 ## Resources
 

@@ -38,9 +38,9 @@ Status: **In progress**
 - [x] Add inspector side bar
 - [x] Remove dedup buttons from the tool bar
 - [ ] Improve toolbar
-- [ ] Add background grid
+- [x] Add background grid
 - [ ] Fix "Loading 0%" visible as soon as you click "Open"
-- [ ] Hide inspector until GIF loaded
+- [x] Hide inspector until GIF loaded
 - [ ] Add inspector buttons to move frame(s)
 - [x] Add select-to-first/last key binding
 
@@ -54,12 +54,6 @@ Please plan a bug fix. Currently, when you click the "Open" button. The tool bar
 
 In addition, when the drag-and-drop feature is used to open a GIF, the equivalent message is not displayed. Please plan the work to display the "Loading 0%" UI hint immediately when a GIF has been dropped to indicate to the user that it is being processed.
 
-#### Hide inspector until GIF loaded
-
-Status: **Considering**
-
-Please tell me what change exactly is required to fully hide the inspector while not GIF is loaded. It should not be minimised but simply not visible at all. This also means that it must disappear when a currently opened GIF is closed by clicking "Close" in the toolbar. None of the other existing behaviour of the inspector must change (incl. the toggle behaviour while a GIF is loaded).
-
 #### Improve the background grid
 
 Status: **Considering**
@@ -67,25 +61,6 @@ Status: **Considering**
 - Make it less visible?
 - Make the fade based on the grid, not the application canvas edges?
 - Add cross hair of a slightly brighter colour that centers behind the center of the GIF so that it's always easy to find it
-
-#### Add inspector buttons to move frame(s)
-
-Status: **Ready**
-
-Please plan the work to add 4 new inspector buttons to move the selected frame(s):
-- The buttons should be displayed in a single row
-- This new row of buttons should be located above the duplicate/delete button row
-- The first button should move the selected frame(s) to the far left
-- The second button should move the selected frame(s) by a single frame to the left
-- The third button should move the selected frame(s) by a single frame to the right
-- The fourth button should move the selected frame(s) to the far right
-- All buttons should be have the standard icons for this purpose
-
-Next please move the existing duplicate/delete button row and this button row to the bottom of the inspector panel with comfortable spacing.
-
-If you need to do web research, please do.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
 
 #### Improve toolbar
 
@@ -112,7 +87,7 @@ You must implement this using your `tdd` skill. Please check for warnings and ad
 
 ---
 
-Also, please write and E2E test for this feature.
+Also, please write an E2E test for this feature.
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application with 
 

@@ -10,3 +10,4 @@ The plan currently treats these as no-ops (clicking does nothing). Adding disabl
 
 ### Response
 
+Implemented as planned: edge move actions remain enabled visually but act as safe no-ops when the selection is already at the boundary.

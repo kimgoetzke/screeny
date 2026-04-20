@@ -35,6 +35,11 @@ describe("Inspector", () => {
     it("does not show action buttons when no frames loaded", () => {
       const { body } = render(Inspector);
 
+      expect(body).not.toContain('data-testid="inspector-move-buttons"');
+      expect(body).not.toContain('data-testid="inspector-btn-move-start"');
+      expect(body).not.toContain('data-testid="inspector-btn-move-left"');
+      expect(body).not.toContain('data-testid="inspector-btn-move-right"');
+      expect(body).not.toContain('data-testid="inspector-btn-move-end"');
       expect(body).not.toContain('data-testid="inspector-btn-duplicate"');
       expect(body).not.toContain('data-testid="inspector-btn-delete"');
     });
@@ -82,6 +87,18 @@ describe("Inspector", () => {
 
       expect(body).toContain('data-testid="inspector-btn-duplicate"');
       expect(body).toContain('data-testid="inspector-btn-delete"');
+    });
+
+    it("shows the move buttons row and all move buttons", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      const { body } = render(Inspector);
+
+      expect(body).toContain('data-testid="inspector-move-buttons"');
+      expect(body).toContain('data-testid="inspector-btn-move-start"');
+      expect(body).toContain('data-testid="inspector-btn-move-left"');
+      expect(body).toContain('data-testid="inspector-btn-move-right"');
+      expect(body).toContain('data-testid="inspector-btn-move-end"');
     });
   });
 

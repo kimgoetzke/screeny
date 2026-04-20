@@ -848,6 +848,68 @@ describe("frameStore", () => {
     });
   });
 
+  describe("moveSelectedFramesToStart", () => {
+    it("moves the selected range to index 0", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("d");
+      frameStore.moveSelectedFramesToStart();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["c", "d", "a", "b"]);
+    });
+  });
+
+  describe("moveSelectedFrameLeft", () => {
+    it("moves the selected range one position left", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.shiftSelectFrames("d");
+      frameStore.moveSelectedFrameLeft();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "c", "d", "b"]);
+    });
+
+    it("is a no-op when the selection already starts at index 0", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.moveSelectedFrameLeft();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+  });
+
+  describe("moveSelectedFrameRight", () => {
+    it("moves the selected range one position right", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveSelectedFrameRight();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "d", "b", "c"]);
+    });
+
+    it("is a no-op when the selection already ends at the last index", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      frameStore.shiftSelectFrames("c");
+      frameStore.moveSelectedFrameRight();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+  });
+
+  describe("moveSelectedFramesToEnd", () => {
+    it("moves the selected range to the end", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      frameStore.moveSelectedFramesToEnd();
+
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["c", "d", "a", "b"]);
+    });
+  });
+
   describe("deleteFrame (selectedFrameIds sync)", () => {
     it("removes a deleted frame from selectedFrameIds when it was part of the selection", () => {
       frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);

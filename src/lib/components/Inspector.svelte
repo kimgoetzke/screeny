@@ -106,52 +106,139 @@
           </div>
         {/if}
 
-        <div class="action-buttons" data-testid="inspector-actions">
-          <button
-            onclick={() => frameStore.duplicateSelectedFrames()}
-            data-testid="inspector-btn-duplicate"
-            title="Duplicate selected frame(s)"
-          >
-            <!-- Duplicate icon: two overlapping squares -->
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <rect
-                x="4"
-                y="4"
-                width="8"
-                height="8"
+        <div class="bottom-actions">
+          <div class="move-buttons" data-testid="inspector-move-buttons">
+            <button
+              onclick={() => frameStore.moveSelectedFramesToStart()}
+              data-testid="inspector-btn-move-start"
+              title="Move selected frame(s) to start"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.5"
-                rx="1"
-              />
-              <rect
-                x="2"
-                y="2"
-                width="8"
-                height="8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="3" y1="3" x2="3" y2="13" />
+                <line x1="12" y1="8" x2="5" y2="8" />
+                <polyline points="8,5 5,8 8,11" />
+              </svg>
+            </button>
+            <button
+              onclick={() => frameStore.moveSelectedFrameLeft()}
+              data-testid="inspector-btn-move-left"
+              title="Move selected frame(s) left"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.5"
-                rx="1"
-              />
-            </svg>
-          </button>
-          <button
-            onclick={() => frameStore.deleteSelectedFrames()}
-            data-testid="inspector-btn-delete"
-            title="Delete selected frame(s)"
-          >
-            <!-- Bin icon -->
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path
-                d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
-              />
-              <path
-                fill-rule="evenodd"
-                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3a.5.5 0 0 0 0 1H6v-.5a.5.5 0 0 0-.5-.5H2.5z"
-              />
-            </svg>
-          </button>
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="13" y1="8" x2="4" y2="8" />
+                <polyline points="7,5 4,8 7,11" />
+              </svg>
+            </button>
+            <button
+              onclick={() => frameStore.moveSelectedFrameRight()}
+              data-testid="inspector-btn-move-right"
+              title="Move selected frame(s) right"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="3" y1="8" x2="12" y2="8" />
+                <polyline points="9,5 12,8 9,11" />
+              </svg>
+            </button>
+            <button
+              onclick={() => frameStore.moveSelectedFramesToEnd()}
+              data-testid="inspector-btn-move-end"
+              title="Move selected frame(s) to end"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="13" y1="3" x2="13" y2="13" />
+                <line x1="4" y1="8" x2="11" y2="8" />
+                <polyline points="8,5 11,8 8,11" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="action-buttons" data-testid="inspector-actions">
+            <button
+              onclick={() => frameStore.duplicateSelectedFrames()}
+              data-testid="inspector-btn-duplicate"
+              title="Duplicate selected frame(s)"
+            >
+              <!-- Duplicate icon: two overlapping squares -->
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <rect
+                  x="4"
+                  y="4"
+                  width="8"
+                  height="8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  rx="1"
+                />
+                <rect
+                  x="2"
+                  y="2"
+                  width="8"
+                  height="8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  rx="1"
+                />
+              </svg>
+            </button>
+            <button
+              onclick={() => frameStore.deleteSelectedFrames()}
+              data-testid="inspector-btn-delete"
+              title="Delete selected frame(s)"
+            >
+              <!-- Bin icon -->
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                />
+                <path
+                  fill-rule="evenodd"
+                  d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3a.5.5 0 0 0 0 1H6v-.5a.5.5 0 0 0-.5-.5H2.5z"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       {/if}
     </div>
@@ -367,11 +454,20 @@
     background: var(--color-border);
   }
 
+  .bottom-actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .move-buttons,
   .action-buttons {
     display: flex;
     gap: 8px;
   }
 
+  .move-buttons button,
   .action-buttons button {
     flex: 1;
     display: flex;
@@ -385,6 +481,7 @@
     cursor: pointer;
   }
 
+  .move-buttons button:hover,
   .action-buttons button:hover {
     background: var(--color-border);
   }

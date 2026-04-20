@@ -707,6 +707,89 @@ describe("Studio — drag to reorder frames", () => {
   });
 });
 
+describe("Studio — inspector move-frame buttons", () => {
+  let firstFrameId: string | null = null;
+  let secondFrameId: string | null = null;
+  let thirdFrameId: string | null = null;
+
+  it("should reload the GIF fixture for inspector move-button tests", async () => {
+    await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    const openBtn = await $('[data-testid="btn-open"]');
+    await openBtn.waitForExist({ timeout: 5_000 });
+
+    await jsClick('[data-testid="btn-open"]');
+    const picker = await $('[data-testid="file-picker"]');
+    await picker.waitForExist({ timeout: 5_000 });
+    const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+    await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+    await jsClick('[data-testid="file-picker-go"]');
+    const gifEntry = await $('[data-testid="file-picker-entry-test.gif"]');
+    await gifEntry.waitForExist({ timeout: 5_000 });
+    await jsClick('[data-testid="file-picker-entry-test.gif"]');
+    await jsClick('[data-testid="file-picker-confirm"]');
+    const firstThumb = await $('[data-testid="frame-thumb-0"]');
+    await firstThumb.waitForExist({ timeout: 10_000 });
+
+    firstFrameId = await firstThumb.getAttribute("data-frame-id");
+    secondFrameId = await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id");
+    thirdFrameId = await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id");
+
+    expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(3);
+    expect(await firstThumb.getAttribute("class")).toContain("selected");
+  });
+
+  it("move-to-end sends the selected frame to the last position", async () => {
+    await jsClick('[data-testid="inspector-btn-move-end"]');
+    await browser.pause(300);
+
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
+  });
+
+  it("move-to-start returns the selected frame to the first position", async () => {
+    await jsClick('[data-testid="inspector-btn-move-start"]');
+    await browser.pause(300);
+
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+  });
+
+  it("step-right moves the selected frame one position right", async () => {
+    await jsClick('[data-testid="inspector-btn-move-right"]');
+    await browser.pause(300);
+
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+  });
+
+  it("step-left moves the selected frame one position left", async () => {
+    await jsClick('[data-testid="inspector-btn-move-left"]');
+    await browser.pause(300);
+
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+  });
+
+  it("move-to-end keeps a multi-selection together at the end", async () => {
+    await jsShiftClick('[data-testid="frame-thumb-1"]');
+    await browser.pause(200);
+
+    await jsClick('[data-testid="inspector-btn-move-end"]');
+    await browser.pause(300);
+
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
+  });
+});
+
 describe("Studio — deduplicate frames (selection-scoped)", () => {
   // Prerequisites:
   //   - Tauri app built, tauri-driver and WebKitWebDriver on PATH

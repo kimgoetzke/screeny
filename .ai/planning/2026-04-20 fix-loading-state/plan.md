@@ -15,6 +15,7 @@ Blocked — paused for future continuation
 ## Phases
 
 ### Phase 1: Requirements & Discovery
+
 - **Status:** complete
 
 ### Phase 2: Implementation attempts
@@ -46,28 +47,30 @@ Blocked — paused for future continuation
 **Unresolved mystery**: `dragging = true/false` (local `$state` in `+page.svelte`, read in `+page.svelte`) reacts correctly from the Tauri event callback. `dropLoading = true` (also local `$state` in `+page.svelte`, passed as prop to `Toolbar.svelte`) does NOT appear to work. This suggests the issue may be at the prop boundary between components when triggered from a Tauri event callback, not just at cross-module `$state` reads.
 
 ### Phase 3: Tests
+
 - Tests were updated for each attempt and pass (252 tests). Tests use SSR rendering and cannot reproduce the runtime reactivity failure.
 - **Status:** complete (but tests do not cover the runtime behaviour)
 
 ### Phase 4: Documentation
+
 - **Status:** complete
 
 ## Decisions Made
 
-| Decision | Rationale |
-| -------- | --------- |
-| `onStart` callback on `openGifStreaming` (Attempt 1) | Tried to defer loading state to post-file-selection — failed at runtime |
-| `flushSync` in `handleDrop` (Attempt 1) | Tried to force Svelte effect flush — failed in WebKitGTK Tauri |
-| `handleFilePickerConfirm` DOM handler (Attempt 2) | Tried to call `startLoading` from a guaranteed DOM event — still failed |
-| `dropLoading` prop (Attempt 2) | Tried to bypass cross-module `$state` by using local state + prop — still failed |
+| Decision                                             | Rationale                                                                        |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `onStart` callback on `openGifStreaming` (Attempt 1) | Tried to defer loading state to post-file-selection — failed at runtime          |
+| `flushSync` in `handleDrop` (Attempt 1)              | Tried to force Svelte effect flush — failed in WebKitGTK Tauri                   |
+| `handleFilePickerConfirm` DOM handler (Attempt 2)    | Tried to call `startLoading` from a guaranteed DOM event — still failed          |
+| `dropLoading` prop (Attempt 2)                       | Tried to bypass cross-module `$state` by using local state + prop — still failed |
 
 ## Errors Encountered
 
-| Error | Attempt | Resolution |
-| ----- | ------- | ---------- |
-| "Loading 0%" disappeared entirely for Open button | 1 | Identified cause: `onStart` fires in Promise continuation, cross-module `$state` not reactive there |
-| "Loading 0%" still absent for DnD | 1 | `flushSync` does not force cross-component DOM update in WebKitGTK |
-| Both bugs unchanged | 2 | Unknown — `dropLoading` prop from same-component local state not propagating to Toolbar |
+| Error                                             | Attempt | Resolution                                                                                          |
+| ------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| "Loading 0%" disappeared entirely for Open button | 1       | Identified cause: `onStart` fires in Promise continuation, cross-module `$state` not reactive there |
+| "Loading 0%" still absent for DnD                 | 1       | `flushSync` does not force cross-component DOM update in WebKitGTK                                  |
+| Both bugs unchanged                               | 2       | Unknown — `dropLoading` prop from same-component local state not propagating to Toolbar             |
 
 ## What to investigate next
 
