@@ -47,10 +47,16 @@ describe("Toolbar", () => {
     expect(body).not.toContain('data-testid="btn-stop"');
   });
 
-  it("dedup buttons are not shown when there are no frames", () => {
-    const { body } = render(Toolbar);
-    expect(body).not.toContain('data-testid="btn-dedup-merge"');
-    expect(body).not.toContain('data-testid="btn-dedup-drop"');
+  it("dedup buttons are never present regardless of frame state", () => {
+    // no frames
+    const { body: bodyEmpty } = render(Toolbar);
+    expect(bodyEmpty).not.toContain('data-testid="btn-dedup-merge"');
+    expect(bodyEmpty).not.toContain('data-testid="btn-dedup-drop"');
+    // with frames
+    frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+    const { body: bodyLoaded } = render(Toolbar);
+    expect(bodyLoaded).not.toContain('data-testid="btn-dedup-merge"');
+    expect(bodyLoaded).not.toContain('data-testid="btn-dedup-drop"');
   });
 
   it("play and stop buttons are shown when frames are loaded", () => {
@@ -60,22 +66,6 @@ describe("Toolbar", () => {
     expect(body).toContain('data-testid="btn-stop"');
   });
 
-  it("dedup buttons are shown when frames are loaded", () => {
-    frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-    const { body } = render(Toolbar);
-    expect(body).toContain('data-testid="btn-dedup-merge"');
-    expect(body).toContain('data-testid="btn-dedup-drop"');
-  });
-
-  it("dedup buttons appear after btn-stop in the toolbar", () => {
-    frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-    const { body } = render(Toolbar);
-    const stopIndex = body.indexOf('data-testid="btn-stop"');
-    const dedupMergeIndex = body.indexOf('data-testid="btn-dedup-merge"');
-    const dedupDropIndex = body.indexOf('data-testid="btn-dedup-drop"');
-    expect(dedupMergeIndex).toBeGreaterThan(stopIndex);
-    expect(dedupDropIndex).toBeGreaterThan(stopIndex);
-  });
 
   describe("disabled states", () => {
     beforeEach(() => {

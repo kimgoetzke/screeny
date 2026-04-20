@@ -40,7 +40,6 @@
   });
 
   function handleWheel(event: WheelEvent) {
-    if (!event.ctrlKey) return;
     event.preventDefault();
 
     const factor = event.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;

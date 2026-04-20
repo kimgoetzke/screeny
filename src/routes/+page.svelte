@@ -41,7 +41,7 @@
 
   function resetView() {
     viewerScale = 1;
-    viewerPanX = 0;
+    viewerPanX = -(dropOverlayRightMargin / 2);
     viewerPanY = 0;
   }
 
@@ -92,12 +92,13 @@
       dropError = `Failed to decode GIF: ${error}`;
     } finally {
       frameStore.finishLoading();
+      resetView();
     }
   }
 </script>
 
 <div class="app" data-testid="app">
-  <Toolbar />
+  <Toolbar onLoad={resetView} />
   <div class="viewer-area">
     <FrameViewer
       showEmptyState={!dragging}

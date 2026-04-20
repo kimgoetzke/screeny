@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import FrameViewer from "./FrameViewer.svelte";
+import frameViewerSource from "./FrameViewer.svelte?raw";
 import { frameStore } from "$lib/stores/frames.svelte";
 import type { Frame } from "$lib/types";
 
@@ -21,6 +22,12 @@ describe("FrameViewer", () => {
     });
 
     expect(body).not.toContain("Open or drop a GIF to get started");
+  });
+
+  describe("wheel zoom", () => {
+    it("handleWheel does not require ctrlKey to zoom", () => {
+      expect(frameViewerSource).not.toMatch(/if\s*\(\s*!event\.ctrlKey\s*\)\s*return/);
+    });
   });
 
   describe("zoom/pan transform", () => {

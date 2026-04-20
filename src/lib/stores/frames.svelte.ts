@@ -94,6 +94,20 @@ export const frameStore = {
     selectionActiveId = selectedFrameId;
   },
 
+  selectFirstFrame() {
+    if (frames.length === 0) return;
+    selectedFrameId = frames[0].id;
+    selectedFrameIds = new Set([selectedFrameId]);
+    selectionActiveId = selectedFrameId;
+  },
+
+  selectLastFrame() {
+    if (frames.length === 0) return;
+    selectedFrameId = frames[frames.length - 1].id;
+    selectedFrameIds = new Set([selectedFrameId]);
+    selectionActiveId = selectedFrameId;
+  },
+
   extendSelectionRight() {
     if (frames.length === 0 || selectedFrameId === null) return;
     const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);

@@ -14,6 +14,26 @@ describe("Timeline", () => {
     frameStore.clear();
   });
 
+  describe("wheel scroll", () => {
+    it("has an onwheel handler on the timeline element", () => {
+      expect(timelineSource).toMatch(/onwheel\s*=\s*\{?\s*handleTimelineWheel/);
+    });
+
+    it("handleTimelineWheel does not require shiftKey", () => {
+      expect(timelineSource).not.toMatch(/handleTimelineWheel[\s\S]{0,200}shiftKey/);
+    });
+  });
+
+  describe("Ctrl+Arrow first/last frame", () => {
+    it("Ctrl+ArrowLeft calls selectFirstFrame", () => {
+      expect(timelineSource).toMatch(/ArrowLeft[\s\S]{0,100}ctrlKey[\s\S]{0,100}selectFirstFrame/);
+    });
+
+    it("Ctrl+ArrowRight calls selectLastFrame", () => {
+      expect(timelineSource).toMatch(/ArrowRight[\s\S]{0,100}ctrlKey[\s\S]{0,100}selectLastFrame/);
+    });
+  });
+
   it("adds a themed hover state to frame delete buttons", () => {
     frameStore.setFrames([makeFrame("frame-1")]);
 

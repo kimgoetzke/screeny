@@ -121,7 +121,10 @@
       case "ArrowLeft": {
         if (!frameStore.hasFrames) break;
         event.preventDefault();
-        if (event.shiftKey) {
+        if (event.ctrlKey) {
+          frameStore.selectFirstFrame();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        } else if (event.shiftKey) {
           frameStore.extendSelectionLeft();
           if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
         } else {
@@ -133,7 +136,10 @@
       case "ArrowRight": {
         if (!frameStore.hasFrames) break;
         event.preventDefault();
-        if (event.shiftKey) {
+        if (event.ctrlKey) {
+          frameStore.selectLastFrame();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        } else if (event.shiftKey) {
           frameStore.extendSelectionRight();
           if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
         } else {
@@ -159,6 +165,12 @@
         if (timelineEl) timelineEl.scrollLeft += 300;
         break;
     }
+  }
+
+  function handleTimelineWheel(event: WheelEvent) {
+    if (!timelineEl) return;
+    event.preventDefault();
+    timelineEl.scrollLeft += event.deltaY;
   }
 
   // Window-level listeners handle move and release even when the pointer leaves the strip
@@ -187,7 +199,7 @@
   }
 </script>
 
-<div class="timeline" class:is-dragging={dragActive} data-testid="timeline" bind:this={timelineEl}>
+<div class="timeline" class:is-dragging={dragActive} data-testid="timeline" bind:this={timelineEl} onwheel={handleTimelineWheel}>
   {#if frameStore.hasFrames}
     <div class="frames-strip" data-testid="frames-strip" bind:this={framesStripEl}>
       {#if dragActive && insertionX !== null}

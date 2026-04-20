@@ -7,6 +7,8 @@
   import FilePicker from "$lib/components/FilePicker.svelte";
   import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 
+  let { onLoad }: { onLoad?: () => void } = $props();
+
   let loading = $state(false);
   let statusMessage = $state("");
   let isE2e = $state(false);
@@ -96,6 +98,7 @@
         statusMessage = result.error;
       } else {
         statusMessage = result.message ?? "";
+        onLoad?.();
       }
     } finally {
       frameStore.finishLoading();
@@ -196,20 +199,6 @@
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <rect x="3" y="3" width="10" height="10" fill="currentColor" />
         </svg>
-      </button>
-      <button
-        onclick={() => frameStore.deduplicateAdjacentMerge()}
-        data-testid="btn-dedup-merge"
-        title="Remove adjacent duplicate frames (merge duration)"
-      >
-        Dedup (merge)
-      </button>
-      <button
-        onclick={() => frameStore.deduplicateAdjacentDrop()}
-        data-testid="btn-dedup-drop"
-        title="Remove adjacent duplicate frames (drop duration)"
-      >
-        Dedup (drop)
       </button>
     {/if}
   </div>
