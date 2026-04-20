@@ -25,6 +25,23 @@ describe("+page.svelte", () => {
     it("Toolbar receives onLoad prop pointing to resetView", () => {
       expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*resetView\s*\}?/);
     });
+
+    it("tracks inspector visibility from frameStore.hasFrames", () => {
+      expect(pageSource).toMatch(/let\s+inspectorVisible\s*=\s*\$derived\(\s*frameStore\.hasFrames\s*\)/);
+    });
+
+    it("only renders the inspector while frames are loaded", () => {
+      expect(pageSource).toMatch(
+        /\{#if\s+inspectorVisible\s*\}[\s\S]{0,80}<Inspector\s+bind:minimised=\{inspectorMinimised\}\s*\/>[\s\S]{0,20}\{\/if\}/,
+      );
+    });
+
+    it("uses the full viewer width for the drop overlay when the inspector is hidden", () => {
+      expect(pageSource).toMatch(
+        /let\s+visibleDropOverlayRightMargin\s*=\s*\$derived\(\s*inspectorVisible\s*\?\s*dropOverlayRightMargin\s*:\s*10\s*\)/,
+      );
+      expect(pageSource).toMatch(/style:margin-right="\{visibleDropOverlayRightMargin\}px"/);
+    });
   });
 
   describe("Ctrl+I keyboard shortcut", () => {

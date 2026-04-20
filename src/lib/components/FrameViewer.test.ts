@@ -70,14 +70,8 @@ describe("FrameViewer", () => {
   });
 
   describe("inspector-aware centering", () => {
-    it("shifts the empty-state message by centreOffsetX", () => {
-      const { body } = render(FrameViewer, { props: { centreOffsetX: -132.5 } });
-
-      expect(body).toContain('data-testid="viewer-empty"');
-      expect(body).toContain("translateX(-132.5px)");
-    });
-
     it("sets the fade mask centre CSS variable from panX", () => {
+      frameStore.setFrames([makeFrame("a")]);
       const { body } = render(FrameViewer, { props: { panX: -132.5 } });
 
       expect(body).toContain("--fade-center-x: calc(50% + -132.5px)");
@@ -88,6 +82,16 @@ describe("FrameViewer", () => {
 
       expect(body).toContain("translateX(0px)");
       expect(body).toContain("--fade-center-x: calc(50% + 0px)");
+    });
+
+    it("keeps the empty state and grid centred while no GIF is loaded", () => {
+      const { body } = render(FrameViewer, {
+        props: { centreOffsetX: -132.5, panX: -132.5 },
+      });
+
+      expect(body).toContain("translateX(0px)");
+      expect(body).toContain("--fade-center-x: calc(50% + 0px)");
+      expect(body).toContain("transform: scale(1) translate(0px, 0px)");
     });
   });
 });

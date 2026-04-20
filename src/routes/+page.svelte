@@ -20,6 +20,7 @@
   const MINIMISED_DROP_OVERLAY_RIGHT_MARGIN = 55;
 
   let inspectorMinimised = $state(false);
+  let inspectorVisible = $derived(frameStore.hasFrames);
   // ZoomIndicator sits 20px to the left of the inspector panel.
   // Expanded: 240px + 8px gap + 20px = 268px. Minimised: 32px + 8px gap + 20px = 60px.
   let zoomRightOffset = $derived(
@@ -29,9 +30,11 @@
   let dropOverlayRightMargin = $derived(
     inspectorMinimised ? MINIMISED_DROP_OVERLAY_RIGHT_MARGIN : EXPANDED_DROP_OVERLAY_RIGHT_MARGIN,
   );
+  let visibleDropOverlayRightMargin = $derived(inspectorVisible ? dropOverlayRightMargin : 10);
   let resetViewerPanX = $derived(-(dropOverlayRightMargin / 2));
 
   function handleWindowKeyDown(event: KeyboardEvent) {
+    if (!inspectorVisible) return;
     if (event.ctrlKey && (event.key === "i" || event.key === "I")) {
       event.preventDefault();
       inspectorMinimised = !inspectorMinimised;
@@ -117,16 +120,18 @@
       bind:panX={viewerPanX}
       bind:panY={viewerPanY}
     />
-    <Inspector bind:minimised={inspectorMinimised} />
+    {#if inspectorVisible}
+      <Inspector bind:minimised={inspectorMinimised} />
+    {/if}
     <ZoomIndicator
       scale={viewerScale}
       isModified={viewerScale !== 1 || viewerPanX !== resetViewerPanX || viewerPanY !== 0}
       onReset={resetView}
-      visible={frameStore.hasFrames}
+      visible={inspectorVisible}
       rightOffset={zoomRightOffset}
     />
     {#if dragging}
-      <div class="drop-overlay" style:margin-right="{dropOverlayRightMargin}px">
+      <div class="drop-overlay" style:margin-right="{visibleDropOverlayRightMargin}px">
         <p>Drop GIF file here</p>
       </div>
     {/if}

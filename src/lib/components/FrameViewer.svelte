@@ -19,7 +19,9 @@
   let isPanning = $state(false);
   let lastPointerX = 0;
   let lastPointerY = 0;
-  let stageTransform = $derived(`transform: scale(${scale}) translate(${panX}px, ${panY}px)`);
+  let displayPanX = $derived(frameStore.hasFrames ? panX : 0);
+  let displayCentreOffsetX = $derived(frameStore.hasFrames ? centreOffsetX : 0);
+  let stageTransform = $derived(`transform: scale(${scale}) translate(${displayPanX}px, ${panY}px)`);
 
   const MIN_SCALE = 0.1;
   const MAX_SCALE = 10;
@@ -106,7 +108,7 @@
     class="viewer-grid-fade"
     data-testid="viewer-grid-fade"
     aria-hidden="true"
-    style="--fade-center-x: calc(50% + {panX}px)"
+    style="--fade-center-x: calc(50% + {displayPanX}px)"
   >
     <div class="viewer-grid-stage" data-testid="viewer-grid-stage" style={stageTransform}>
       <div class="viewer-grid" data-testid="viewer-grid"></div>
@@ -118,7 +120,7 @@
     {/if}
   </div>
   {#if !frameStore.hasFrames && showEmptyState}
-    <div class="empty" data-testid="viewer-empty" style:transform="translateX({centreOffsetX}px)">
+    <div class="empty" data-testid="viewer-empty" style:transform="translateX({displayCentreOffsetX}px)">
       <p>Open or drop a GIF to get started</p>
     </div>
   {/if}

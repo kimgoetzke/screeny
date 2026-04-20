@@ -120,6 +120,27 @@ async function tauriInvoke<T>(command: string, args?: Record<string, unknown>): 
   ) as Promise<T>;
 }
 
+async function getEmptyViewerAlignment() {
+  return browser.execute(() => {
+    const viewer = document.querySelector('[data-testid="frame-viewer"]');
+    const empty = document.querySelector('[data-testid="viewer-empty"]');
+    if (!(viewer instanceof HTMLElement) || !(empty instanceof HTMLElement)) {
+      return null;
+    }
+
+    const viewerRect = viewer.getBoundingClientRect();
+    const emptyRect = empty.getBoundingClientRect();
+    const viewerCentreX = viewerRect.left + viewerRect.width / 2;
+    const emptyCentreX = emptyRect.left + emptyRect.width / 2;
+
+    return {
+      viewerCentreX,
+      emptyCentreX,
+      deltaX: emptyCentreX - viewerCentreX,
+    };
+  });
+}
+
 describe("Studio — app launch", () => {
   it("should show the toolbar", async () => {
     const toolbar = await $('[data-testid="toolbar"]');
@@ -127,10 +148,23 @@ describe("Studio — app launch", () => {
     await expect(toolbar).toBeDisplayed();
   });
 
+  it("should not render the inspector before a GIF is loaded", async () => {
+    await expect(await $('[data-testid="inspector"]')).not.toBeExisting();
+  });
+
   it("should show the empty viewer state", async () => {
     const empty = await $('[data-testid="viewer-empty"]');
     await expect(empty).toBeDisplayed();
     await expect(empty).toHaveText(expect.stringContaining("Open or drop a GIF to get started"));
+  });
+
+  it("should centre the empty viewer within the visible canvas when no GIF is loaded", async () => {
+    const result = await getEmptyViewerAlignment();
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
   });
 
   it("should show the empty timeline state", async () => {
@@ -142,6 +176,27 @@ describe("Studio — app launch", () => {
   it("should have the export button disabled when no frames loaded", async () => {
     const exportBtn = await $('[data-testid="btn-export"]');
     await expect(exportBtn).toBeDisabled();
+  });
+
+  it("drop overlay uses the full viewer width while the inspector is hidden", async () => {
+    const result = await browser.execute(() => {
+      const viewerArea = document.querySelector(".viewer-area");
+      const inspector = document.querySelector('[data-testid="inspector"]');
+      if (!(viewerArea instanceof HTMLElement)) return null;
+
+      const viewerRect = viewerArea.getBoundingClientRect();
+      return {
+        inspectorVisible: inspector instanceof HTMLElement,
+        expectedOverlayRightEdge: viewerRect.right - 10,
+        viewerRightEdge: viewerRect.right,
+      };
+    });
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(result.inspectorVisible).toBe(false);
+    expect(result.expectedOverlayRightEdge).toBe(result.viewerRightEdge - 10);
   });
 });
 
@@ -176,6 +231,40 @@ describe("Studio — open GIF fixture", () => {
     const canvas = await $('[data-testid="frame-canvas"]');
     await canvas.waitForExist({ timeout: 5_000 });
     await expect(canvas).toBeDisplayed();
+  });
+
+  it("should centre the loaded GIF within the visible viewer area excluding the inspector", async () => {
+    const result = await browser.execute(() => {
+      const viewer = document.querySelector('[data-testid="frame-viewer"]');
+      const canvas = document.querySelector('[data-testid="frame-canvas"]');
+      const inspector = document.querySelector('[data-testid="inspector"]');
+      if (!(viewer instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
+        return null;
+      }
+
+      const viewerRect = viewer.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const inspectorRect =
+        inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : viewerRect;
+
+      const visibleRightEdge = inspector instanceof HTMLElement ? inspectorRect.left - 10 : viewerRect.right;
+      const visibleCentreX = (viewerRect.left + visibleRightEdge) / 2;
+      const canvasCentreX = canvasRect.left + canvasRect.width / 2;
+
+      return {
+        visibleCentreX,
+        canvasCentreX,
+        deltaX: canvasCentreX - visibleCentreX,
+        viewerRect,
+        canvasRect,
+        inspectorRect: inspector instanceof HTMLElement ? inspectorRect : null,
+      };
+    });
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
   });
 
   it("should hide the empty viewer", async () => {
@@ -365,8 +454,18 @@ describe("Studio — close project", () => {
     await openBtn.waitForExist({ timeout: 5_000 });
     await expect(openBtn).toBeDisplayed();
     await expect(await $('[data-testid="btn-close"]')).not.toBeExisting();
+    await expect(await $('[data-testid="inspector"]')).not.toBeExisting();
     const thumbs = await $$('[data-testid^="frame-thumb-"]');
     expect(thumbs).toHaveLength(0);
+  });
+
+  it("should re-centre the empty viewer after closing the current GIF", async () => {
+    const result = await getEmptyViewerAlignment();
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
   });
 });
 
@@ -901,7 +1000,7 @@ describe("Studio — zoom indicator", () => {
 describe("Studio — inspector panel", () => {
   // Entry state: 2 frames loaded (after zoom indicator suite).
 
-  it("inspector panel is always visible", async () => {
+  it("inspector panel is visible while frames are loaded", async () => {
     const inspector = await $('[data-testid="inspector"]');
     await inspector.waitForExist({ timeout: 5_000 });
     await expect(inspector).toBeDisplayed();
@@ -991,7 +1090,7 @@ describe("Studio — inspector panel", () => {
     await expect(await $('[data-testid="inspector-minimise"]')).toBeExisting();
   });
 
-  it("inspector panel footer is always present regardless of minimised state", async () => {
+  it("inspector panel footer stays present regardless of minimised state while visible", async () => {
     // Expanded state: footer present
     await expect(await $('[data-testid="inspector-footer"]')).toBeExisting();
 
