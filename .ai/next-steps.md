@@ -41,8 +41,9 @@ Status: **In progress**
 - [x] Add background grid
 - [ ] Fix "Loading 0%" visible as soon as you click "Open"
 - [x] Hide inspector until GIF loaded
-- [ ] Add inspector buttons to move frame(s)
+- [x] Add inspector buttons to move frame(s)
 - [x] Add select-to-first/last key binding
+- [ ] Review refactoring opportunities
 
 ### Prompt planning
 
@@ -54,21 +55,14 @@ Please plan a bug fix. Currently, when you click the "Open" button. The tool bar
 
 In addition, when the drag-and-drop feature is used to open a GIF, the equivalent message is not displayed. Please plan the work to display the "Loading 0%" UI hint immediately when a GIF has been dropped to indicate to the user that it is being processed.
 
-#### Improve the background grid
-
-Status: **Considering**
-
-- Make it less visible?
-- Make the fade based on the grid, not the application canvas edges?
-- Add cross hair of a slightly brighter colour that centers behind the center of the GIF so that it's always easy to find it
-
 #### Improve toolbar
 
-Status: **Ready**
+Status: **In progress**
 
 Please plan improvements to the toolbar. 
 
 First, can you investigate if it's possible to merge the header bar that contains the minimise/maximise/close buttons of the app with the tool bar?
+- Please do web research to find understand what's possible.
 - If no, then there's no work to be done here.
 - If yes, please plan out doing this.
 
@@ -84,6 +78,24 @@ Second, we need a help menu. This menu should be accessible via a button that is
 Second, can you please position the payback icons always horizontally centered in the tool bar.
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
+
+#### Improve the background grid
+
+Status: **Considering**
+
+- Make it less visible?
+- Make the fade based on the grid, not the application canvas edges?
+- Add cross hair of a slightly brighter colour that centers behind the center of the GIF so that it's always easy to find it
+
+##### Review refactoring opportunities
+
+Status: **Considering**
+
+I want you to review the code in this repository by spawning off a number of sub-agents, each reviewing specific dimensions and sections of this code base. For example, frontend and backend code must be reviewed separately.
+
+The goal of this review is to identify "junior dev mistakes", refactoring opportunities, unused/redundant dependencies and other opportunities to make this code base 1) more scalable, 2) easier to maintain, 3) without any regression.
+
+Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application with 
 
 ---
 
