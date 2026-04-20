@@ -6,7 +6,7 @@ const appBinary = resolve(repoRoot, "src-tauri/target/release/screeny");
 
 let tauriDriver: ChildProcess;
 
-export const config: WebdriverIO.Config = {
+export const config = {
   runner: "local",
   hostname: "127.0.0.1",
   port: 4444,
@@ -17,7 +17,6 @@ export const config: WebdriverIO.Config = {
   maxInstances: 1,
   capabilities: [
     {
-      // @ts-expect-error — wdio types don't include alwaysMatch W3C format
       alwaysMatch: {
         "tauri:options": {
           application: appBinary,

@@ -3,8 +3,15 @@ import pageSource from "./+page.svelte?raw";
 
 describe("+page.svelte", () => {
   describe("inspector-aware centering", () => {
-    it("resetView sets viewerPanX using dropOverlayRightMargin", () => {
-      expect(pageSource).toMatch(/function\s+resetView\b[\s\S]{0,200}dropOverlayRightMargin/);
+    it("seeds and resets horizontal pan from the current inspector-aware offset", () => {
+      expect(pageSource).toMatch(/let\s+resetViewerPanX\s*=\s*\$derived\(\s*-\(dropOverlayRightMargin\s*\/\s*2\)\s*\)/);
+      expect(pageSource).toMatch(/const\s+EXPANDED_DROP_OVERLAY_RIGHT_MARGIN\s*=\s*265/);
+      expect(pageSource).toMatch(/let\s+viewerPanX\s*=\s*\$state\(\s*-\(EXPANDED_DROP_OVERLAY_RIGHT_MARGIN\s*\/\s*2\)\s*\)/);
+      expect(pageSource).toMatch(/function\s+resetView\b[\s\S]{0,120}viewerPanX\s*=\s*resetViewerPanX/);
+    });
+
+    it("treats the current inspector-aware offset as the unmodified reset state", () => {
+      expect(pageSource).toMatch(/isModified=\{viewerScale !== 1 \|\| viewerPanX !== resetViewerPanX \|\| viewerPanY !== 0\}/);
     });
 
     it("handleDrop calls resetView after loading", () => {
@@ -29,6 +36,13 @@ describe("+page.svelte", () => {
 
     it("references inspectorMinimised when handling Ctrl+I", () => {
       expect(pageSource).toContain("inspectorMinimised");
+    });
+
+    it("does not move the current viewer pan while toggling the inspector", () => {
+      const handlerMatch = pageSource.match(/function\s+handleWindowKeyDown[\s\S]{0,220}\n  }/);
+      expect(handlerMatch?.[0]).toBeDefined();
+      expect(handlerMatch?.[0]).not.toContain("viewerPanX");
+      expect(handlerMatch?.[0]).not.toContain("viewerPanY");
     });
   });
 });

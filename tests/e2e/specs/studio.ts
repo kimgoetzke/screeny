@@ -1,3 +1,7 @@
+/// <reference types="mocha" />
+
+import { $, $$, browser, expect } from "@wdio/globals";
+
 /**
  * E2E tests for the Studio MVP flows.
  *
@@ -10,9 +14,9 @@
  */
 
 /** Dispatch a window-level keydown event, as if the user pressed a key. */
-async function dispatchKey(key: string, options: { shiftKey?: boolean } = {}) {
+async function dispatchKey(key: string, options: { shiftKey?: boolean; ctrlKey?: boolean } = {}) {
   await browser.execute(
-    (k: string, opts: { shiftKey?: boolean }) =>
+    (k: string, opts: { shiftKey?: boolean; ctrlKey?: boolean }) =>
       window.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, ...opts })),
     key,
     options,
@@ -442,15 +446,18 @@ describe("Studio — deduplicate frames", () => {
     await expect(status).toHaveText("Loaded 3 frames");
   });
 
-  it("should show both dedup buttons when frames are loaded", async () => {
-    const dedupMerge = await $('[data-testid="btn-dedup-merge"]');
+  it("should show both dedup buttons when all frames are selected", async () => {
+    await dispatchKey("a", { ctrlKey: true });
+    await browser.pause(200);
+
+    const dedupMerge = await $('[data-testid="inspector-dedup-merge"]');
     await dedupMerge.waitForExist({ timeout: 5_000 });
     await expect(dedupMerge).toBeDisplayed();
-    await expect(await $('[data-testid="btn-dedup-drop"]')).toBeDisplayed();
+    await expect(await $('[data-testid="inspector-dedup-drop"]')).toBeDisplayed();
   });
 
   it("drop: removes adjacent duplicate and preserves the kept frame's duration", async () => {
-    await jsClick('[data-testid="btn-dedup-drop"]');
+    await jsClick('[data-testid="inspector-dedup-drop"]');
     await browser.pause(300);
 
     const thumbs = await $$('[data-testid^="frame-thumb-"]');
@@ -484,7 +491,10 @@ describe("Studio — deduplicate frames", () => {
   });
 
   it("merge: removes adjacent duplicate and adds its duration to the kept frame", async () => {
-    await jsClick('[data-testid="btn-dedup-merge"]');
+    await dispatchKey("a", { ctrlKey: true });
+    await browser.pause(200);
+
+    await jsClick('[data-testid="inspector-dedup-merge"]');
     await browser.pause(300);
 
     const thumbs = await $$('[data-testid^="frame-thumb-"]');
@@ -645,7 +655,7 @@ describe("Studio — deduplicate frames (selection-scoped)", () => {
     await jsShiftClick('[data-testid="frame-thumb-1"]');
     await browser.pause(200);
 
-    await jsClick('[data-testid="btn-dedup-merge"]');
+    await jsClick('[data-testid="inspector-dedup-merge"]');
     await browser.pause(300);
 
     // 3 frames remain: [red(300ms), blue(100ms), blue(150ms)]
@@ -673,7 +683,7 @@ describe("Studio — deduplicate frames (selection-scoped)", () => {
     await jsShiftClick('[data-testid="frame-thumb-1"]');
     await browser.pause(200);
 
-    await jsClick('[data-testid="btn-dedup-drop"]');
+    await jsClick('[data-testid="inspector-dedup-drop"]');
     await browser.pause(300);
 
     // 3 frames remain: [red(100ms), blue(100ms), blue(150ms)]
@@ -695,9 +705,11 @@ describe("Studio — deduplicate frames (selection-scoped)", () => {
     expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(4);
   });
 
-  it("merge (single-select): deduplicates all frames when only one frame is selected", async () => {
-    // Default: frame 0 is selected (single-select) → all-frames path
-    await jsClick('[data-testid="btn-dedup-merge"]');
+  it("merge (all-selected): deduplicates the full GIF when all frames are selected", async () => {
+    await dispatchKey("a", { ctrlKey: true });
+    await browser.pause(200);
+
+    await jsClick('[data-testid="inspector-dedup-merge"]');
     await browser.pause(300);
 
     // 2 frames remain: [red(300ms), blue(250ms)]
@@ -716,9 +728,11 @@ describe("Studio — deduplicate frames (selection-scoped)", () => {
     expect(await $$('[data-testid^="frame-thumb-"]')).toHaveLength(4);
   });
 
-  it("drop (single-select): deduplicates all frames when only one frame is selected", async () => {
-    // Default: frame 0 is selected (single-select) → all-frames path
-    await jsClick('[data-testid="btn-dedup-drop"]');
+  it("drop (all-selected): deduplicates the full GIF when all frames are selected", async () => {
+    await dispatchKey("a", { ctrlKey: true });
+    await browser.pause(200);
+
+    await jsClick('[data-testid="inspector-dedup-drop"]');
     await browser.pause(300);
 
     // 2 frames remain: [red(100ms), blue(100ms)]
@@ -819,6 +833,28 @@ describe("Studio — keyboard navigation", () => {
 
 describe("Studio — zoom indicator", () => {
   // Entry state: 2 frames loaded (after keyboard nav suite deleted one)
+
+  it("viewer stage that carries the background grid scales when zooming", async () => {
+    const grid = await $('[data-testid="viewer-grid"]');
+    await grid.waitForExist({ timeout: 5_000 });
+
+    const transformBefore = await browser.execute(() => {
+      const stage = document.querySelector('[data-testid="viewer-stage"]');
+      return stage ? getComputedStyle(stage).transform : null;
+    });
+
+    await ctrlWheel(-100);
+    await browser.pause(300);
+
+    const transformAfter = await browser.execute(() => {
+      const stage = document.querySelector('[data-testid="viewer-stage"]');
+      return stage ? getComputedStyle(stage).transform : null;
+    });
+
+    expect(transformBefore).not.toBeNull();
+    expect(transformAfter).not.toBeNull();
+    expect(transformAfter).not.toEqual(transformBefore);
+  });
 
   it("Ctrl+wheel zooms in and the indicator updates above 100%", async () => {
     await ctrlWheel(-100); // negative deltaY = zoom in

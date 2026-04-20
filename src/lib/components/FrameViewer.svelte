@@ -17,6 +17,7 @@
   let isPanning = $state(false);
   let lastPointerX = 0;
   let lastPointerY = 0;
+  let stageTransform = $derived(`transform: scale(${scale}) translate(${panX}px, ${panY}px)`);
 
   const MIN_SCALE = 0.1;
   const MAX_SCALE = 10;
@@ -99,13 +100,17 @@
   onpointerup={handlePointerUp}
   oncontextmenu={handleContextMenu}
 >
-  {#if frameStore.hasFrames}
-    <canvas
-      bind:this={canvas}
-      data-testid="frame-canvas"
-      style="transform: scale({scale}) translate({panX}px, {panY}px)"
-    ></canvas>
-  {:else if showEmptyState}
+  <div class="viewer-grid-fade" data-testid="viewer-grid-fade" aria-hidden="true">
+    <div class="viewer-grid-stage" data-testid="viewer-grid-stage" style={stageTransform}>
+      <div class="viewer-grid" data-testid="viewer-grid"></div>
+    </div>
+  </div>
+  <div class="viewer-stage" data-testid="viewer-stage" style={stageTransform}>
+    {#if frameStore.hasFrames}
+      <canvas bind:this={canvas} data-testid="frame-canvas"></canvas>
+    {/if}
+  </div>
+  {#if !frameStore.hasFrames && showEmptyState}
     <div class="empty" data-testid="viewer-empty">
       <p>Open or drop a GIF to get started</p>
     </div>
@@ -115,17 +120,77 @@
 <style>
   .viewer {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    display: grid;
+    place-items: center;
     overflow: hidden;
     background: var(--color-bg);
     min-height: 0;
   }
 
-  canvas {
-    image-rendering: pixelated;
+  .viewer-grid-fade,
+  .viewer-grid-stage,
+  .viewer-stage {
+    grid-area: 1 / 1;
+  }
+
+  .viewer-grid-fade {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    mask-image: radial-gradient(
+      circle at center,
+      black 0%,
+      black 18%,
+      rgb(0 0 0 / 0.92) 34%,
+      rgb(0 0 0 / 0.68) 50%,
+      rgb(0 0 0 / 0.32) 64%,
+      transparent 78%,
+      transparent 100%
+    );
+  }
+
+  .viewer-grid-stage,
+  .viewer-stage {
+    position: relative;
+    width: 1px;
+    height: 1px;
     transform-origin: center center;
+    pointer-events: none;
+  }
+
+  .viewer-grid {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9600px;
+    height: 9600px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    background-image:
+      linear-gradient(
+        color-mix(in srgb, var(--color-text-muted) 22%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-text-muted) 22%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 24px 24px;
+    background-position: center center;
+  }
+
+  canvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 1;
+    image-rendering: pixelated;
+    transform: translate(-50%, -50%);
   }
 
   .viewer.is-panning {
@@ -133,6 +198,9 @@
   }
 
   .empty {
+    grid-area: 1 / 1;
+    position: relative;
+    z-index: 1;
     color: var(--color-text-muted);
     font-size: 20px;
     padding: 32px;

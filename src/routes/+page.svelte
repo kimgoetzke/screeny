@@ -14,12 +14,22 @@
   let dragging = $state(false);
   let dropError = $state("");
 
+  const EXPANDED_ZOOM_RIGHT_OFFSET = 268;
+  const MINIMISED_ZOOM_RIGHT_OFFSET = 60;
+  const EXPANDED_DROP_OVERLAY_RIGHT_MARGIN = 265;
+  const MINIMISED_DROP_OVERLAY_RIGHT_MARGIN = 55;
+
   let inspectorMinimised = $state(false);
   // ZoomIndicator sits 20px to the left of the inspector panel.
   // Expanded: 240px + 8px gap + 20px = 268px. Minimised: 32px + 8px gap + 20px = 60px.
-  let zoomRightOffset = $derived(inspectorMinimised ? 60 : 268);
+  let zoomRightOffset = $derived(
+    inspectorMinimised ? MINIMISED_ZOOM_RIGHT_OFFSET : EXPANDED_ZOOM_RIGHT_OFFSET,
+  );
   // Drop overlay right margin: 10px outer gap + panel width + 10px inner gap (matches CSS margin: 10px).
-  let dropOverlayRightMargin = $derived(inspectorMinimised ? 55 : 265);
+  let dropOverlayRightMargin = $derived(
+    inspectorMinimised ? MINIMISED_DROP_OVERLAY_RIGHT_MARGIN : EXPANDED_DROP_OVERLAY_RIGHT_MARGIN,
+  );
+  let resetViewerPanX = $derived(-(dropOverlayRightMargin / 2));
 
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (event.ctrlKey && (event.key === "i" || event.key === "I")) {
@@ -36,12 +46,12 @@
   });
 
   let viewerScale = $state(1);
-  let viewerPanX = $state(0);
+  let viewerPanX = $state(-(EXPANDED_DROP_OVERLAY_RIGHT_MARGIN / 2));
   let viewerPanY = $state(0);
 
   function resetView() {
     viewerScale = 1;
-    viewerPanX = -(dropOverlayRightMargin / 2);
+    viewerPanX = resetViewerPanX;
     viewerPanY = 0;
   }
 
@@ -109,7 +119,7 @@
     <Inspector bind:minimised={inspectorMinimised} />
     <ZoomIndicator
       scale={viewerScale}
-      isModified={viewerScale !== 1 || viewerPanX !== 0 || viewerPanY !== 0}
+      isModified={viewerScale !== 1 || viewerPanX !== resetViewerPanX || viewerPanY !== 0}
       onReset={resetView}
       visible={frameStore.hasFrames}
       rightOffset={zoomRightOffset}

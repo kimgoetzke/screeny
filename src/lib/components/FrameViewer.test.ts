@@ -24,6 +24,15 @@ describe("FrameViewer", () => {
     expect(body).not.toContain("Open or drop a GIF to get started");
   });
 
+  it("shows a background grid even when no GIF is loaded", () => {
+    const { body } = render(FrameViewer);
+
+    expect(body).toContain('data-testid="viewer-grid-fade"');
+    expect(body).toContain('data-testid="viewer-grid-stage"');
+    expect(body).toContain('data-testid="viewer-grid"');
+    expect(body).toContain('data-testid="viewer-empty"');
+  });
+
   describe("wheel zoom", () => {
     it("handleWheel does not require ctrlKey to zoom", () => {
       expect(frameViewerSource).not.toMatch(/if\s*\(\s*!event\.ctrlKey\s*\)\s*return/);
@@ -31,18 +40,32 @@ describe("FrameViewer", () => {
   });
 
   describe("zoom/pan transform", () => {
-    it("renders canvas with default transform at scale 1, pan 0,0", () => {
-      frameStore.setFrames([makeFrame("a")]);
+    it("renders a shared viewer stage with the default transform", () => {
       const { body } = render(FrameViewer);
 
+      expect(body).toContain('data-testid="viewer-stage"');
+      expect(body).toContain('data-testid="viewer-grid-stage"');
       expect(body).toContain("transform: scale(1) translate(0px, 0px)");
     });
 
-    it("renders canvas with provided scale and pan values", () => {
+    it("applies the provided scale and pan to the shared viewer stage", () => {
       frameStore.setFrames([makeFrame("a")]);
       const { body } = render(FrameViewer, { props: { scale: 2, panX: 50, panY: -30 } });
 
+      expect(body).toContain('data-testid="viewer-stage"');
+      expect(body).toContain('data-testid="viewer-grid-stage"');
+      expect(body).toContain('data-testid="viewer-grid"');
+      expect(body).toContain('data-testid="frame-canvas"');
       expect(body).toContain("transform: scale(2) translate(50px, -30px)");
+    });
+  });
+
+  describe("grid centring and fade", () => {
+    it("centres the grid pattern and fades it out through a dedicated shell", () => {
+      expect(frameViewerSource).toContain("background-position: center center;");
+      expect(frameViewerSource).toContain("border-radius: 50%;");
+      expect(frameViewerSource).toContain(".viewer-grid-fade");
+      expect(frameViewerSource).toContain("transparent 100%");
     });
   });
 });

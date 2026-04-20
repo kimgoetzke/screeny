@@ -8,6 +8,10 @@
  * Prerequisites: same as studio.ts (built binary, tauri-driver, SCREENY_E2E=1).
  */
 
+/// <reference types="mocha" />
+
+import { $, browser, expect } from "@wdio/globals";
+
 describe("Splashscreen — rendering", () => {
   let mainHandle: string;
   let splashHandle: string | undefined;
