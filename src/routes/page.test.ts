@@ -14,6 +14,10 @@ describe("+page.svelte", () => {
       expect(pageSource).toMatch(/isModified=\{viewerScale !== 1 \|\| viewerPanX !== resetViewerPanX \|\| viewerPanY !== 0\}/);
     });
 
+    it("passes centreOffsetX to FrameViewer so the empty state and fade are inspector-aware", () => {
+      expect(pageSource).toMatch(/centreOffsetX=\{resetViewerPanX\}/);
+    });
+
     it("handleDrop calls resetView after loading", () => {
       expect(pageSource).toMatch(/async\s+function\s+handleDrop\b[\s\S]{0,1000}resetView\s*\(\s*\)/);
     });

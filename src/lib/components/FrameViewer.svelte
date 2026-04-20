@@ -3,11 +3,13 @@
 
   let {
     showEmptyState = true,
+    centreOffsetX = 0,
     scale = $bindable(1),
     panX = $bindable(0),
     panY = $bindable(0),
   }: {
     showEmptyState?: boolean;
+    centreOffsetX?: number;
     scale?: number;
     panX?: number;
     panY?: number;
@@ -100,7 +102,12 @@
   onpointerup={handlePointerUp}
   oncontextmenu={handleContextMenu}
 >
-  <div class="viewer-grid-fade" data-testid="viewer-grid-fade" aria-hidden="true">
+  <div
+    class="viewer-grid-fade"
+    data-testid="viewer-grid-fade"
+    aria-hidden="true"
+    style="--fade-center-x: calc(50% + {panX}px)"
+  >
     <div class="viewer-grid-stage" data-testid="viewer-grid-stage" style={stageTransform}>
       <div class="viewer-grid" data-testid="viewer-grid"></div>
     </div>
@@ -111,7 +118,7 @@
     {/if}
   </div>
   {#if !frameStore.hasFrames && showEmptyState}
-    <div class="empty" data-testid="viewer-empty">
+    <div class="empty" data-testid="viewer-empty" style:transform="translateX({centreOffsetX}px)">
       <p>Open or drop a GIF to get started</p>
     </div>
   {/if}
@@ -141,7 +148,7 @@
     place-items: center;
     pointer-events: none;
     mask-image: radial-gradient(
-      circle at center,
+      circle at var(--fade-center-x, 50%) 50%,
       black 0%,
       black 18%,
       rgb(0 0 0 / 0.92) 34%,

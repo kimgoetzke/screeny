@@ -112,6 +112,7 @@
   <div class="viewer-area">
     <FrameViewer
       showEmptyState={!dragging}
+      centreOffsetX={resetViewerPanX}
       bind:scale={viewerScale}
       bind:panX={viewerPanX}
       bind:panY={viewerPanY}

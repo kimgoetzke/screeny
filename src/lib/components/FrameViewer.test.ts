@@ -68,4 +68,26 @@ describe("FrameViewer", () => {
       expect(frameViewerSource).toContain("transparent 100%");
     });
   });
+
+  describe("inspector-aware centering", () => {
+    it("shifts the empty-state message by centreOffsetX", () => {
+      const { body } = render(FrameViewer, { props: { centreOffsetX: -132.5 } });
+
+      expect(body).toContain('data-testid="viewer-empty"');
+      expect(body).toContain("translateX(-132.5px)");
+    });
+
+    it("sets the fade mask centre CSS variable from panX", () => {
+      const { body } = render(FrameViewer, { props: { panX: -132.5 } });
+
+      expect(body).toContain("--fade-center-x: calc(50% + -132.5px)");
+    });
+
+    it("defaults centreOffsetX to 0 and panX to 0 when props are omitted", () => {
+      const { body } = render(FrameViewer);
+
+      expect(body).toContain("translateX(0px)");
+      expect(body).toContain("--fade-center-x: calc(50% + 0px)");
+    });
+  });
 });
