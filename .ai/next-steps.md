@@ -45,7 +45,31 @@ Status: **In progress**
 
 ### Prompt planning
 
+#### Fix "Loading 0%" visible as soon as you click "Open"
+
+Status: **Ready**
+
+Please plan a bug fix. Currently, when you click the "Open" button. The tool bar immediately shows a "Loading 0%" despite no GIF having been selected. Can you please update this to only show from the moment, a file has been selected for opening?
+
+In addition, when the drag-and-drop feature is used to open a GIF, the equivalent message is not displayed. Please plan the work to display the "Loading 0%" UI hint immediately when a GIF has been dropped to indicate to the user that it is being processed.
+
+#### Hide inspector until GIF loaded
+
+Status: **Considering**
+
+Please tell me what change exactly is required to fully hide the inspector while not GIF is loaded. It should not be minimised but simply not visible at all. This also means that it must disappear when a currently opened GIF is closed by clicking "Close" in the toolbar. None of the other existing behaviour of the inspector must change (incl. the toggle behaviour while a GIF is loaded).
+
+#### Improve the background grid
+
+Status: **Considering**
+
+- Make it less visible?
+- Make the fade based on the grid, not the application canvas edges?
+- Add cross hair of a slightly brighter colour that centers behind the center of the GIF so that it's always easy to find it
+
 #### Add inspector buttons to move frame(s)
+
+Status: **Ready**
 
 Please plan the work to add 4 new inspector buttons to move the selected frame(s):
 - The buttons should be displayed in a single row
@@ -56,7 +80,7 @@ Please plan the work to add 4 new inspector buttons to move the selected frame(s
 - The fourth button should move the selected frame(s) to the far right
 - All buttons should be have the standard icons for this purpose
 
-Please move the existing duplicate/delete button row and this row to the bottom of the inspector panel.
+Next please move the existing duplicate/delete button row and this button row to the bottom of the inspector panel with comfortable spacing.
 
 If you need to do web research, please do.
 
@@ -64,9 +88,16 @@ You must implement this using your `tdd` skill. Please check for warnings and ad
 
 #### Improve toolbar
 
+Status: **Ready**
+
 Please plan improvements to the toolbar. 
 
-First, we need a help menu. This menu should be accessible via a button that is located at the top right of the tool bar and should have a question mark icon.
+First, can you investigate if it's possible to merge the header bar that contains the minimise/maximise/close buttons of the app with the tool bar?
+- If no, then there's no work to be done here.
+- If yes, please plan out doing this.
+
+Second, we need a help menu. This menu should be accessible via a button that is located at the top right of the tool bar and should have a question mark icon.
+- If you are able to merge the header bar with the tool bar then the minimise/maximise/close buttons most always remain at the far right and this new button would be to the left of them
 - When clicking the button, an overlay menu should open
 - The menu should show the current version of the application
 - There should be one button that is the GitHub icon; there should be text explaining that the user can get help or raise issue there; clicking it should open https://github.com/kimgoetzke/screeny
@@ -75,9 +106,6 @@ First, we need a help menu. This menu should be accessible via a button that is 
   - For this you'll need to identify all key bindings we have configured so far and list them here please
 
 Second, can you please position the payback icons always horizontally centered in the tool bar.
-
-<TBC>
-
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
 
