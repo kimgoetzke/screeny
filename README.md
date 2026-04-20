@@ -18,7 +18,7 @@ A cross-platform GIF recording and editing application built with Tauri, SvelteK
 - Basic frame management: delete/move, dedupe, change frame duration, duplicate (all available as individual and bulk operations)
 - Thoughtful various mouse/key bindings
 
-<img src="assets/screenshot-2.png" width="700" alt="Screenshot 2"/>
+<img src="assets/screenshot-3.png" width="700" alt="Screenshot"/>
 
 ## Key bindings
 
