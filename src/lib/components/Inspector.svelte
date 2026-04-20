@@ -10,7 +10,7 @@
   let isMultiSelect = $derived(selectedFrameIds.size > 1);
 
   let frameIndicator = $derived.by(() => {
-    if (!selectedFrameId || frames.length === 0) return "No frame selected";
+    if (!selectedFrameId || frames.length === 0) return "";
     if (!isMultiSelect) {
       const index = frames.findIndex((f) => f.id === selectedFrameId) + 1;
       return `Frame ${index} / ${frames.length}`;

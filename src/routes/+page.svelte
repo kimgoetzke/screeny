@@ -19,8 +19,7 @@
   // Expanded: 240px + 8px gap + 20px = 268px. Minimised: 32px + 8px gap + 20px = 60px.
   let zoomRightOffset = $derived(inspectorMinimised ? 60 : 268);
   // Drop overlay right margin: 10px outer gap + panel width + 10px inner gap (matches CSS margin: 10px).
-  // Minimised: 10+32+10 = 52px. Expanded: 10+240+10 = 260px.
-  let dropOverlayRightMargin = $derived(inspectorMinimised ? 52 : 260);
+  let dropOverlayRightMargin = $derived(inspectorMinimised ? 55 : 265);
 
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (event.ctrlKey && (event.key === "i" || event.key === "I")) {

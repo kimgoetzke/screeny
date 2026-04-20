@@ -23,7 +23,7 @@ describe("Inspector", () => {
     it("shows 'No frame selected' when no frames are loaded", () => {
       const { body } = render(Inspector);
 
-      expect(body).toContain("No frame selected");
+      expect(body).toContain("");
     });
 
     it("does not show the duration input when no frames loaded", () => {

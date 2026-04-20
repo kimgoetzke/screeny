@@ -348,7 +348,7 @@ export const frameStore = {
       frames = result;
       if (!result.some((f) => f.id === selectedFrameId)) {
         selectedFrameId = result.length > 0 ? result[0].id : null;
-        selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+        selectedFrameIds = new Set(selectedFrameId ? [selectedFrameId] : []);
       }
     }
   },
@@ -392,7 +392,7 @@ export const frameStore = {
       frames = result;
       if (!result.some((f) => f.id === selectedFrameId)) {
         selectedFrameId = result.length > 0 ? result[0].id : null;
-        selectedFrameIds = selectedFrameId ? new Set([selectedFrameId]) : new Set();
+        selectedFrameIds = new Set(selectedFrameId ? [selectedFrameId] : []);
       }
     }
   },

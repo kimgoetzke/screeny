@@ -91,6 +91,8 @@
 <div
   class="viewer"
   class:is-panning={isPanning}
+  role="application"
+  aria-label="Frame viewer"
   data-testid="frame-viewer"
   onwheel={handleWheel}
   onpointerdown={handlePointerDown}

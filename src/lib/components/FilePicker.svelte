@@ -67,8 +67,7 @@
   });
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" onclick={onCancel} data-testid="file-picker-backdrop"></div>
+<div class="backdrop" role="presentation" onclick={onCancel} data-testid="file-picker-backdrop"></div>
 
 <div class="picker" data-testid="file-picker" role="dialog" aria-label="Open file">
   <div class="picker-header">
