@@ -39,8 +39,28 @@ Status: **In progress**
 - [x] Remove dedup buttons from the tool bar
 - [ ] Improve toolbar
 - [ ] Add background grid
+- [ ] Fix "Loading 0%" visible as soon as you click "Open"
+- [ ] Hide inspector until GIF loaded
+- [ ] Add inspector buttons to move frame(s)
 
 ### Prompt planning
+
+#### Add inspector buttons to move frame(s)
+
+Please plan the work to add 4 new inspector buttons to move the selected frame(s):
+- The buttons should be displayed in a single row
+- This new row of buttons should be located above the duplicate/delete button row
+- The first button should move the selected frame(s) to the far left
+- The second button should move the selected frame(s) by a single frame to the left
+- The third button should move the selected frame(s) by a single frame to the right
+- The fourth button should move the selected frame(s) to the far right
+- All buttons should be have the standard icons for this purpose
+
+Please move the existing duplicate/delete button row and this row to the bottom of the inspector panel.
+
+If you need to do web research, please do.
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
 
 #### Improve toolbar
 
@@ -58,14 +78,14 @@ Second, can you please position the payback icons always horizontally centered i
 
 <TBC>
 
-#### Add background grid
 
-Can you please plan the work to display a background grid in the main section where the GIF is displayed (obviously always behind the GIF)? The grid should fade out to the sides. so that it is not or barely visible at the edges of the application by default. When you zoom in, the grid should zoom in with the image too.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
 
 ---
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. Also, please write and E2E test for this feature. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
+
+Also, please write and E2E test for this feature.
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application with 
 
 ## Goals
 
