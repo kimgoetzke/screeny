@@ -42,12 +42,13 @@ Status: **In progress**
 - [ ] Fix "Loading 0%" visible as soon as you click "Open"
 - [ ] Hide inspector until GIF loaded
 - [ ] Add inspector buttons to move frame(s)
+- [x] Add select-to-first/last key binding
 
 ### Prompt planning
 
 #### Fix "Loading 0%" visible as soon as you click "Open"
 
-Status: **Ready**
+Status: **In progress**
 
 Please plan a bug fix. Currently, when you click the "Open" button. The tool bar immediately shows a "Loading 0%" despite no GIF having been selected. Can you please update this to only show from the moment, a file has been selected for opening?
 

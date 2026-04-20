@@ -121,7 +121,10 @@
       case "ArrowLeft": {
         if (!frameStore.hasFrames) break;
         event.preventDefault();
-        if (event.ctrlKey) {
+        if (event.ctrlKey && event.shiftKey) {
+          frameStore.selectToFirstFrame();
+          if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
+        } else if (event.ctrlKey) {
           frameStore.selectFirstFrame();
           if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
         } else if (event.shiftKey) {
@@ -136,7 +139,10 @@
       case "ArrowRight": {
         if (!frameStore.hasFrames) break;
         event.preventDefault();
-        if (event.ctrlKey) {
+        if (event.ctrlKey && event.shiftKey) {
+          frameStore.selectToLastFrame();
+          if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
+        } else if (event.ctrlKey) {
           frameStore.selectLastFrame();
           if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
         } else if (event.shiftKey) {

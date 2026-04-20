@@ -108,6 +108,22 @@ export const frameStore = {
     selectionActiveId = selectedFrameId;
   },
 
+  selectToFirstFrame() {
+    if (frames.length === 0 || selectedFrameId === null) return;
+    const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    if (anchorIndex === -1) return;
+    selectionActiveId = frames[0].id;
+    selectedFrameIds = new Set(frames.slice(0, anchorIndex + 1).map((f) => f.id));
+  },
+
+  selectToLastFrame() {
+    if (frames.length === 0 || selectedFrameId === null) return;
+    const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);
+    if (anchorIndex === -1) return;
+    selectionActiveId = frames[frames.length - 1].id;
+    selectedFrameIds = new Set(frames.slice(anchorIndex).map((f) => f.id));
+  },
+
   extendSelectionRight() {
     if (frames.length === 0 || selectedFrameId === null) return;
     const anchorIndex = frames.findIndex((f) => f.id === selectedFrameId);

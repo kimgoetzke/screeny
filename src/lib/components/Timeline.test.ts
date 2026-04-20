@@ -26,11 +26,34 @@ describe("Timeline", () => {
 
   describe("Ctrl+Arrow first/last frame", () => {
     it("Ctrl+ArrowLeft calls selectFirstFrame", () => {
-      expect(timelineSource).toMatch(/ArrowLeft[\s\S]{0,100}ctrlKey[\s\S]{0,100}selectFirstFrame/);
+      expect(timelineSource).toMatch(/ArrowLeft[\s\S]{0,400}ctrlKey[\s\S]{0,100}selectFirstFrame/);
     });
 
     it("Ctrl+ArrowRight calls selectLastFrame", () => {
-      expect(timelineSource).toMatch(/ArrowRight[\s\S]{0,100}ctrlKey[\s\S]{0,100}selectLastFrame/);
+      expect(timelineSource).toMatch(/ArrowRight[\s\S]{0,400}ctrlKey[\s\S]{0,100}selectLastFrame/);
+    });
+  });
+
+  describe("Ctrl+Shift+Arrow select-to-boundary keyboard shortcuts", () => {
+    it("Ctrl+Shift+ArrowLeft calls selectToFirstFrame", () => {
+      expect(timelineSource).toMatch(
+        /ArrowLeft[\s\S]{0,200}ctrlKey[\s\S]{0,50}shiftKey[\s\S]{0,100}selectToFirstFrame/,
+      );
+    });
+
+    it("Ctrl+Shift+ArrowRight calls selectToLastFrame", () => {
+      expect(timelineSource).toMatch(
+        /ArrowRight[\s\S]{0,200}ctrlKey[\s\S]{0,50}shiftKey[\s\S]{0,100}selectToLastFrame/,
+      );
+    });
+
+    it("Ctrl+Shift+ArrowLeft is handled before Ctrl-only ArrowLeft so it does not fall through", () => {
+      // The combined modifier check must appear before the ctrlKey-only check in the source.
+      const ctrlShiftLeftPos = timelineSource.search(/ctrlKey[\s\S]{0,30}shiftKey[\s\S]{0,50}selectToFirstFrame/);
+      const ctrlOnlyLeftPos = timelineSource.search(/ctrlKey[\s\S]{0,100}selectFirstFrame[^T]/);
+      expect(ctrlShiftLeftPos).toBeGreaterThanOrEqual(0);
+      expect(ctrlOnlyLeftPos).toBeGreaterThanOrEqual(0);
+      expect(ctrlShiftLeftPos).toBeLessThan(ctrlOnlyLeftPos);
     });
   });
 

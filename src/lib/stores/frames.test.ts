@@ -1290,4 +1290,84 @@ describe("frameStore", () => {
       expect(frameStore.frames).toHaveLength(0);
     });
   });
+
+  describe("selectToFirstFrame", () => {
+    it("selects all frames from the anchor to the first frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("c");
+      frameStore.selectToFirstFrame();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a", "b", "c"]));
+    });
+
+    it("keeps the anchor frame as selectedFrameId", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.selectToFirstFrame();
+
+      expect(frameStore.selectedFrameId).toBe("c");
+    });
+
+    it("sets selectionActiveId to the first frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.selectToFirstFrame();
+
+      expect(frameStore.selectionActiveId).toBe("a");
+    });
+
+    it("collapses to a single frame when the anchor is already the first frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.selectToFirstFrame();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a"]));
+    });
+
+    it("is a no-op when no frames exist", () => {
+      frameStore.selectToFirstFrame();
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+  });
+
+  describe("selectToLastFrame", () => {
+    it("selects all frames from the anchor to the last frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c"), makeFrame("d")]);
+      frameStore.selectFrame("b");
+      frameStore.selectToLastFrame();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["b", "c", "d"]));
+    });
+
+    it("keeps the anchor frame as selectedFrameId", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.selectToLastFrame();
+
+      expect(frameStore.selectedFrameId).toBe("a");
+    });
+
+    it("sets selectionActiveId to the last frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("a");
+      frameStore.selectToLastFrame();
+
+      expect(frameStore.selectionActiveId).toBe("c");
+    });
+
+    it("collapses to a single frame when the anchor is already the last frame", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("c");
+      frameStore.selectToLastFrame();
+
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["c"]));
+    });
+
+    it("is a no-op when no frames exist", () => {
+      frameStore.selectToLastFrame();
+
+      expect(frameStore.selectedFrameIds.size).toBe(0);
+    });
+  });
 });
