@@ -292,6 +292,25 @@
         >
             Export
         </button>
+        {#if !showSaveInput && (frameStore.isLoading || statusMessage)}
+            <div class="toolbar-inline-feedback">
+                {#if frameStore.isLoading}
+                    <div class="loading-progress" data-testid="loading-progress">
+                        <div class="progress-track">
+                            <div
+                                class="progress-fill"
+                                style="width: {loadingProgressPercent}%"
+                            ></div>
+                        </div>
+                        <span class="progress-label">{loadingLabel}</span>
+                    </div>
+                {:else if statusMessage}
+                    <span class="status" data-testid="status-message"
+                        >{statusMessage}</span
+                    >
+                {/if}
+            </div>
+        {/if}
         <div class="toolbar-drag-region" data-tauri-drag-region></div>
     </div>
 
@@ -339,42 +358,26 @@
     {/if}
 
     <div class="toolbar-feedback">
-        <div class="toolbar-status-area">
-            {#if showSaveInput}
-                <div class="save-input-row" data-testid="save-input-row">
-                    <input
-                        type="text"
-                        bind:value={savePath}
-                        placeholder="~/export.gif"
-                        data-testid="save-path-input"
-                        onkeydown={(e) => {
-                            if (e.key === "Enter") confirmSave();
-                            if (e.key === "Escape") cancelSave();
-                        }}
-                    />
-                    <button onclick={confirmSave} data-testid="btn-save-confirm"
-                        >Save</button
-                    >
-                    <button onclick={cancelSave} data-testid="btn-save-cancel"
-                        >Cancel</button
-                    >
-                </div>
-            {:else if frameStore.isLoading}
-                    <div class="loading-progress" data-testid="loading-progress">
-                        <div class="progress-track">
-                            <div
-                                class="progress-fill"
-                                style="width: {loadingProgressPercent}%"
-                            ></div>
-                        </div>
-                        <span class="progress-label">{loadingLabel}</span>
-                </div>
-            {:else if statusMessage}
-                <span class="status" data-testid="status-message"
-                    >{statusMessage}</span
+        {#if showSaveInput}
+            <div class="save-input-row" data-testid="save-input-row">
+                <input
+                    type="text"
+                    bind:value={savePath}
+                    placeholder="~/export.gif"
+                    data-testid="save-path-input"
+                    onkeydown={(e) => {
+                        if (e.key === "Enter") confirmSave();
+                        if (e.key === "Escape") cancelSave();
+                    }}
+                />
+                <button onclick={confirmSave} data-testid="btn-save-confirm"
+                    >Save</button
                 >
-            {/if}
-        </div>
+                <button onclick={cancelSave} data-testid="btn-save-cancel"
+                    >Cancel</button
+                >
+            </div>
+        {/if}
 
         <div class="toolbar-titlebar-actions">
             <button
@@ -507,15 +510,21 @@
     .toolbar-feedback {
         grid-column: 3;
         justify-self: end;
-        width: 100%;
-        justify-content: flex-end;
         gap: 12px;
+        justify-content: flex-end;
     }
 
-    .toolbar-drag-region,
-    .toolbar-status-area {
+    .toolbar-drag-region {
         min-width: 0;
         flex: 1;
+    }
+
+    .toolbar-inline-feedback {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        max-width: 420px;
+        flex: 0 1 420px;
     }
 
     .toolbar-drag-region {
@@ -525,16 +534,11 @@
         user-select: none;
     }
 
-    .toolbar-status-area,
     .toolbar-titlebar-actions,
     .window-controls {
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-
-    .toolbar-status-area {
-        justify-content: flex-end;
     }
 
     .toolbar-titlebar-actions {
@@ -609,6 +613,8 @@
         font-size: 14px;
         color: var(--color-text-muted);
         padding: 4px 8px;
+        min-width: 0;
+        white-space: nowrap;
     }
 
     .save-input-row {

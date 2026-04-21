@@ -125,6 +125,27 @@ describe("Toolbar", () => {
       expect(body).not.toContain("Loading 0%");
     });
 
+    it("renders loading feedback between Export and the playback controls", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(3);
+      frameStore.addFrame(makeFrame("a"));
+
+      const { body } = render(Toolbar);
+
+      expect(body).toMatch(
+        /<div class="[^"]*toolbar-primary[^"]*">[\s\S]*data-testid="btn-export"[\s\S]*data-testid="loading-progress"[\s\S]*toolbar-drag-region[\s\S]*<\/div>\s*<!--\[0--><div class="[^"]*toolbar-playback[^"]*">/,
+      );
+    });
+
+    it("keeps status messages in the left toolbar cluster before playback", () => {
+      expect(toolbarSource).toMatch(
+        /\{#if !showSaveInput && \(frameStore\.isLoading \|\| statusMessage\)\}[\s\S]*data-testid="status-message"[\s\S]*toolbar-drag-region/,
+      );
+      expect(toolbarSource).not.toMatch(
+        /<div class="toolbar-feedback">[\s\S]*data-testid="status-message"/,
+      );
+    });
+
     it("waits for a paint boundary before decode starts and before loading ends", () => {
       expect(toolbarSource).toMatch(
         /beforeDecode:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,200}frameStore\.startLoading\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)/,
