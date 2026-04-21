@@ -196,6 +196,20 @@ describe("Timeline", () => {
     });
   });
 
+  describe("Ctrl+D delete keyboard shortcut", () => {
+    it("handles Ctrl+D by calling deleteSelectedFrames", () => {
+      expect(timelineSource).toMatch(/ctrlKey[\s\S]{0,100}key\s*[!=]==\s*["']d["'][\s\S]{0,100}deleteSelectedFrames/);
+    });
+
+    it("calls preventDefault when handling Ctrl+D", () => {
+      expect(timelineSource).toMatch(/key\s*[!=]==\s*["']d["'][\s\S]{0,200}preventDefault/);
+    });
+
+    it("guards against firing inside input or textarea elements", () => {
+      expect(timelineSource).toMatch(/key\s*[!=]==\s*["']d["'][\s\S]{0,100}inInput/);
+    });
+  });
+
   describe("multi-frame drag indicator", () => {
     it("applies being-dragged class to selected frames during a multi-frame pointer drag", () => {
       // Verify that the source wires isDraggingSelection to the being-dragged CSS class

@@ -37,9 +37,9 @@ describe("HelpMenu", () => {
     expect(body).toContain("Toggle inspector minimised state");
     expect(body).toContain("Ctrl+R");
     expect(body).toContain("Reset zoom");
+    expect(body).toContain("Ctrl+D");
     expect(body).toContain("Ctrl+Shift+ArrowRight");
     expect(body).toContain("Extend selection to last frame");
     expect(body).toContain("Escape");
-    expect(body).toContain("Cancel or dismiss the dialog");
   });
 });

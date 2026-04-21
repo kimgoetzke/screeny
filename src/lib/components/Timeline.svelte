@@ -114,6 +114,13 @@
       return;
     }
 
+    // Ctrl+D: delete selected frames
+    if (event.ctrlKey && event.key === "d" && !inInput) {
+      event.preventDefault();
+      frameStore.deleteSelectedFrames();
+      return;
+    }
+
     // All remaining shortcuts are blocked when focus is in a text field
     if (inInput) return;
 

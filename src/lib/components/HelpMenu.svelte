@@ -76,7 +76,7 @@
     </section>
 
     <section class="help-menu-section">
-      <h3>Key bindings</h3>
+      <h3>Bindings</h3>
       <div class="help-keybindings-wrap">
         <table data-testid="help-keybindings-table">
           <thead>
