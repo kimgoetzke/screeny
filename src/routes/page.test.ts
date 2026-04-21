@@ -60,10 +60,25 @@ describe("+page.svelte", () => {
     });
 
     it("does not move the current viewer pan while toggling the inspector", () => {
-      const handlerMatch = pageSource.match(/function\s+handleWindowKeyDown[\s\S]{0,220}\n  }/);
+      const handlerMatch = pageSource.match(
+        /function\s+handleWindowKeyDown[\s\S]*?\n  }\n\n  \$effect/,
+      );
       expect(handlerMatch?.[0]).toBeDefined();
       expect(handlerMatch?.[0]).not.toContain("viewerPanX");
       expect(handlerMatch?.[0]).not.toContain("viewerPanY");
+    });
+  });
+
+  describe("Ctrl+R keyboard shortcut", () => {
+    it("handles ctrlKey + 'r' to reset zoom", () => {
+      expect(pageSource).toMatch(/event\.ctrlKey/);
+      expect(pageSource).toMatch(/\(event\.key === "r" \|\| event\.key === "R"\)/);
+    });
+
+    it("prevents the default reload behaviour before resetting the view", () => {
+      expect(pageSource).toMatch(
+        /\(event\.key === "r" \|\| event\.key === "R"\)[\s\S]{0,200}event\.preventDefault\(\)[\s\S]{0,80}resetView\(\)/,
+      );
     });
   });
 });

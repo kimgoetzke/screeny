@@ -31,7 +31,12 @@
     </svg>
     <span data-testid="zoom-level">{Math.round(scale * 100)}%</span>
     {#if isModified}
-      <button class="reset-btn" data-testid="zoom-reset" onclick={onReset} title="Reset zoom">
+      <button
+        class="reset-btn"
+        data-testid="zoom-reset"
+        onclick={onReset}
+        title="Reset zoom (Ctrl + R)"
+      >
         <!-- Circular reset icon -->
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.418A6 6 0 1 1 8 2v1z" />

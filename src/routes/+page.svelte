@@ -39,6 +39,16 @@
       event.preventDefault();
       inspectorMinimised = !inspectorMinimised;
     }
+    if (
+      event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      (event.key === "r" || event.key === "R")
+    ) {
+      event.preventDefault();
+      resetView();
+    }
   }
 
   $effect(() => {

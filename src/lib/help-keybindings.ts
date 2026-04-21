@@ -6,6 +6,7 @@ export interface HelpKeyBinding {
 
 export const helpKeyBindings: HelpKeyBinding[] = [
   { context: "Global", binding: "Ctrl+I", action: "Toggle inspector minimised state" },
+  { context: "Global", binding: "Ctrl+R", action: "Reset zoom" },
   { context: "Timeline", binding: "Ctrl+A", action: "Select all frames" },
   { context: "Timeline", binding: "ArrowLeft", action: "Select previous frame" },
   { context: "Timeline", binding: "ArrowRight", action: "Select next frame" },
