@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "svelte/server";
 import Toolbar from "./Toolbar.svelte";
+import toolbarSource from "./Toolbar.svelte?raw";
 import { frameStore } from "$lib/stores/frames.svelte";
 import type { Frame } from "$lib/types";
 
@@ -99,6 +100,39 @@ describe("Toolbar", () => {
     expect(body).toContain('data-testid="btn-window-minimise"');
     expect(body).toContain('data-testid="btn-window-maximise"');
     expect(body).toContain('data-testid="btn-window-close"');
+  });
+
+  describe("loading progress", () => {
+    it("renders byte progress before the first frame arrives", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(3);
+      frameStore.setLoadingProgress(25);
+
+      const { body } = render(Toolbar);
+
+      expect(body).toContain("Loading 25%");
+      expect(body).not.toContain("Loading frame");
+    });
+
+    it("renders frame progress after the first frame arrives", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(3);
+      frameStore.addFrame(makeFrame("a"));
+
+      const { body } = render(Toolbar);
+
+      expect(body).toContain("Loading frame 1 of 3");
+      expect(body).not.toContain("Loading 0%");
+    });
+
+    it("waits for a paint boundary before decode starts and before loading ends", () => {
+      expect(toolbarSource).toMatch(
+        /beforeDecode:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,200}frameStore\.startLoading\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)/,
+      );
+      expect(toolbarSource).toMatch(
+        /finally\s*\{[\s\S]{0,400}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
+      );
+    });
   });
 
 

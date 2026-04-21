@@ -137,18 +137,34 @@
 
 ### Phase 5: Quick Wins — Paint Boundary + Async Rust Command
 
-- **Status:** pending
-- Actions taken: none yet
+- **Status:** complete
+- Actions taken:
+  - Added `DecodeEvent::Start { total_bytes, total_frames }` and a lightweight GIF block pre-scan so the frontend knows total frame count before the first decoded frame arrives
+  - Added `waitForNextPaint()` and used it before decode starts and before `finishLoading()` in both the toolbar open flow and drag-and-drop flow
+  - Extended `frameStore` loading state with `loadingFrameCount` / `loadingTotalFrames` and updated the toolbar progress label to switch from byte percentage to `Loading frame X of Y`
+  - Made `decode_gif_stream` an async Tauri command and moved the decode work to `tauri::async_runtime::spawn_blocking`
+  - Added Rust tests for the new `Start` event and blocking-task decode path, plus frontend tests for the new progress display and paint-boundary usage
+  - Validation passed: `pnpm check`, `pnpm build`, `pnpm test:unit`, `cargo test`, `pnpm tauri build`
+- Files created/modified:
+  - `src-tauri/src/gif/mod.rs` — added `Start` decode event
+  - `src-tauri/src/gif/decode.rs` — added GIF frame pre-scan and new Phase 5 tests
+  - `src-tauri/src/lib.rs` — made `decode_gif_stream` async via `tauri::async_runtime::spawn_blocking`
+  - `src/lib/types.ts` — added `DecodeStart`
+  - `src/lib/actions.ts` / `actions.test.ts` — added `beforeDecode` / `onStart` orchestration for streaming opens
+  - `src/lib/stores/frames.svelte.ts` / `frames.test.ts` — added frame-total loading state
+  - `src/lib/components/Toolbar.svelte` / `Toolbar.test.ts` — added hybrid progress UI and paint-boundary handling
+  - `src/routes/+page.svelte` / `page.test.ts` — updated drag/drop loading flow
+  - `src/lib/paint.ts` — new shared paint-boundary helper
 
 ## 5-Question Reboot Check
 
 | Question             | Answer |
 | -------------------- | ------ |
-| Where am I?          | Phase 5 pending — phases 1-4 complete but manual validation showed the app still freezes |
-| Where am I going?    | Phase 5 (paint boundary + async Rust), Phase 6 (frontend batching), Phase 7 (payload redesign) |
+| Where am I?          | Phase 6 pending — Phase 5 is now complete, but the larger responsiveness fix still lives in batching |
+| Where am I going?    | Phase 6 (frontend batching), then reevaluate Phase 7 (payload redesign) |
 | What's the goal?     | 10x faster GIF loading with progress, no crash dialog |
 | What have I learned? | See findings.md and 2026-04-17 loading-validation.md — streaming moved the bottleneck but didn't remove it; per-frame PNG encode and frontend array churn are the remaining causes |
-| What have I done?    | Phases 1-4 complete (streaming, progress UI, cleanup, all automated tests pass); post-impl research identified 4 fix options; plan extended with phases 5-7 |
+| What have I done?    | Phases 1-5 complete (streaming, hybrid progress UI, paint-boundary handling, async Rust command, cleanup, automated validation); Phase 6 is the next implementation target |
 
 ---
 

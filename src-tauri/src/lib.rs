@@ -15,10 +15,15 @@ pub struct DirEntry {
 }
 
 #[tauri::command]
-fn decode_gif_stream(path: String, on_event: Channel<gif::DecodeEvent>) -> Result<(), String> {
-    gif::decode::decode_gif_stream_path(&PathBuf::from(path), |event| {
-        on_event.send(event).ok();
+async fn decode_gif_stream(path: String, on_event: Channel<gif::DecodeEvent>) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    tauri::async_runtime::spawn_blocking(move || {
+        gif::decode::decode_gif_stream_path(&path, |event| {
+            on_event.send(event).ok();
+        })
     })
+    .await
+    .map_err(|e| format!("Failed to join decode task: {e}"))?
 }
 
 #[tauri::command]

@@ -6,7 +6,7 @@ Make GIF loading at least 10x faster, stream frames with progress feedback so th
 
 ## Current Phase
 
-Phase 5
+Phase 6
 
 ## Phases
 
@@ -91,32 +91,32 @@ Two independent low-effort fixes. Priority from Q5: immediate loading feedback i
 **Option 1 — Paint boundary / loading UI timing:**
 Force the browser to paint the loading state before decode begins, and keep it visible until the UI has genuinely settled (not just until `invoke` resolves).
 
-- [ ] Write test: loading state is visible immediately after file-picker confirmation (before decode starts)
-- [ ] Force a paint boundary in `Toolbar.svelte` between `startLoading()` and the `invoke` call (e.g. `await tick()` or `requestAnimationFrame` Promise)
-- [ ] Force a paint boundary in `+page.svelte` drag-and-drop handler between `startLoading()` and the `invoke` call
-- [ ] Defer `finishLoading()` until after a final `await tick()` / `requestAnimationFrame` so queued DOM updates drain before the loading indicator disappears
-- [ ] Write test: `Start` event carries correct `total_frames` count matching the GIF fixture
-- [ ] Write test: progress display shows byte percentage before first `Frame` event, then frame-count after
-- [ ] Add `Start { total_bytes: u64, total_frames: usize }` variant to `DecodeEvent` enum in `gif/mod.rs` and matching TypeScript union in `types.ts`
-- [ ] Implement cheap GIF frame pre-scan in `decode_gif_stream_path` (scan for `0x2C` image descriptor markers to count frames; ~1–2 ms for typical files)
-- [ ] Emit `Start` as the very first channel event before `Progress`/`Frame` events
-- [ ] Update frontend handlers (`Toolbar.svelte`, `+page.svelte`) to track `totalFrames` from `Start`; show byte-based percentage for `Progress` events, switch to "Loading frame X of Y" once the first `Frame` event arrives
-- [ ] Run all Rust tests (`cargo test`)
-- [ ] Run all frontend tests (`pnpm test:unit`)
-- [ ] Run all frontend tests (`pnpm test:unit`)
-- [ ] Follow `tdd` skill (red-green-refactor) for all new code
+- [x] Write tests covering immediate loading-state handoff after file selection / drop and the byte-to-frame progress display switch
+- [x] Force a paint boundary in `Toolbar.svelte` between `startLoading()` and the decode invoke
+- [x] Force a paint boundary in `+page.svelte` drag-and-drop handler between `startLoading()` and the decode invoke
+- [x] Defer `finishLoading()` until after a final paint boundary so queued DOM updates drain before the loading indicator disappears
+- [x] Write test: `Start` event carries correct `total_frames` count matching the GIF fixture
+- [x] Write test: progress display shows byte percentage before first `Frame` event, then frame-count after
+- [x] Add `Start { total_bytes: u64, total_frames: usize }` variant to `DecodeEvent` enum in `gif/mod.rs` and matching TypeScript union in `types.ts`
+- [x] Implement cheap GIF frame pre-scan in `decode_gif_stream_path` with a lightweight GIF block parser
+- [x] Emit `Start` as the very first channel event before `Progress`/`Frame` events
+- [x] Update frontend handlers (`Toolbar.svelte`, `+page.svelte`) to track `totalFrames` from `Start`; show byte-based percentage for `Progress` events, switch to "Loading frame X of Y" once the first `Frame` event arrives
+- [x] Run all Rust tests (`cargo test`)
+- [x] Run frontend validation (`pnpm check`, `pnpm build`, `pnpm test:unit`)
+- [x] Run app build validation (`pnpm tauri build`)
+- [x] Follow `tdd` skill (red-green-refactor) for all new code
 
 **Option 3 — Async Rust command:**
 Make `decode_gif_stream` async and run the heavy decode work on a blocking task thread, as Tauri recommends for long-running commands. Note: this will NOT fix the OS ANR dialog (see Q4), but aligns with Tauri best practice.
 
-- [ ] Write test: streaming decode still emits all frames and completes correctly when run via `spawn_blocking`
-- [ ] Change `decode_gif_stream` in `src-tauri/src/lib.rs` from a synchronous to an `async` Tauri command
-- [ ] Wrap the decode call in `tokio::task::spawn_blocking` so the heavy Rust work runs off the async executor thread
-- [ ] Run all Rust tests (`cargo test`)
-- [ ] Follow `tdd` skill (red-green-refactor) and `rust-standards` skill for all Rust changes
-- [ ] Update planning docs in line with the `planning` skill
+- [x] Write test: streaming decode still emits all frames and completes correctly when run via `spawn_blocking`
+- [x] Change `decode_gif_stream` in `src-tauri/src/lib.rs` from a synchronous to an `async` Tauri command
+- [x] Wrap the decode call in `tauri::async_runtime::spawn_blocking` so the heavy Rust work runs off the Tauri async runtime's blocking executor without adding a new direct Tokio dependency
+- [x] Run all Rust tests (`cargo test`)
+- [x] Follow `tdd` skill (red-green-refactor) and `rust-standards` skill for all Rust changes
+- [x] Update planning docs in line with the `planning` skill
 
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 6: Frontend Batching — Reduce Render Churn (TDD)
 

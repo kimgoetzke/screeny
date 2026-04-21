@@ -328,6 +328,34 @@ describe("frameStore", () => {
     });
   });
 
+  describe("loading frame totals", () => {
+    it("stores the total frame count from the start event", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(4);
+
+      expect(frameStore.loadingTotalFrames).toBe(4);
+      expect(frameStore.loadingFrameCount).toBe(0);
+    });
+
+    it("tracks how many frames have been added while loading", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(2);
+      frameStore.addFrame(makeFrame("a"));
+
+      expect(frameStore.loadingFrameCount).toBe(1);
+    });
+
+    it("clears frame totals when loading finishes", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(2);
+      frameStore.addFrame(makeFrame("a"));
+      frameStore.finishLoading();
+
+      expect(frameStore.loadingTotalFrames).toBeNull();
+      expect(frameStore.loadingFrameCount).toBe(0);
+    });
+  });
+
   describe("selectedFrameIds", () => {
     it("is empty when no frames loaded", () => {
       expect(frameStore.selectedFrameIds.size).toBe(0);

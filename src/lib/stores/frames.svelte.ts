@@ -11,6 +11,8 @@ let isPlaying = $state(false);
 let playbackTimer: ReturnType<typeof setTimeout> | null = null;
 let isLoading = $state(false);
 let loadingProgress = $state<number | null>(null);
+let loadingFrameCount = $state(0);
+let loadingTotalFrames = $state<number | null>(null);
 
 function scheduleNextFrame() {
   const currentFrame = frames.find((f) => f.id === selectedFrameId);
@@ -355,6 +357,8 @@ export const frameStore = {
     selectionActiveId = null;
     isLoading = false;
     loadingProgress = null;
+    loadingFrameCount = 0;
+    loadingTotalFrames = null;
   },
 
   deduplicateAdjacentMerge() {
@@ -492,6 +496,9 @@ export const frameStore = {
 
   addFrame(frame: Frame) {
     frames = [...frames, frame];
+    if (isLoading) {
+      loadingFrameCount = frames.length;
+    }
     if (frames.length === 1) {
       selectedFrameId = frame.id;
       selectedFrameIds = new Set([frame.id]);
@@ -506,6 +513,14 @@ export const frameStore = {
     return loadingProgress;
   },
 
+  get loadingFrameCount(): number {
+    return loadingFrameCount;
+  },
+
+  get loadingTotalFrames(): number | null {
+    return loadingTotalFrames;
+  },
+
   startLoading() {
     frameStore.stop();
     frames = [];
@@ -514,14 +529,23 @@ export const frameStore = {
     selectionActiveId = null;
     isLoading = true;
     loadingProgress = 0;
+    loadingFrameCount = 0;
+    loadingTotalFrames = null;
   },
 
   finishLoading() {
     isLoading = false;
     loadingProgress = null;
+    loadingFrameCount = 0;
+    loadingTotalFrames = null;
   },
 
   setLoadingProgress(percentage: number) {
     loadingProgress = percentage;
+  },
+
+  setLoadingTotalFrames(totalFrames: number) {
+    loadingTotalFrames = totalFrames;
+    loadingFrameCount = 0;
   },
 };

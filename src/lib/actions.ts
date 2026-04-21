@@ -1,4 +1,4 @@
-import type { Frame, ExportFrame } from "$lib/types";
+import type { DecodeStart, ExportFrame, Frame } from "$lib/types";
 
 export interface DialogProvider {
   openFile(): Promise<string | null>;
@@ -8,6 +8,7 @@ export interface DialogProvider {
 export interface GifBackend {
   decodeStreaming(
     path: string,
+    onStart: (start: DecodeStart) => void,
     onFrame: (frame: Frame) => void,
     onProgress: (progress: number) => void,
   ): Promise<void>;
@@ -19,11 +20,17 @@ export interface ActionResult {
   error?: string;
 }
 
+export interface OpenGifStreamingOptions {
+  beforeDecode?: () => Promise<void> | void;
+  onStart?: (start: DecodeStart) => void;
+}
+
 export async function openGifStreaming(
   dialog: DialogProvider,
   backend: GifBackend,
   onFrame: (frame: Frame) => void,
   onProgress: (progress: number) => void,
+  options: OpenGifStreamingOptions = {},
 ): Promise<ActionResult> {
   let path: string | null;
   try {
@@ -36,8 +43,12 @@ export async function openGifStreaming(
 
   let frameCount = 0;
   try {
+    await options.beforeDecode?.();
     await backend.decodeStreaming(
       path,
+      (start) => {
+        options.onStart?.(start);
+      },
       (frame) => {
         frameCount++;
         onFrame(frame);

@@ -22,6 +22,21 @@ describe("+page.svelte", () => {
       expect(pageSource).toMatch(/async\s+function\s+handleDrop\b[\s\S]{0,1000}resetView\s*\(\s*\)/);
     });
 
+    it("records total frames from the start event before frame updates begin", () => {
+      expect(pageSource).toMatch(
+        /event\.type === "start"[\s\S]{0,120}frameStore\.setLoadingTotalFrames\(event\.data\.totalFrames\)/,
+      );
+    });
+
+    it("waits for a paint boundary before decode starts and before loading clears", () => {
+      expect(pageSource).toMatch(
+        /async\s+function\s+handleDrop\b[\s\S]{0,320}frameStore\.startLoading\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)[\s\S]{0,700}invoke\("decode_gif_stream"/,
+      );
+      expect(pageSource).toMatch(
+        /async\s+function\s+handleDrop\b[\s\S]{0,1400}resetView\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)[\s\S]{0,160}frameStore\.finishLoading\(\)/,
+      );
+    });
+
     it("Toolbar receives onLoad prop pointing to resetView", () => {
       expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*resetView\s*\}?/);
     });

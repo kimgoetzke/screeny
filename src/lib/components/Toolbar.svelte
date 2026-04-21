@@ -6,6 +6,7 @@
     import { openUrl } from "@tauri-apps/plugin-opener";
     import HelpMenu from "$lib/components/HelpMenu.svelte";
     import { frameStore } from "$lib/stores/frames.svelte";
+    import { waitForNextPaint } from "$lib/paint";
     import { openGifStreaming, exportGif } from "$lib/actions";
     import type { DialogProvider, GifBackend } from "$lib/actions";
     import type { DecodeEvent } from "$lib/types";
@@ -83,16 +84,60 @@
         };
     }
 
+    const loadingProgressPercent = $derived.by(() => {
+        const totalFrames = frameStore.loadingTotalFrames;
+        if (
+            totalFrames !== null &&
+            totalFrames > 0 &&
+            frameStore.loadingFrameCount > 0
+        ) {
+            return Math.round(
+                (Math.min(frameStore.loadingFrameCount, totalFrames) /
+                    totalFrames) *
+                    100,
+            );
+        }
+
+        return frameStore.loadingProgress ?? 0;
+    });
+
+    const loadingLabel = $derived.by(() => {
+        const totalFrames = frameStore.loadingTotalFrames;
+        if (
+            totalFrames !== null &&
+            totalFrames > 0 &&
+            frameStore.loadingFrameCount > 0
+        ) {
+            return `Loading frame ${Math.min(
+                frameStore.loadingFrameCount,
+                totalFrames,
+            )} of ${totalFrames}`;
+        }
+
+        if (frameStore.loadingProgress !== null) {
+            return `Loading ${frameStore.loadingProgress}%`;
+        }
+
+        return "Loading";
+    });
+
     const backend: GifBackend = {
-        decodeStreaming: async (path, onFrame, onProgress) => {
+        decodeStreaming: async (path, onStart, onFrame, onProgress) => {
             const channel = new Channel<DecodeEvent>();
             channel.onmessage = (event) => {
-                if (event.type === "frame") {
+                if (event.type === "start") {
+                    onStart(event.data);
+                } else if (event.type === "frame") {
                     onFrame(event.data);
                 } else if (event.type === "progress") {
-                    const percentage = Math.round(
-                        (event.data.bytesRead / event.data.totalBytes) * 100,
-                    );
+                    const percentage =
+                        event.data.totalBytes === 0
+                            ? 0
+                            : Math.round(
+                                  (event.data.bytesRead /
+                                      event.data.totalBytes) *
+                                      100,
+                              );
                     onProgress(percentage);
                 }
             };
@@ -104,13 +149,21 @@
     async function handleOpen() {
         loading = true;
         statusMessage = "";
-        frameStore.startLoading();
         try {
             const result = await openGifStreaming(
                 getDialog(),
                 backend,
                 (frame) => frameStore.addFrame(frame),
                 (progress) => frameStore.setLoadingProgress(progress),
+                {
+                    beforeDecode: async () => {
+                        frameStore.startLoading();
+                        await waitForNextPaint();
+                    },
+                    onStart: (start) => {
+                        frameStore.setLoadingTotalFrames(start.totalFrames);
+                    },
+                },
             );
             if (result.error) {
                 statusMessage = result.error;
@@ -119,7 +172,10 @@
                 onLoad?.();
             }
         } finally {
-            frameStore.finishLoading();
+            if (frameStore.isLoading) {
+                await waitForNextPaint();
+                frameStore.finishLoading();
+            }
             loading = false;
         }
     }
@@ -304,21 +360,14 @@
                     >
                 </div>
             {:else if frameStore.isLoading}
-                <div class="loading-progress" data-testid="loading-progress">
-                    <div class="progress-track">
-                        <div
-                            class="progress-fill"
-                            style="width: {frameStore.loadingProgress ?? 0}%"
-                        ></div>
-                    </div>
-                    <span class="progress-label">
-                        Loading{frameStore.loadingProgress !== null
-                            ? ` ${frameStore.loadingProgress}%`
-                            : ""}
-                        {#if frameStore.frames.length > 0}
-                            &nbsp;({frameStore.frames.length} frames)
-                        {/if}
-                    </span>
+                    <div class="loading-progress" data-testid="loading-progress">
+                        <div class="progress-track">
+                            <div
+                                class="progress-fill"
+                                style="width: {loadingProgressPercent}%"
+                            ></div>
+                        </div>
+                        <span class="progress-label">{loadingLabel}</span>
                 </div>
             {:else if statusMessage}
                 <span class="status" data-testid="status-message"

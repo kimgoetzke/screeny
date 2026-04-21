@@ -27,7 +27,7 @@ describe("openGifStreaming", () => {
   it("should return a success message with frame count", async () => {
     const frames = [makeFrame("a"), makeFrame("b")];
     const backend = mockBackend({
-      decodeStreaming: vi.fn().mockImplementation((_path, onFrame) => {
+      decodeStreaming: vi.fn().mockImplementation((_path, _onStart, onFrame) => {
         frames.forEach(onFrame);
         return Promise.resolve();
       }),
@@ -44,7 +44,7 @@ describe("openGifStreaming", () => {
   it("should call onFrame for each received frame", async () => {
     const frames = [makeFrame("a"), makeFrame("b")];
     const backend = mockBackend({
-      decodeStreaming: vi.fn().mockImplementation((_path, onFrame) => {
+      decodeStreaming: vi.fn().mockImplementation((_path, _onStart, onFrame) => {
         frames.forEach(onFrame);
         return Promise.resolve();
       }),
@@ -103,7 +103,60 @@ describe("openGifStreaming", () => {
       "/some/path/animation.gif",
       expect.any(Function),
       expect.any(Function),
+      expect.any(Function),
     );
+  });
+
+  it("should run beforeDecode after the file is chosen and before decode starts", async () => {
+    const callOrder: string[] = [];
+    const dialog = mockDialog({
+      openFile: vi.fn().mockImplementation(async () => {
+        callOrder.push("dialog");
+        return "/path/to/file.gif";
+      }),
+    });
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation(async () => {
+        callOrder.push("decode");
+      }),
+    });
+
+    await openGifStreaming(dialog, backend, vi.fn(), vi.fn(), {
+      beforeDecode: async () => {
+        callOrder.push("beforeDecode");
+      },
+    });
+
+    expect(callOrder).toEqual(["dialog", "beforeDecode", "decode"]);
+  });
+
+  it("should forward start metadata before streaming frames", async () => {
+    const frames = [makeFrame("a"), makeFrame("b")];
+    const eventOrder: string[] = [];
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation(
+        async (_path, onStart, onFrame) => {
+          onStart({ totalBytes: 128, totalFrames: 2 });
+          frames.forEach(onFrame);
+        },
+      ),
+    });
+
+    await openGifStreaming(
+      mockDialog(),
+      backend,
+      (frame) => {
+        eventOrder.push(`frame:${frame.id}`);
+      },
+      vi.fn(),
+      {
+        onStart: (start) => {
+          eventOrder.push(`start:${start.totalFrames}`);
+        },
+      },
+    );
+
+    expect(eventOrder).toEqual(["start:2", "frame:a", "frame:b"]);
   });
 });
 

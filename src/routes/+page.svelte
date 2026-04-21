@@ -4,6 +4,7 @@
   import { Channel, invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import type { DecodeEvent } from "$lib/types";
+  import { waitForNextPaint } from "$lib/paint";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import FrameViewer from "$lib/components/FrameViewer.svelte";
   import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
@@ -100,13 +101,19 @@
   async function handleDrop(path: string) {
     dropError = "";
     frameStore.startLoading();
+    await waitForNextPaint();
     try {
       const channel = new Channel<DecodeEvent>();
       channel.onmessage = (event) => {
-        if (event.type === "frame") {
+        if (event.type === "start") {
+          frameStore.setLoadingTotalFrames(event.data.totalFrames);
+        } else if (event.type === "frame") {
           frameStore.addFrame(event.data);
         } else if (event.type === "progress") {
-          const percentage = Math.round((event.data.bytesRead / event.data.totalBytes) * 100);
+          const percentage =
+            event.data.totalBytes === 0
+              ? 0
+              : Math.round((event.data.bytesRead / event.data.totalBytes) * 100);
           frameStore.setLoadingProgress(percentage);
         }
       };
@@ -114,8 +121,11 @@
     } catch (error) {
       dropError = `Failed to decode GIF: ${error}`;
     } finally {
-      frameStore.finishLoading();
       resetView();
+      if (frameStore.isLoading) {
+        await waitForNextPaint();
+        frameStore.finishLoading();
+      }
     }
   }
 </script>
