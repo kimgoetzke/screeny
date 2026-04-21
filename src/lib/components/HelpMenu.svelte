@@ -171,6 +171,12 @@
     cursor: pointer;
   }
 
+  .help-menu-close:hover,
+  .help-github-button:hover {
+    background: var(--color-border);
+    border-color: var(--color-text-muted);
+  }
+
   .help-menu-close {
     width: 36px;
     height: 36px;

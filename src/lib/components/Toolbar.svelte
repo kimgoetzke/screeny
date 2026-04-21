@@ -293,9 +293,13 @@
       >
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <path
-            fill="currentColor"
-            d="M8 1.25a4.75 4.75 0 0 0-4.75 4.5h1.5A3.25 3.25 0 1 1 8 9a.75.75 0 0 0-.75.75v1h1.5v-.56A4.75 4.75 0 0 0 8 1.25ZM7.25 13h1.5v1.5h-1.5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            d="M5.5 5.5 A2.5 2.5 0 0 1 10.5 5.5 C10.5 8 8 7.5 8 9.5 L8 10.5"
           />
+          <circle cx="8" cy="13" r="0.85" fill="currentColor" />
         </svg>
       </button>
 
@@ -427,9 +431,7 @@
 
   .window-controls {
     gap: 0;
-    border: 1px solid var(--color-border);
     border-radius: 8px;
-    overflow: hidden;
   }
 
   .icon-btn {
@@ -446,13 +448,23 @@
   }
 
   .window-control-btn {
-    border: none;
-    border-right: 1px solid var(--color-border);
+    border: 1px solid var(--color-border);
     border-radius: 0;
+    position: relative;
+    margin-left: -1px;
+  }
+
+  .window-controls .window-control-btn:first-child {
+    border-radius: 8px 0 0 8px;
+    margin-left: 0;
   }
 
   .window-controls .window-control-btn:last-child {
-    border-right: none;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .window-control-btn:hover:not(:disabled) {
+    z-index: 1;
   }
 
   .window-close-btn:hover:not(:disabled) {
