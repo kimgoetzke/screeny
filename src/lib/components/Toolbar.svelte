@@ -476,13 +476,6 @@
         user-select: none;
     }
 
-    .toolbar-app-title {
-        font-size: 12px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--color-text-muted);
-    }
-
     .toolbar-status-area,
     .toolbar-titlebar-actions,
     .window-controls {
