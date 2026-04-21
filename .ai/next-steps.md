@@ -49,6 +49,7 @@ Status: **In progress**
 - [ ] Fix bug where closing while loading breaks things
 - [ ] Improve fade-out of background grid/GIF borders
 - [ ] Replace splash screen placeholders
+- [ ] Improve key bindings again
 
 ### Prompt planning
 
@@ -62,9 +63,25 @@ See `2026-04-15 gif-loading-perf`.
 
 Status: **Considering**
 
-I want you to review the code in this repository by spawning off a number of sub-agents, each reviewing specific dimensions and sections of this code base. For example, frontend and backend code must be reviewed separately.
+Review this repository by spawning multiple sub-agents, with each agent responsible for a specific area or review dimension. Frontend and backend must be reviewed separately.
 
-The goal of this review is to identify "junior dev mistakes", code smells, other refactoring opportunities, unused/redundant dependencies and other opportunities to make this code base 1) more scalable, 2) easier to maintain, 3) without any regression.
+The objective is to find junior dev mistakes, code smells, refactoring opportunities, unused or redundant dependencies, and any other issues that make the codebase harder to scale, maintain, or modify safely.
+
+Focus on improvements that:
+
+1.  increase scalability
+2.  improve maintainability
+3.  reduce the risk of regressions
+
+Also review file size and structure. Files over 500 lines should be examined for possible decomposition into smaller, well-organised modules.
+
+For every issue you report, include:
+
+- the problem
+- the reason it matters
+- the recommended fix
+
+Keep recommendations concrete, low-risk, and behaviour-preserving unless a behavioural change is explicitly warranted.
 
 Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
@@ -86,6 +103,15 @@ The background grid does fade out to the left and right which is perfect and it 
 I would like to change this: Both grid and border should fade out in the same way and over the same distance in all directions. As for the distance for the fade, the current fade to the left and right of the grid is perfect. Also, just to be clear: The fade out must result in the border and grid fading out in a way that only the background colour is visible once faded, so they must fade into the background colour or 100% transparency (ideally the latter, but this is up to you).
 
 Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+
+#### Improve key bindings again
+
+- `Alt` + `Left`/`Right` should move the selected frame(s) to the left/right by one frame
+- `Ctrl` + `Q` should close the currently open GIF and do nothing when no GIF is open
+
+Please update `help-keybindings.ts` with the new bindings.
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ---
 
