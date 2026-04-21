@@ -69,6 +69,37 @@ describe("FrameViewer", () => {
     });
   });
 
+  describe("guide lines", () => {
+    it("shows guide lines when a GIF is loaded", () => {
+      frameStore.setFrames([makeFrame("a")]);
+      const { body } = render(FrameViewer);
+
+      expect(body).toContain('data-testid="guide-line-top"');
+      expect(body).toContain('data-testid="guide-line-bottom"');
+      expect(body).toContain('data-testid="guide-line-left"');
+      expect(body).toContain('data-testid="guide-line-right"');
+    });
+
+    it("hides guide lines when no GIF is loaded", () => {
+      const { body } = render(FrameViewer);
+
+      expect(body).not.toContain('data-testid="guide-line-top"');
+      expect(body).not.toContain('data-testid="guide-line-bottom"');
+      expect(body).not.toContain('data-testid="guide-line-left"');
+      expect(body).not.toContain('data-testid="guide-line-right"');
+    });
+
+    it("positions guide lines at the edges of the loaded GIF", () => {
+      frameStore.setFrames([makeFrame("a")]); // width: 10, height: 10
+      const { body } = render(FrameViewer);
+
+      expect(body).toContain("top: calc(50% - 6px)"); // top line (1px outside top edge)
+      expect(body).toContain("top: calc(50% + 5px)"); // bottom line
+      expect(body).toContain("left: calc(50% - 6px)"); // left line (1px outside left edge)
+      expect(body).toContain("left: calc(50% + 5px)"); // right line
+    });
+  });
+
   describe("inspector-aware centering", () => {
     it("sets the fade mask centre CSS variable from panX", () => {
       frameStore.setFrames([makeFrame("a")]);
