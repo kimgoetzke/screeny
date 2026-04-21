@@ -114,11 +114,14 @@
             )} of ${totalFrames}`;
         }
 
-        if (frameStore.loadingProgress !== null) {
+        if (
+            frameStore.loadingProgress !== null &&
+            frameStore.loadingProgress > 0
+        ) {
             return `Loading ${frameStore.loadingProgress}%`;
         }
 
-        return "Loading";
+        return "Loading...";
     });
 
     const backend: GifBackend = {

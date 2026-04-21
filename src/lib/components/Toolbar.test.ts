@@ -103,6 +103,15 @@ describe("Toolbar", () => {
   });
 
   describe("loading progress", () => {
+    it("renders Loading... before any measurable progress arrives", () => {
+      frameStore.startLoading();
+
+      const { body } = render(Toolbar);
+
+      expect(body).toContain("Loading...");
+      expect(body).not.toContain("Loading 0%");
+    });
+
     it("renders byte progress before the first frame arrives", () => {
       frameStore.startLoading();
       frameStore.setLoadingTotalFrames(3);
