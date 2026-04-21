@@ -1,10 +1,11 @@
 <script lang="ts">
   import "$lib/theme.css";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { Channel, invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import type { DecodeEvent } from "$lib/types";
   import { waitForNextPaint } from "$lib/paint";
+  import { calculateInitialViewerState } from "$lib/viewer-fit";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import FrameViewer from "$lib/components/FrameViewer.svelte";
   import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
@@ -14,6 +15,7 @@
 
   let dragging = $state(false);
   let dropError = $state("");
+  let viewerArea: HTMLDivElement | undefined = $state();
 
   const EXPANDED_ZOOM_RIGHT_OFFSET = 268;
   const MINIMISED_ZOOM_RIGHT_OFFSET = 60;
@@ -32,7 +34,6 @@
     inspectorMinimised ? MINIMISED_DROP_OVERLAY_RIGHT_MARGIN : EXPANDED_DROP_OVERLAY_RIGHT_MARGIN,
   );
   let visibleDropOverlayRightMargin = $derived(inspectorVisible ? dropOverlayRightMargin : 10);
-  let resetViewerPanX = $derived(-(dropOverlayRightMargin / 2));
 
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (!inspectorVisible) return;
@@ -59,14 +60,73 @@
     };
   });
 
+  let viewerBaseScale = $state(1);
   let viewerScale = $state(1);
-  let viewerPanX = $state(-(EXPANDED_DROP_OVERLAY_RIGHT_MARGIN / 2));
+  let initialViewerPanX = $state(0);
+  let viewerPanX = $state(0);
   let viewerPanY = $state(0);
 
   function resetView() {
     viewerScale = 1;
-    viewerPanX = resetViewerPanX;
+    viewerPanX = initialViewerPanX;
     viewerPanY = 0;
+  }
+
+  function getVisibleViewerBounds() {
+    if (!viewerArea) return null;
+
+    const viewerRect = viewerArea.getBoundingClientRect();
+    let visibleWidth = viewerRect.width;
+
+    if (inspectorVisible) {
+      const inspector = viewerArea.querySelector('[data-testid="inspector"]');
+      if (inspector instanceof HTMLElement) {
+        const inspectorRect = inspector.getBoundingClientRect();
+        visibleWidth = Math.max(inspectorRect.left - viewerRect.left, 1);
+      }
+    }
+
+    return {
+      viewerWidth: viewerRect.width,
+      viewerHeight: viewerRect.height,
+      visibleWidth,
+      visibleHeight: viewerRect.height,
+    };
+  }
+
+  async function applyInitialViewerState() {
+    const frame = frameStore.selectedFrame;
+    if (!frame) {
+      viewerBaseScale = 1;
+      initialViewerPanX = 0;
+      resetView();
+      return;
+    }
+
+    await tick();
+
+    const visibleViewerBounds = getVisibleViewerBounds();
+    if (!visibleViewerBounds) {
+      viewerBaseScale = 1;
+      initialViewerPanX = 0;
+      resetView();
+      return;
+    }
+
+    const initialViewerState = calculateInitialViewerState({
+      gifWidth: frame.width,
+      gifHeight: frame.height,
+      viewerWidth: visibleViewerBounds.viewerWidth,
+      viewerHeight: visibleViewerBounds.viewerHeight,
+      visibleWidth: visibleViewerBounds.visibleWidth,
+      visibleHeight: visibleViewerBounds.visibleHeight,
+    });
+
+    viewerBaseScale = initialViewerState.baseScale;
+    initialViewerPanX = initialViewerState.panX;
+    viewerScale = 1;
+    viewerPanX = initialViewerState.panX;
+    viewerPanY = initialViewerState.panY;
   }
 
   onMount(() => {
@@ -102,6 +162,7 @@
     dropError = "";
     frameStore.startLoading();
     await waitForNextPaint();
+    let didApplyInitialViewerState = false;
     try {
       const channel = new Channel<DecodeEvent>();
       channel.onmessage = (event) => {
@@ -109,6 +170,10 @@
           frameStore.setLoadingTotalFrames(event.data.totalFrames);
         } else if (event.type === "frame") {
           frameStore.addFrame(event.data);
+          if (!didApplyInitialViewerState) {
+            didApplyInitialViewerState = true;
+            void applyInitialViewerState();
+          }
         } else if (event.type === "progress") {
           const percentage =
             event.data.totalBytes === 0
@@ -121,7 +186,7 @@
     } catch (error) {
       dropError = `Failed to decode GIF: ${error}`;
     } finally {
-      resetView();
+      await applyInitialViewerState();
       if (frameStore.isLoading) {
         await waitForNextPaint();
         frameStore.finishLoading();
@@ -131,11 +196,12 @@
 </script>
 
 <div class="app" data-testid="app">
-  <Toolbar onLoad={resetView} />
-  <div class="viewer-area">
+  <Toolbar onLoad={applyInitialViewerState} />
+  <div class="viewer-area" bind:this={viewerArea}>
     <FrameViewer
       showEmptyState={!dragging}
-      centreOffsetX={resetViewerPanX}
+      centreOffsetX={initialViewerPanX}
+      baseScale={viewerBaseScale}
       bind:scale={viewerScale}
       bind:panX={viewerPanX}
       bind:panY={viewerPanY}
@@ -145,7 +211,7 @@
     {/if}
     <ZoomIndicator
       scale={viewerScale}
-      isModified={viewerScale !== 1 || viewerPanX !== resetViewerPanX || viewerPanY !== 0}
+      isModified={viewerScale !== 1 || viewerPanX !== initialViewerPanX || viewerPanY !== 0}
       onReset={resetView}
       visible={inspectorVisible}
       rightOffset={zoomRightOffset}

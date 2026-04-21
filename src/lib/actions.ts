@@ -23,6 +23,7 @@ export interface ActionResult {
 export interface OpenGifStreamingOptions {
   beforeDecode?: () => Promise<void> | void;
   onStart?: (start: DecodeStart) => void;
+  onFirstFrame?: (frame: Frame) => Promise<void> | void;
 }
 
 export async function openGifStreaming(
@@ -52,6 +53,9 @@ export async function openGifStreaming(
       (frame) => {
         frameCount++;
         onFrame(frame);
+        if (frameCount === 1) {
+          void options.onFirstFrame?.(frame);
+        }
       },
       onProgress,
     );

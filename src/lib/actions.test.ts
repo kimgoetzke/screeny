@@ -158,6 +158,23 @@ describe("openGifStreaming", () => {
 
     expect(eventOrder).toEqual(["start:2", "frame:a", "frame:b"]);
   });
+
+  it("should call onFirstFrame only for the first streamed frame", async () => {
+    const frames = [makeFrame("a"), makeFrame("b")];
+    const onFirstFrame = vi.fn();
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation(async (_path, _onStart, onFrame) => {
+        frames.forEach(onFrame);
+      }),
+    });
+
+    await openGifStreaming(mockDialog(), backend, vi.fn(), vi.fn(), {
+      onFirstFrame,
+    });
+
+    expect(onFirstFrame).toHaveBeenCalledTimes(1);
+    expect(onFirstFrame).toHaveBeenCalledWith(frames[0]);
+  });
 });
 
 describe("exportGif", () => {

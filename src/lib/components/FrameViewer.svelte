@@ -4,12 +4,14 @@
     let {
         showEmptyState = true,
         centreOffsetX = 0,
+        baseScale = 1,
         scale = $bindable(1),
         panX = $bindable(0),
         panY = $bindable(0),
     }: {
         showEmptyState?: boolean;
         centreOffsetX?: number;
+        baseScale?: number;
         scale?: number;
         panX?: number;
         panY?: number;
@@ -25,8 +27,9 @@
     );
     let gifWidth = $derived(frameStore.selectedFrame?.width ?? 0);
     let gifHeight = $derived(frameStore.selectedFrame?.height ?? 0);
+    let actualScale = $derived(baseScale * scale);
     let stageTransform = $derived(
-        `transform: scale(${scale}) translate(${displayPanX}px, ${panY}px)`,
+        `transform: scale(${actualScale}) translate(${displayPanX}px, ${panY}px)`,
     );
 
     const MIN_SCALE = 0.1;
@@ -54,10 +57,11 @@
         event.preventDefault();
 
         const factor = event.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-        const newScale = Math.min(
+        const newZoom = Math.min(
             Math.max(scale * factor, MIN_SCALE),
             MAX_SCALE,
         );
+        const newScale = baseScale * newZoom;
 
         // Cursor-centred zoom: adjust pan so the point under the cursor stays fixed.
         // With transform: scale(s) translate(tx, ty) and transform-origin: center center,
@@ -68,9 +72,9 @@
         const mx = event.clientX - (rect.left + rect.width / 2);
         const my = event.clientY - (rect.top + rect.height / 2);
 
-        panX = panX + mx * (1 / newScale - 1 / scale);
-        panY = panY + my * (1 / newScale - 1 / scale);
-        scale = newScale;
+        panX = panX + mx * (1 / newScale - 1 / actualScale);
+        panY = panY + my * (1 / newScale - 1 / actualScale);
+        scale = newZoom;
     }
 
     function handlePointerDown(event: PointerEvent) {
@@ -90,8 +94,8 @@
         const dy = event.clientY - lastPointerY;
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
-        panX += dx / scale;
-        panY += dy / scale;
+        panX += dx / actualScale;
+        panY += dy / actualScale;
     }
 
     function handlePointerUp(_event: PointerEvent) {

@@ -1,4 +1,3 @@
-
 # Next steps
 
 ## Features
@@ -44,11 +43,12 @@ Status: **In progress**
 - [x] Hide inspector until GIF loaded
 - [x] Add inspector buttons to move frame(s)
 - [x] Add select-to-first/last key binding
-- [ ] Load GIF to fill visible canvas
+- [x] Load GIF to fill visible canvas
 - [ ] Improve GIF loading speed
 - [ ] Review refactoring opportunities
 - [ ] Fix bug where closing while loading breaks things
 - [ ] Improve fade-out of background grid/GIF borders
+- [ ] Replace splash screen placeholders
 
 ### Prompt planning
 
@@ -58,26 +58,6 @@ Status: **In progress**
 
 See `2026-04-15 gif-loading-perf`.
 
-#### Load GIF to fill visible canvas
-
-Status: **In progress**
-
-Please plan the work required to achieve the following: When a GIF loads, the image should be displayed in a way that it fills the same percentage width/height of the visible canvas space, leaving evenly sized gaps on the left and right, and on top and bottom respectively.
-
-Constraints:
-- The GIF displayed must never exceed the visible canvas space in any direction
-- A GIF that's longer vertically, must fill exactly 80% of the visible, vertical canvas space, leaving larger gaps at the left and right
-- A GIF that's longer horizontally must fill exactly 80% of the visible, horizontal canvas space, leaving larger gaps at the top and bottom
-- The visible canvas space can obviously change depending on the size of the window
-- However, the GIF must not be resizes/re-zoomed when the window change; this piece of work ONLY focusses on the moment where the GIF is loaded and the first frame is displayed on the canvas
-- The inspector panel is NOT considered "visible" i.e. the GIF must not be displayed below it, covered by the inspector panel
-- When the inspector panel is toggled to its minimised state, the feed space IS considered "visible" i.e. the available "visible" canvas space differs depending on the state of the inspector
-- The GIF must remain vertically and horizontally centered, as it currently is
-- Nothing else must change i.e. don't remove any borders
-- The initial state at which a GIF is displayed is always considered the 100% zoom factor
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
-
 ##### Review refactoring opportunities
 
 Status: **Considering**
@@ -86,15 +66,26 @@ I want you to review the code in this repository by spawning off a number of sub
 
 The goal of this review is to identify "junior dev mistakes", code smells, other refactoring opportunities, unused/redundant dependencies and other opportunities to make this code base 1) more scalable, 2) easier to maintain, 3) without any regression.
 
-Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application with 
+Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 #### Fix bug where closing while loading breaks things
 
-Status: **Outstanding**
+Status: **Blocked by `Improve GIF loading speed`**
 
 #### Improve fade-out of background grid/GIF borders
 
-Status: **Outstanding**
+Status: **Ready**
+
+This application shows a background grid in the main canvas which is centered on application start up. When a GIF is loaded, the GIF is also centered and displayed above the grid. It is displayed with a thin border on all sides that extend in each direction beyond the GIF itself.
+
+I would like to improve the fade-out of both the background grid and the border around the GIF.
+
+Currently, the border simply extends for a very long time, making it less likely for a user to scroll far enough to see the end. However, it does not fade out.
+The background grid does fade out to the left and right which is perfect and it must not change. However, it does not fade out to the top and bottom and simply stops at some point, same as the border.
+
+I would like to change this: Both grid and border should fade out in the same way and over the same distance in all directions. As for the distance for the fade, the current fade to the left and right of the grid is perfect. Also, just to be clear: The fade out must result in the border and grid fading out in a way that only the background colour is visible once faded, so they must fade into the background colour or 100% transparency (ideally the latter, but this is up to you).
+
+Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ---
 

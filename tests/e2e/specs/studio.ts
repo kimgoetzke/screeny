@@ -134,6 +134,70 @@ async function tauriInvoke<T>(command: string, args?: Record<string, unknown>): 
   ) as Promise<T>;
 }
 
+async function loadFixture(fileName: string, expectedFrameCount: number) {
+  const openButton = await $('[data-testid="btn-open"]');
+  if (!(await openButton.isExisting())) {
+    await jsClick('[data-testid="btn-close"]');
+    await jsClick('[data-testid="btn-dialog-confirm"]');
+    await openButton.waitForExist({ timeout: 10_000 });
+  }
+
+  await jsClick('[data-testid="btn-open"]');
+
+  const filePicker = await $('[data-testid="file-picker"]');
+  await filePicker.waitForExist({ timeout: 5_000 });
+
+  const fixtureDir = await tauriInvoke<string>("e2e_fixture_dir");
+  await jsSetValue('[data-testid="file-picker-navigate"]', fixtureDir);
+  await jsClick('[data-testid="file-picker-go"]');
+
+  const fixtureEntry = await $(`[data-testid="file-picker-entry-${fileName}"]`);
+  await fixtureEntry.waitForExist({ timeout: 5_000 });
+  await jsClick(`[data-testid="file-picker-entry-${fileName}"]`);
+  await jsClick('[data-testid="file-picker-confirm"]');
+
+  const status = await $('[data-testid="status-message"]');
+  await status.waitForExist({ timeout: 10_000 });
+  await expect(status).toHaveText(`Loaded ${expectedFrameCount} frames`);
+
+  const canvas = await $('[data-testid="frame-canvas"]');
+  await canvas.waitForExist({ timeout: 5_000 });
+}
+
+async function getLoadedGifFitMetrics() {
+  return browser.execute(() => {
+    const viewer = document.querySelector('[data-testid="frame-viewer"]');
+    const canvas = document.querySelector('[data-testid="frame-canvas"]');
+    const inspector = document.querySelector('[data-testid="inspector"]');
+
+    if (!(viewer instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
+      return null;
+    }
+
+    const viewerRect = viewer.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const inspectorRect = inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : null;
+    const visibleRightEdge = inspectorRect ? inspectorRect.left : viewerRect.right;
+    const visibleWidth = visibleRightEdge - viewerRect.left;
+    const visibleHeight = viewerRect.height;
+    const visibleCentreX = viewerRect.left + visibleWidth / 2;
+    const visibleCentreY = viewerRect.top + visibleHeight / 2;
+    const canvasCentreX = canvasRect.left + canvasRect.width / 2;
+    const canvasCentreY = canvasRect.top + canvasRect.height / 2;
+
+    return {
+      canvasWidth: canvasRect.width,
+      canvasHeight: canvasRect.height,
+      visibleWidth,
+      visibleHeight,
+      widthRatio: canvasRect.width / visibleWidth,
+      heightRatio: canvasRect.height / visibleHeight,
+      deltaX: canvasCentreX - visibleCentreX,
+      deltaY: canvasCentreY - visibleCentreY,
+    };
+  });
+}
+
 async function getEmptyViewerAlignment() {
   return browser.execute(() => {
     const viewer = document.querySelector('[data-testid="frame-viewer"]');
@@ -344,8 +408,7 @@ describe("Studio — open GIF fixture", () => {
       const inspectorRect =
         inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : viewerRect;
 
-      const visibleRightEdge =
-        inspector instanceof HTMLElement ? inspectorRect.left - 10 : viewerRect.right;
+      const visibleRightEdge = inspector instanceof HTMLElement ? inspectorRect.left : viewerRect.right;
       const visibleCentreX = (viewerRect.left + visibleRightEdge) / 2;
       const canvasCentreX = canvasRect.left + canvasRect.width / 2;
 
@@ -1554,5 +1617,53 @@ describe("Studio — inspector panel improvements (Phase 6)", () => {
     if (!result) return;
     // Overlay right edge should be at or to the left of the inspector left edge
     expect(result.expectedOverlayRightEdge).toBeLessThanOrEqual(result.inspectorLeft + 1);
+  });
+});
+
+describe("Studio — initial GIF fit", () => {
+  let expandedVisibleWidth = 0;
+
+  it("fits a landscape GIF to 80% of the visible width on load with the inspector expanded", async () => {
+    const restore = await $('[data-testid="inspector-restore"]');
+    if (await restore.isExisting()) {
+      await jsClick('[data-testid="inspector-restore"]');
+      await browser.pause(200);
+    }
+
+    await loadFixture("landscape.gif", 1);
+
+    const result = await getLoadedGifFitMetrics();
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expandedVisibleWidth = result.visibleWidth;
+
+    expect(Math.abs(result.widthRatio - 0.8)).toBeLessThanOrEqual(0.02);
+    expect(result.heightRatio).toBeLessThan(0.8);
+    expect(result.canvasWidth).toBeLessThanOrEqual(result.visibleWidth + 1);
+    expect(result.canvasHeight).toBeLessThanOrEqual(result.visibleHeight + 1);
+    expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
+    expect(Math.abs(result.deltaY)).toBeLessThanOrEqual(1);
+    await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+  });
+
+  it("fits a portrait GIF to 80% of the visible height when loaded with the inspector minimised", async () => {
+    await jsClick('[data-testid="inspector-minimise"]');
+    await browser.pause(200);
+
+    await loadFixture("portrait.gif", 1);
+
+    const result = await getLoadedGifFitMetrics();
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(result.visibleWidth).toBeGreaterThan(expandedVisibleWidth);
+    expect(Math.abs(result.heightRatio - 0.8)).toBeLessThanOrEqual(0.02);
+    expect(result.widthRatio).toBeLessThan(0.8);
+    expect(result.canvasWidth).toBeLessThanOrEqual(result.visibleWidth + 1);
+    expect(result.canvasHeight).toBeLessThanOrEqual(result.visibleHeight + 1);
+    expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
+    expect(Math.abs(result.deltaY)).toBeLessThanOrEqual(1);
+    await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
   });
 });

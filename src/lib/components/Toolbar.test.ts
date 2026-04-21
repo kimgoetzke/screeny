@@ -163,6 +163,12 @@ describe("Toolbar", () => {
         /finally\s*\{[\s\S]{0,400}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
       );
     });
+
+    it("requests the initial fit from the first streamed frame instead of waiting for decode completion", () => {
+      expect(toolbarSource).toMatch(
+        /openGifStreaming\([\s\S]{0,1200}onFirstFrame:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,200}onLoad\?\.\(\)/,
+      );
+    });
   });
 
 

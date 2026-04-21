@@ -58,6 +58,15 @@ describe("FrameViewer", () => {
       expect(body).toContain('data-testid="frame-canvas"');
       expect(body).toContain("transform: scale(2) translate(50px, -30px)");
     });
+
+    it("applies the load-time baseScale before the relative zoom factor", () => {
+      frameStore.setFrames([makeFrame("a")]);
+      const { body } = render(FrameViewer, {
+        props: { baseScale: 0.75, scale: 1, panX: 10, panY: -5 },
+      });
+
+      expect(body).toContain("transform: scale(0.75) translate(10px, -5px)");
+    });
   });
 
   describe("grid centring and fade", () => {

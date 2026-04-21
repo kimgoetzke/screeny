@@ -14,7 +14,7 @@
     import FilePicker from "$lib/components/FilePicker.svelte";
     import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 
-    let { onLoad }: { onLoad?: () => void } = $props();
+    let { onLoad }: { onLoad?: () => Promise<void> | void } = $props();
 
     let loading = $state(false);
     let statusMessage = $state("");
@@ -166,13 +166,15 @@
                     onStart: (start) => {
                         frameStore.setLoadingTotalFrames(start.totalFrames);
                     },
+                    onFirstFrame: async () => {
+                        await onLoad?.();
+                    },
                 },
             );
             if (result.error) {
                 statusMessage = result.error;
             } else {
                 statusMessage = result.message ?? "";
-                onLoad?.();
             }
         } finally {
             if (frameStore.isLoading) {

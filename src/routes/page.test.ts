@@ -3,23 +3,38 @@ import pageSource from "./+page.svelte?raw";
 
 describe("+page.svelte", () => {
   describe("inspector-aware centering", () => {
-    it("seeds and resets horizontal pan from the current inspector-aware offset", () => {
-      expect(pageSource).toMatch(/let\s+resetViewerPanX\s*=\s*\$derived\(\s*-\(dropOverlayRightMargin\s*\/\s*2\)\s*\)/);
-      expect(pageSource).toMatch(/const\s+EXPANDED_DROP_OVERLAY_RIGHT_MARGIN\s*=\s*265/);
-      expect(pageSource).toMatch(/let\s+viewerPanX\s*=\s*\$state\(\s*-\(EXPANDED_DROP_OVERLAY_RIGHT_MARGIN\s*\/\s*2\)\s*\)/);
-      expect(pageSource).toMatch(/function\s+resetView\b[\s\S]{0,120}viewerPanX\s*=\s*resetViewerPanX/);
+    it("tracks the load-time base scale separately from the relative zoom factor", () => {
+      expect(pageSource).toMatch(/let\s+viewerBaseScale\s*=\s*\$state\(\s*1\s*\)/);
+      expect(pageSource).toMatch(/let\s+viewerScale\s*=\s*\$state\(\s*1\s*\)/);
+      expect(pageSource).toMatch(
+        /<FrameViewer[\s\S]{0,160}baseScale=\{viewerBaseScale\}[\s\S]{0,120}bind:scale=\{viewerScale\}/,
+      );
+      expect(pageSource).toMatch(/<ZoomIndicator[\s\S]{0,120}scale=\{viewerScale\}/);
     });
 
-    it("treats the current inspector-aware offset as the unmodified reset state", () => {
-      expect(pageSource).toMatch(/isModified=\{viewerScale !== 1 \|\| viewerPanX !== resetViewerPanX \|\| viewerPanY !== 0\}/);
+    it("uses the load-time initial pan as the unmodified reset state", () => {
+      expect(pageSource).toMatch(/let\s+initialViewerPanX\s*=\s*\$state\(\s*0\s*\)/);
+      expect(pageSource).toMatch(
+        /function\s+resetView\b[\s\S]{0,160}viewerScale\s*=\s*1[\s\S]{0,120}viewerPanX\s*=\s*initialViewerPanX/,
+      );
+      expect(pageSource).toMatch(/isModified=\{viewerScale !== 1 \|\| viewerPanX !== initialViewerPanX \|\| viewerPanY !== 0\}/);
     });
 
-    it("passes centreOffsetX to FrameViewer so the empty state and fade are inspector-aware", () => {
-      expect(pageSource).toMatch(/centreOffsetX=\{resetViewerPanX\}/);
+    it("passes the load-time initial pan into FrameViewer so the empty state and fade stay aligned", () => {
+      expect(pageSource).toMatch(/centreOffsetX=\{initialViewerPanX\}/);
     });
 
-    it("handleDrop calls resetView after loading", () => {
-      expect(pageSource).toMatch(/async\s+function\s+handleDrop\b[\s\S]{0,1000}resetView\s*\(\s*\)/);
+    it("applies the computed initial viewer state when the first streamed frame arrives", () => {
+      expect(pageSource).toMatch(/async\s+function\s+applyInitialViewerState\b/);
+      expect(pageSource).toMatch(
+        /event\.type === "frame"[\s\S]{0,200}frameStore\.addFrame\(event\.data\)[\s\S]{0,260}applyInitialViewerState\(\)/,
+      );
+    });
+
+    it("still applies the computed initial viewer state after loading completes as a fallback", () => {
+      expect(pageSource).toMatch(
+        /async\s+function\s+handleDrop\b[\s\S]{0,1600}await\s+applyInitialViewerState\(\)/,
+      );
     });
 
     it("records total frames from the start event before frame updates begin", () => {
@@ -30,15 +45,15 @@ describe("+page.svelte", () => {
 
     it("waits for a paint boundary before decode starts and before loading clears", () => {
       expect(pageSource).toMatch(
-        /async\s+function\s+handleDrop\b[\s\S]{0,320}frameStore\.startLoading\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)[\s\S]{0,700}invoke\("decode_gif_stream"/,
+        /async\s+function\s+handleDrop\b[\s\S]{0,400}frameStore\.startLoading\(\)[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,900}invoke\("decode_gif_stream"/,
       );
       expect(pageSource).toMatch(
-        /async\s+function\s+handleDrop\b[\s\S]{0,1400}resetView\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)[\s\S]{0,160}frameStore\.finishLoading\(\)/,
+        /async\s+function\s+handleDrop\b[\s\S]{0,2000}await\s+applyInitialViewerState\(\)[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
       );
     });
 
-    it("Toolbar receives onLoad prop pointing to resetView", () => {
-      expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*resetView\s*\}?/);
+    it("Toolbar receives onLoad prop pointing to the initial-fit loader", () => {
+      expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*applyInitialViewerState\s*\}?/);
     });
 
     it("tracks inspector visibility from frameStore.hasFrames", () => {

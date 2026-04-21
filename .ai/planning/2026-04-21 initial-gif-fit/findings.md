@@ -43,18 +43,28 @@ Reasoning: the likely implementation spans route logic, viewer sizing logic, uni
 - `page.test.ts` currently hard-codes the reset model around `viewerScale = 1`, `viewerPanX = resetViewerPanX`, and `handleDrop()` calling `resetView()`. Initial-fit work will need to update these expectations because “100%” becomes the computed initial-fit scale, not always literal `1`.
 - `FrameViewer.test.ts` already asserts the stage transform string, guide-line placement, and inspector-aware fade centring. That makes it a good place to add tests for any new initial-fit props or derived transform inputs without needing DOM mounting.
 - Frontend validation commands are in `package.json`: `pnpm check`, `pnpm build`, `pnpm test:unit`, and `pnpm test:e2e`. Rust verification should run with `cargo test` from `src-tauri/`.
+- The final implementation uses a small pure helper in `src/lib/viewer-fit.ts` and keeps it separate from DOM measurement. Route code measures visible bounds once at load time, then feeds the pure helper with viewer size plus GIF size.
+- `FrameViewer` now treats `baseScale` as the load-time fit scale and `scale` as the relative user zoom factor. This preserves a displayed 100% baseline while still allowing the real transform scale to be less than or greater than 1.
+- Because the transform order is `scale(...) translate(...)`, the baseline pan must be stored in unscaled stage units. Computing pan directly in screen pixels causes large centring errors once the load-time fit scale differs from 1.
+- The minimised inspector case is handled by measuring the inspector’s actual left edge and treating the visible canvas area as the rectangle to its left. That keeps the GIF out from under the minimised panel while still giving more usable width than the expanded state.
+- Dedicated E2E fixtures were needed because the existing `test.gif` is square and could not prove the 80%-height vs 80%-width rules.
 
 ## Technical Decisions
 
 | Decision | Rationale |
 | -------- | --------- |
 | Use `initial-gif-fit` as the task name | Short, specific, and suitable for the planning folder and conversation rename hint |
+| Keep DOM measurement in the route and fit maths in a pure helper | This gave precise SSR coverage for the maths and kept the UI code simple |
+| Reinterpret `scale` as relative zoom in `FrameViewer` | The user-facing zoom indicator must stay at 100% for the initial fitted state |
+| Use actual inspector geometry from the DOM for initial fit | This avoids relying on stale constants and keeps the loaded GIF out from under the inspector |
 
 ## Issues Encountered
 
 | Issue | Resolution |
 | ----- | ---------- |
-| None yet | N/A |
+| Pan centring was wildly wrong when fit scale differed from 1 | Fixed by computing baseline pan in unscaled stage units, matching the transform order |
+| Zoom-in E2E started showing 10% instead of >100% | Fixed by clamping and displaying the relative zoom factor instead of the actual transform scale |
+| WDIO grep did not isolate the new suite in this environment | Used the full studio E2E spec as the reliable validation path |
 
 ## Resources
 
