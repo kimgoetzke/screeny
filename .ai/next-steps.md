@@ -37,7 +37,7 @@ Status: **In progress**
 - [x] Improve multi-frame delete button hover
 - [x] Add inspector side bar
 - [x] Remove dedup buttons from the tool bar
-- [ ] Improve toolbar
+- [x] Improve toolbar
 - [x] Add background grid
 - [ ] Fix "Loading 0%" visible as soon as you click "Open"
 - [x] Hide inspector until GIF loaded
@@ -54,38 +54,6 @@ Status: **In progress**
 Please plan a bug fix. Currently, when you click the "Open" button. The tool bar immediately shows a "Loading 0%" despite no GIF having been selected. Can you please update this to only show from the moment, a file has been selected for opening?
 
 In addition, when the drag-and-drop feature is used to open a GIF, the equivalent message is not displayed. Please plan the work to display the "Loading 0%" UI hint immediately when a GIF has been dropped to indicate to the user that it is being processed.
-
-#### Improve toolbar
-
-Status: **In progress**
-
-Please plan improvements to the toolbar. 
-
-First, can you investigate if it's possible to merge the header bar that contains the minimise/maximise/close buttons of the app with the tool bar?
-- Please do web research to find understand what's possible.
-- If no, then there's no work to be done here.
-- If yes, please plan out doing this.
-
-Second, we need a help menu. This menu should be accessible via a button that is located at the top right of the tool bar and should have a question mark icon.
-- If you are able to merge the header bar with the tool bar then the minimise/maximise/close buttons most always remain at the far right and this new button would be to the left of them
-- When clicking the button, an overlay menu should open
-- The menu should show the current version of the application
-- There should be one button that is the GitHub icon; there should be text explaining that the user can get help or raise issue there; clicking it should open https://github.com/kimgoetzke/screeny
-- Another section should be a table that lists the key bindings
-  - The table shows a list of key bindings in a table with the columns Context (e.g. Global, Inspector, Timeline), Binding, and Action
-  - For this you'll need to identify all key bindings we have configured so far and list them here please
-
-Second, can you please position the payback icons always horizontally centered in the tool bar.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression.
-
-#### Improve the background grid
-
-Status: **Considering**
-
-- Make it less visible?
-- Make the fade based on the grid, not the application canvas edges?
-- Add cross hair of a slightly brighter colour that centers behind the center of the GIF so that it's always easy to find it
 
 ##### Review refactoring opportunities
 
