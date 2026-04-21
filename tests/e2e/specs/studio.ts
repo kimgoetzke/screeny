@@ -48,7 +48,8 @@ async function jsShiftClick(selector: string) {
   const element = await $(selector);
   await element.waitForExist({ timeout: 10_000 });
   await browser.execute(
-    (el: HTMLElement) => el.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })),
+    (el: HTMLElement) =>
+      el.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })),
     element as unknown as HTMLElement,
   );
 }
@@ -75,11 +76,24 @@ async function jsDrag(fromSelector: string, toSelector: string) {
       const endX = toRect.right - 2;
       const endY = toRect.top + toRect.height / 2;
 
-      from.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: startX, clientY: startY, button: 0 }));
+      from.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          clientX: startX,
+          clientY: startY,
+          button: 0,
+        }),
+      );
       // First move must exceed the 5 px threshold to commit the drag
-      window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: startX + 10, clientY: startY }));
-      window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: endX, clientY: endY }));
-      window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: endX, clientY: endY }));
+      window.dispatchEvent(
+        new PointerEvent("pointermove", { bubbles: true, clientX: startX + 10, clientY: startY }),
+      );
+      window.dispatchEvent(
+        new PointerEvent("pointermove", { bubbles: true, clientX: endX, clientY: endY }),
+      );
+      window.dispatchEvent(
+        new PointerEvent("pointerup", { bubbles: true, clientX: endX, clientY: endY }),
+      );
       // Browsers always fire a click after pointerup — dispatch it so wasJustDragging is
       // consumed and cleared, preventing it from swallowing the next real click event.
       from.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: endX, clientY: endY }));
@@ -141,6 +155,35 @@ async function getEmptyViewerAlignment() {
   });
 }
 
+async function getToolbarPlaybackAlignment() {
+  return browser.execute(() => {
+    const toolbar = document.querySelector('[data-testid="toolbar"]');
+    const play = document.querySelector('[data-testid="btn-play"]');
+    const stop = document.querySelector('[data-testid="btn-stop"]');
+
+    if (
+      !(toolbar instanceof HTMLElement) ||
+      !(play instanceof HTMLElement) ||
+      !(stop instanceof HTMLElement)
+    ) {
+      return null;
+    }
+
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const playRect = play.getBoundingClientRect();
+    const stopRect = stop.getBoundingClientRect();
+
+    const toolbarCentreX = toolbarRect.left + toolbarRect.width / 2;
+    const playbackCentreX = playRect.left + (stopRect.right - playRect.left) / 2;
+
+    return {
+      toolbarCentreX,
+      playbackCentreX,
+      deltaX: playbackCentreX - toolbarCentreX,
+    };
+  });
+}
+
 describe("Studio — app launch", () => {
   it("should show the toolbar", async () => {
     const toolbar = await $('[data-testid="toolbar"]');
@@ -176,6 +219,51 @@ describe("Studio — app launch", () => {
   it("should have the export button disabled when no frames loaded", async () => {
     const exportBtn = await $('[data-testid="btn-export"]');
     await expect(exportBtn).toBeDisabled();
+  });
+
+  it("shows the help trigger and custom window controls in the toolbar", async () => {
+    await expect(await $('[data-testid="btn-help"]')).toBeDisplayed();
+    await expect(await $('[data-testid="btn-window-minimise"]')).toBeDisplayed();
+    await expect(await $('[data-testid="btn-window-maximise"]')).toBeDisplayed();
+    await expect(await $('[data-testid="btn-window-close"]')).toBeDisplayed();
+
+    const result = await browser.execute(() => {
+      const help = document.querySelector('[data-testid="btn-help"]');
+      const minimise = document.querySelector('[data-testid="btn-window-minimise"]');
+      if (!(help instanceof HTMLElement) || !(minimise instanceof HTMLElement)) {
+        return null;
+      }
+
+      return {
+        helpRight: help.getBoundingClientRect().right,
+        minimiseLeft: minimise.getBoundingClientRect().left,
+      };
+    });
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(result.helpRight).toBeLessThanOrEqual(result.minimiseLeft);
+  });
+
+  it("opens the help overlay with version and key bindings when clicking the help trigger", async () => {
+    await jsClick('[data-testid="btn-help"]');
+
+    const helpMenu = await $('[data-testid="help-menu"]');
+    await helpMenu.waitForExist({ timeout: 5_000 });
+
+    await expect(helpMenu).toBeDisplayed();
+    await expect(await $('[data-testid="help-version"]')).toHaveText(
+      expect.stringContaining("0.1.0"),
+    );
+    await expect(await $('[data-testid="help-github-button"]')).toBeDisplayed();
+    await expect(await $('[data-testid="help-keybindings-table"]')).toBeDisplayed();
+    await expect(await $('[data-testid="help-keybindings-header-context"]')).toHaveText("Context");
+    await expect(await $('[data-testid="help-keybindings-header-binding"]')).toHaveText("Binding");
+    await expect(await $('[data-testid="help-keybindings-header-action"]')).toHaveText("Action");
+
+    await jsClick('[data-testid="help-menu-close"]');
+    await expect(await $('[data-testid="help-menu"]')).not.toBeExisting();
   });
 
   it("drop overlay uses the full viewer width while the inspector is hidden", async () => {
@@ -233,6 +321,15 @@ describe("Studio — open GIF fixture", () => {
     await expect(canvas).toBeDisplayed();
   });
 
+  it("keeps playback controls horizontally centred in the toolbar", async () => {
+    const result = await getToolbarPlaybackAlignment();
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
+  });
+
   it("should centre the loaded GIF within the visible viewer area excluding the inspector", async () => {
     const result = await browser.execute(() => {
       const viewer = document.querySelector('[data-testid="frame-viewer"]');
@@ -247,7 +344,8 @@ describe("Studio — open GIF fixture", () => {
       const inspectorRect =
         inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : viewerRect;
 
-      const visibleRightEdge = inspector instanceof HTMLElement ? inspectorRect.left - 10 : viewerRect.right;
+      const visibleRightEdge =
+        inspector instanceof HTMLElement ? inspectorRect.left - 10 : viewerRect.right;
       const visibleCentreX = (viewerRect.left + visibleRightEdge) / 2;
       const canvasCentreX = canvasRect.left + canvasRect.width / 2;
 
@@ -636,17 +734,23 @@ describe("Studio — drag to reorder frames", () => {
     await jsClick('[data-testid="frame-thumb-1"]');
     await browser.pause(100);
 
-    const idAt0Before = await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id");
+    const idAt0Before = await (
+      await $('[data-testid="frame-thumb-0"]')
+    ).getAttribute("data-frame-id");
 
     // Drag frame 0 onto frame 2 — reorderFrames(0, 2) → frame 0 ends up at position 2.
     await jsDrag('[data-testid="frame-thumb-0"]', '[data-testid="frame-thumb-2"]');
     await browser.pause(300);
 
-    const idAt0After = await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id");
-    const idAt2After = await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id");
+    const idAt0After = await (
+      await $('[data-testid="frame-thumb-0"]')
+    ).getAttribute("data-frame-id");
+    const idAt2After = await (
+      await $('[data-testid="frame-thumb-2"]')
+    ).getAttribute("data-frame-id");
 
     expect(idAt0After).not.toBe(idAt0Before); // frame originally at 0 has moved
-    expect(idAt2After).toBe(idAt0Before);      // it is now at position 2
+    expect(idAt2After).toBe(idAt0Before); // it is now at position 2
   });
 
   it("should reload the fixture for multi-frame drag tests", async () => {
@@ -745,36 +849,60 @@ describe("Studio — inspector move-frame buttons", () => {
     await jsClick('[data-testid="inspector-btn-move-end"]');
     await browser.pause(300);
 
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
-    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(
+      secondFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(
+      thirdFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(
+      firstFrameId,
+    );
   });
 
   it("move-to-start returns the selected frame to the first position", async () => {
     await jsClick('[data-testid="inspector-btn-move-start"]');
     await browser.pause(300);
 
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
-    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(
+      firstFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(
+      secondFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(
+      thirdFrameId,
+    );
   });
 
   it("step-right moves the selected frame one position right", async () => {
     await jsClick('[data-testid="inspector-btn-move-right"]');
     await browser.pause(300);
 
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
-    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(
+      secondFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(
+      firstFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(
+      thirdFrameId,
+    );
   });
 
   it("step-left moves the selected frame one position left", async () => {
     await jsClick('[data-testid="inspector-btn-move-left"]');
     await browser.pause(300);
 
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
-    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(
+      firstFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(
+      secondFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(
+      thirdFrameId,
+    );
   });
 
   it("move-to-end keeps a multi-selection together at the end", async () => {
@@ -784,9 +912,15 @@ describe("Studio — inspector move-frame buttons", () => {
     await jsClick('[data-testid="inspector-btn-move-end"]');
     await browser.pause(300);
 
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(thirdFrameId);
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(firstFrameId);
-    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(secondFrameId);
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("data-frame-id")).toBe(
+      thirdFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("data-frame-id")).toBe(
+      firstFrameId,
+    );
+    expect(await (await $('[data-testid="frame-thumb-2"]')).getAttribute("data-frame-id")).toBe(
+      secondFrameId,
+    );
   });
 });
 
@@ -971,23 +1105,33 @@ describe("Studio — keyboard navigation", () => {
     await browser.pause(100);
     await dispatchKey("ArrowRight");
     await browser.pause(200);
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("class")).toContain("selected");
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).not.toContain("selected");
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("class")).toContain(
+      "selected",
+    );
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).not.toContain(
+      "selected",
+    );
   });
 
   it("ArrowLeft moves selection to the previous frame", async () => {
     // frame 1 selected from previous test
     await dispatchKey("ArrowLeft");
     await browser.pause(200);
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).toContain("selected");
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).toContain(
+      "selected",
+    );
   });
 
   it("Shift+ArrowRight extends selection to include the next frame", async () => {
     // frame 0 selected; Shift+ArrowRight adds frame 1
     await dispatchKey("ArrowRight", { shiftKey: true });
     await browser.pause(200);
-    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).toContain("selected");
-    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("class")).toContain("selected");
+    expect(await (await $('[data-testid="frame-thumb-0"]')).getAttribute("class")).toContain(
+      "selected",
+    );
+    expect(await (await $('[data-testid="frame-thumb-1"]')).getAttribute("class")).toContain(
+      "selected",
+    );
   });
 
   it("Space key starts playback", async () => {
@@ -1258,7 +1402,12 @@ async function jsWheel(selector: string, deltaY: number, options: { shiftKey?: b
   await browser.execute(
     (el: HTMLElement, dy: number, opts: { shiftKey?: boolean }) =>
       el.dispatchEvent(
-        new WheelEvent("wheel", { deltaY: dy, shiftKey: opts.shiftKey ?? false, bubbles: true, cancelable: true }),
+        new WheelEvent("wheel", {
+          deltaY: dy,
+          shiftKey: opts.shiftKey ?? false,
+          bubbles: true,
+          cancelable: true,
+        }),
       ),
     element as unknown as HTMLElement,
     deltaY,
@@ -1276,7 +1425,13 @@ async function jsWheelShift(selector: string, deltaX: number) {
   await browser.execute(
     (el: HTMLElement, dx: number) =>
       el.dispatchEvent(
-        new WheelEvent("wheel", { deltaX: dx, deltaY: 0, shiftKey: true, bubbles: true, cancelable: true }),
+        new WheelEvent("wheel", {
+          deltaX: dx,
+          deltaY: 0,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
       ),
     element as unknown as HTMLElement,
     deltaX,
@@ -1295,7 +1450,9 @@ describe("Studio — inspector panel improvements (Phase 6)", () => {
     }
 
     await browser.execute(() =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "i", ctrlKey: true, bubbles: true })),
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "i", ctrlKey: true, bubbles: true }),
+      ),
     );
     await browser.pause(200);
 
@@ -1306,7 +1463,9 @@ describe("Studio — inspector panel improvements (Phase 6)", () => {
   it("Ctrl+I restores the inspector panel", async () => {
     // Inspector is minimised from previous test
     await browser.execute(() =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "i", ctrlKey: true, bubbles: true })),
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "i", ctrlKey: true, bubbles: true }),
+      ),
     );
     await browser.pause(200);
 
@@ -1382,7 +1541,7 @@ describe("Studio — inspector panel improvements (Phase 6)", () => {
       // Since the overlay is only rendered during drag, we check the inspector left edge
       // vs what the overlay right edge would be.
       const inspector = document.querySelector('[data-testid="inspector"]');
-      const viewerArea = document.querySelector('.viewer-area') as HTMLElement;
+      const viewerArea = document.querySelector(".viewer-area") as HTMLElement;
       if (!inspector || !viewerArea) return null;
       const inspectorRect = inspector.getBoundingClientRect();
       const viewerRect = viewerArea.getBoundingClientRect();

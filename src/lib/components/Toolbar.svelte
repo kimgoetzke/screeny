@@ -1,9 +1,15 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { getVersion } from "@tauri-apps/api/app";
   import { Channel, invoke } from "@tauri-apps/api/core";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { openUrl } from "@tauri-apps/plugin-opener";
+  import HelpMenu from "$lib/components/HelpMenu.svelte";
   import { frameStore } from "$lib/stores/frames.svelte";
   import { openGifStreaming, exportGif } from "$lib/actions";
   import type { DialogProvider, GifBackend } from "$lib/actions";
   import type { DecodeEvent } from "$lib/types";
+  import { helpKeyBindings } from "$lib/help-keybindings";
   import FilePicker from "$lib/components/FilePicker.svelte";
   import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 
@@ -22,9 +28,17 @@
   let showSaveInput = $state(false);
   let savePath = $state("");
   let saveResolve: ((path: string | null) => void) | null = null;
+  let showHelpMenu = $state(false);
+  let appVersion = $state("Loading…");
 
   invoke<boolean>("e2e_check").then((result) => {
     isE2e = result;
+  });
+
+  onMount(() => {
+    getVersion().then((version) => {
+      appVersion = version;
+    });
   });
 
   const nativeDialog: DialogProvider = {
@@ -147,6 +161,23 @@
   function cancelClose() {
     showCloseConfirm = false;
   }
+
+  async function handleOpenGitHub() {
+    await openUrl("https://github.com/kimgoetzke/screeny");
+    showHelpMenu = false;
+  }
+
+  async function handleMinimiseWindow() {
+    await getCurrentWindow().minimize();
+  }
+
+  async function handleToggleMaximiseWindow() {
+    await getCurrentWindow().toggleMaximize();
+  }
+
+  async function handleCloseWindow() {
+    await getCurrentWindow().close();
+  }
 </script>
 
 {#if showFilePicker}
@@ -163,8 +194,17 @@
   />
 {/if}
 
+{#if showHelpMenu}
+  <HelpMenu
+    version={appVersion}
+    keyBindings={helpKeyBindings}
+    onClose={() => (showHelpMenu = false)}
+    onOpenGitHub={handleOpenGitHub}
+  />
+{/if}
+
 <div class="toolbar" data-testid="toolbar">
-  <div class="toolbar-actions">
+  <div class="toolbar-primary">
     {#if frameStore.hasFrames}
       <button onclick={handleClose} disabled={loading} data-testid="btn-close">Close</button>
     {:else}
@@ -177,7 +217,13 @@
     >
       Export
     </button>
-    {#if frameStore.hasFrames}
+    <div class="toolbar-drag-region" data-tauri-drag-region>
+      <span class="toolbar-app-title">screeny</span>
+    </div>
+  </div>
+
+  {#if frameStore.hasFrames}
+    <div class="toolbar-playback">
       <button
         class="icon-btn"
         onclick={() => frameStore.play()}
@@ -200,43 +246,113 @@
           <rect x="3" y="3" width="10" height="10" fill="currentColor" />
         </svg>
       </button>
-    {/if}
-  </div>
-  {#if showSaveInput}
-    <div class="save-input-row" data-testid="save-input-row">
-      <input
-        type="text"
-        bind:value={savePath}
-        placeholder="~/export.gif"
-        data-testid="save-path-input"
-        onkeydown={(e) => {
-          if (e.key === "Enter") confirmSave();
-          if (e.key === "Escape") cancelSave();
-        }}
-      />
-      <button onclick={confirmSave} data-testid="btn-save-confirm">Save</button>
-      <button onclick={cancelSave} data-testid="btn-save-cancel">Cancel</button>
     </div>
-  {:else if frameStore.isLoading}
-    <div class="loading-progress" data-testid="loading-progress">
-      <div class="progress-track">
-        <div class="progress-fill" style="width: {frameStore.loadingProgress ?? 0}%"></div>
-      </div>
-      <span class="progress-label">
-        Loading{frameStore.loadingProgress !== null ? ` ${frameStore.loadingProgress}%` : ""}
-        {#if frameStore.frames.length > 0}
-          &nbsp;({frameStore.frames.length} frames)
-        {/if}
-      </span>
-    </div>
-  {:else if statusMessage}
-    <span class="status" data-testid="status-message">{statusMessage}</span>
   {/if}
+
+  <div class="toolbar-feedback">
+    <div class="toolbar-status-area">
+      {#if showSaveInput}
+        <div class="save-input-row" data-testid="save-input-row">
+          <input
+            type="text"
+            bind:value={savePath}
+            placeholder="~/export.gif"
+            data-testid="save-path-input"
+            onkeydown={(e) => {
+              if (e.key === "Enter") confirmSave();
+              if (e.key === "Escape") cancelSave();
+            }}
+          />
+          <button onclick={confirmSave} data-testid="btn-save-confirm">Save</button>
+          <button onclick={cancelSave} data-testid="btn-save-cancel">Cancel</button>
+        </div>
+      {:else if frameStore.isLoading}
+        <div class="loading-progress" data-testid="loading-progress">
+          <div class="progress-track">
+            <div class="progress-fill" style="width: {frameStore.loadingProgress ?? 0}%"></div>
+          </div>
+          <span class="progress-label">
+            Loading{frameStore.loadingProgress !== null ? ` ${frameStore.loadingProgress}%` : ""}
+            {#if frameStore.frames.length > 0}
+              &nbsp;({frameStore.frames.length} frames)
+            {/if}
+          </span>
+        </div>
+      {:else if statusMessage}
+        <span class="status" data-testid="status-message">{statusMessage}</span>
+      {/if}
+    </div>
+
+    <div class="toolbar-titlebar-actions">
+      <button
+        class="icon-btn titlebar-btn"
+        onclick={() => (showHelpMenu = true)}
+        data-testid="btn-help"
+        title="Help"
+        aria-label="Open help menu"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 1.25a4.75 4.75 0 0 0-4.75 4.5h1.5A3.25 3.25 0 1 1 8 9a.75.75 0 0 0-.75.75v1h1.5v-.56A4.75 4.75 0 0 0 8 1.25ZM7.25 13h1.5v1.5h-1.5Z"
+          />
+        </svg>
+      </button>
+
+      <div class="window-controls">
+        <button
+          class="icon-btn titlebar-btn window-control-btn"
+          onclick={handleMinimiseWindow}
+          data-testid="btn-window-minimise"
+          title="Minimise window"
+          aria-label="Minimise window"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="3" y="7.25" width="10" height="1.5" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          class="icon-btn titlebar-btn window-control-btn"
+          onclick={handleToggleMaximiseWindow}
+          data-testid="btn-window-maximise"
+          title="Maximise window"
+          aria-label="Maximise window"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <rect
+              x="3.25"
+              y="3.25"
+              width="9.5"
+              height="9.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+          </svg>
+        </button>
+        <button
+          class="icon-btn titlebar-btn window-control-btn window-close-btn"
+          onclick={handleCloseWindow}
+          data-testid="btn-window-close"
+          title="Close window"
+          aria-label="Close window"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M4.28 3.22 8 6.94l3.72-3.72 1.06 1.06L9.06 8l3.72 3.72-1.06 1.06L8 9.06l-3.72 3.72-1.06-1.06L6.94 8 3.22 4.28Z"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
   .toolbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 16px;
     padding: 10px 16px;
@@ -245,10 +361,75 @@
     flex-shrink: 0;
   }
 
-  .toolbar-actions {
+  .toolbar-primary,
+  .toolbar-playback,
+  .toolbar-feedback {
     display: flex;
     gap: 10px;
     align-items: center;
+    min-width: 0;
+  }
+
+  .toolbar-primary {
+    grid-column: 1;
+    justify-self: start;
+    width: 100%;
+  }
+
+  .toolbar-playback {
+    grid-column: 2;
+    justify-self: center;
+  }
+
+  .toolbar-feedback {
+    grid-column: 3;
+    justify-self: end;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .toolbar-drag-region,
+  .toolbar-status-area {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .toolbar-drag-region {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    user-select: none;
+  }
+
+  .toolbar-app-title {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .toolbar-status-area,
+  .toolbar-titlebar-actions,
+  .window-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-status-area {
+    justify-content: flex-end;
+  }
+
+  .toolbar-titlebar-actions {
+    flex-shrink: 0;
+  }
+
+  .window-controls {
+    gap: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
   }
 
   .icon-btn {
@@ -256,6 +437,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .titlebar-btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .window-control-btn {
+    border: none;
+    border-right: 1px solid var(--color-border);
+    border-radius: 0;
+  }
+
+  .window-controls .window-control-btn:last-child {
+    border-right: none;
+  }
+
+  .window-close-btn:hover:not(:disabled) {
+    background: var(--color-error);
+    border-color: var(--color-error);
+    color: white;
   }
 
   button {
@@ -288,7 +491,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
+    width: 100%;
+    max-width: 520px;
   }
 
   .save-input-row input[type="text"] {
@@ -316,8 +520,9 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
+    width: 100%;
     min-width: 0;
+    max-width: 420px;
   }
 
   .progress-track {

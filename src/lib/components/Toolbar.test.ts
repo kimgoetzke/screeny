@@ -8,6 +8,22 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(() => Promise.resolve(false)),
 }));
 
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: vi.fn(() => Promise.resolve("0.1.0")),
+}));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: vi.fn(() => ({
+    minimize: vi.fn(() => Promise.resolve()),
+    toggleMaximize: vi.fn(() => Promise.resolve()),
+    close: vi.fn(() => Promise.resolve()),
+  })),
+}));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: vi.fn(() => Promise.resolve()),
+}));
+
 function makeFrame(id: string, duration = 100): Frame {
   return { id, imageData: `data:image/png;base64,${id}`, duration, width: 10, height: 10 };
 }
@@ -64,6 +80,25 @@ describe("Toolbar", () => {
     const { body } = render(Toolbar);
     expect(body).toContain('data-testid="btn-play"');
     expect(body).toContain('data-testid="btn-stop"');
+  });
+
+  it("renders loaded-state playback controls in a dedicated centred toolbar region", () => {
+    frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+
+    const { body } = render(Toolbar);
+
+    expect(body).toMatch(
+      /<div class="[^"]*toolbar-playback[^"]*">[\s\S]*data-testid="btn-play"[\s\S]*data-testid="btn-stop"[\s\S]*<\/div>/,
+    );
+  });
+
+  it("renders the help trigger and custom window controls in the title bar area", () => {
+    const { body } = render(Toolbar);
+
+    expect(body).toContain('data-testid="btn-help"');
+    expect(body).toContain('data-testid="btn-window-minimise"');
+    expect(body).toContain('data-testid="btn-window-maximise"');
+    expect(body).toContain('data-testid="btn-window-close"');
   });
 
 
