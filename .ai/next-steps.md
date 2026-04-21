@@ -1,3 +1,4 @@
+
 # Next steps
 
 ## Features
@@ -23,7 +24,7 @@ Status: **In progress**
 
 - [x] Introduce a generic, re-usable notification dialog
 - [x] Change Open button to Close button while a GIF is opened
-- [ ] Fix hanging right after GIF is selected/dropped and before it loads
+- [x] Fix hanging right after GIF is selected/dropped and before it loads
 - [x] Don't show header bar (min/max or close window) during splash screen
 - [x] Add on-hover button effect(s) for timeline
 - [x] Allow bulk-deleting frames
@@ -39,21 +40,43 @@ Status: **In progress**
 - [x] Remove dedup buttons from the tool bar
 - [x] Improve toolbar
 - [x] Add background grid
-- [ ] Fix "Loading 0%" visible as soon as you click "Open"
+- [x] Fix "Loading 0%" visible as soon as you click "Open"
 - [x] Hide inspector until GIF loaded
 - [x] Add inspector buttons to move frame(s)
 - [x] Add select-to-first/last key binding
+- [ ] Load GIF to fill visible canvas
+- [ ] Improve GIF loading speed
 - [ ] Review refactoring opportunities
+- [ ] Fix bug where closing while loading breaks things
+- [ ] Improve fade-out of background grid/GIF borders
 
 ### Prompt planning
 
-#### Fix "Loading 0%" visible as soon as you click "Open"
+#### Improve GIF loading speed
 
 Status: **In progress**
 
-Please plan a bug fix. Currently, when you click the "Open" button. The tool bar immediately shows a "Loading 0%" despite no GIF having been selected. Can you please update this to only show from the moment, a file has been selected for opening?
+See `2026-04-15 gif-loading-perf`.
 
-In addition, when the drag-and-drop feature is used to open a GIF, the equivalent message is not displayed. Please plan the work to display the "Loading 0%" UI hint immediately when a GIF has been dropped to indicate to the user that it is being processed.
+#### Load GIF to fill visible canvas
+
+Status: **In progress**
+
+Please plan the work required to achieve the following: When a GIF loads, the image should be displayed in a way that it fills the same percentage width/height of the visible canvas space, leaving evenly sized gaps on the left and right, and on top and bottom respectively.
+
+Constraints:
+- The GIF displayed must never exceed the visible canvas space in any direction
+- A GIF that's longer vertically, must fill exactly 80% of the visible, vertical canvas space, leaving larger gaps at the left and right
+- A GIF that's longer horizontally must fill exactly 80% of the visible, horizontal canvas space, leaving larger gaps at the top and bottom
+- The visible canvas space can obviously change depending on the size of the window
+- However, the GIF must not be resizes/re-zoomed when the window change; this piece of work ONLY focusses on the moment where the GIF is loaded and the first frame is displayed on the canvas
+- The inspector panel is NOT considered "visible" i.e. the GIF must not be displayed below it, covered by the inspector panel
+- When the inspector panel is toggled to its minimised state, the feed space IS considered "visible" i.e. the available "visible" canvas space differs depending on the state of the inspector
+- The GIF must remain vertically and horizontally centered, as it currently is
+- Nothing else must change i.e. don't remove any borders
+- The initial state at which a GIF is displayed is always considered the 100% zoom factor
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ##### Review refactoring opportunities
 
@@ -61,15 +84,23 @@ Status: **Considering**
 
 I want you to review the code in this repository by spawning off a number of sub-agents, each reviewing specific dimensions and sections of this code base. For example, frontend and backend code must be reviewed separately.
 
-The goal of this review is to identify "junior dev mistakes", refactoring opportunities, unused/redundant dependencies and other opportunities to make this code base 1) more scalable, 2) easier to maintain, 3) without any regression.
+The goal of this review is to identify "junior dev mistakes", code smells, other refactoring opportunities, unused/redundant dependencies and other opportunities to make this code base 1) more scalable, 2) easier to maintain, 3) without any regression.
 
 Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application with 
+
+#### Fix bug where closing while loading breaks things
+
+Status: **Outstanding**
+
+#### Improve fade-out of background grid/GIF borders
+
+Status: **Outstanding**
 
 ---
 
 Also, please write an E2E test for this feature.
 
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application with 
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ## Goals
 
