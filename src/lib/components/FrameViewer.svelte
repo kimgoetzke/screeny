@@ -196,12 +196,9 @@
     place-items: center;
     pointer-events: none;
     mask-image: radial-gradient(
-      ellipse at var(--fade-center-x, 50%) var(--fade-center-y, 50%),
+      circle at var(--fade-center-x, 50%) var(--fade-center-y, 50%),
       black 0%,
       black 18%,
-      rgb(0 0 0 / 0.92) 34%,
-      rgb(0 0 0 / 0.68) 50%,
-      rgb(0 0 0 / 0.32) 58%,
       transparent 65%,
       transparent 100%
     );
@@ -252,7 +249,7 @@
   .guide-line {
     position: absolute;
     pointer-events: none;
-    background: color-mix(in srgb, var(--color-text-bright) 35%, transparent);
+    background: color-mix(in srgb, var(--color-text-bright) 45%, transparent);
   }
 
   .guide-line-h {
