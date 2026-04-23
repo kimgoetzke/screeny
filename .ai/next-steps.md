@@ -45,13 +45,28 @@ Status: **In progress**
 - [x] Add select-to-first/last key binding
 - [x] Load GIF to fill visible canvas
 - [ ] Improve GIF loading speed
-- [ ] Review refactoring opportunities
 - [ ] Fix bug where closing while loading breaks things
-- [ ] Improve fade-out of background grid/GIF borders
+- [x] Improve fade-out of background grid/GIF borders
 - [ ] Replace splash screen placeholders
 - [ ] Improve key bindings again
+- [ ] Fix load position/alignment regression
+- [ ] Review refactoring opportunities
 
 ### Prompt planning
+
+#### Fix load position/alignment regression
+
+Status: **Not ready**
+
+When a GIF is loaded, it is placed in a way that it takes up exactly 80% of the available space to the closest window edge e.g. a horizontally long image will have 10% of each the left and the right and larger gaps at the top and the bottom. Can you please increase this to 70% i.e. 15% on each side? This must apply to all sides equally not only to the left and right.
+
+Also, there's currently a mechanism that adjusts the GIF twice, once after the first frame is loaded and once again after the last frame has been loaded. Can you please take out the second time we align the position of the GIF/canvas?
+
+Finally, we have a regression where you used to be able to, once a GIF was loaded, toggle the inspector panel and the "Reset zoom" zoom button would appear. Clicking it would center the image position again, taking into account the new available canvas space. This functionality would work with any inspector change i.e. inspector panel minimised or maximised and it would always allow you to re-center the image correctly. Can you please restore this functionality?
+
+<Check if E2E tests are required>
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 #### Improve GIF loading speed
 
@@ -89,27 +104,15 @@ Please check for warnings and address them in the best practice way or explicitl
 
 Status: **Blocked by `Improve GIF loading speed`**
 
-#### Improve fade-out of background grid/GIF borders
-
-Status: **Ready**
-
-This application shows a background grid in the main canvas which is centered on application start up. When a GIF is loaded, the GIF is also centered and displayed above the grid. It is displayed with a thin border on all sides that extend in each direction beyond the GIF itself.
-
-I would like to improve the fade-out of both the background grid and the border around the GIF.
-
-Currently, the border simply extends for a very long time, making it less likely for a user to scroll far enough to see the end. However, it does not fade out.
-The background grid does fade out to the left and right which is perfect and it must not change. However, it does not fade out to the top and bottom and simply stops at some point, same as the border.
-
-I would like to change this: Both grid and border should fade out in the same way and over the same distance in all directions. As for the distance for the fade, the current fade to the left and right of the grid is perfect. Also, just to be clear: The fade out must result in the border and grid fading out in a way that only the background colour is visible once faded, so they must fade into the background colour or 100% transparency (ideally the latter, but this is up to you).
-
-Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
-
 #### Improve key bindings again
 
+Please introduce new key bindings for my application.
+
 - `Alt` + `Left`/`Right` should move the selected frame(s) to the left/right by one frame
+- `Ctrl` + `Alt` + `Left`/`Right` should move the selected frame(s) to the start/end
 - `Ctrl` + `Q` should close the currently open GIF and do nothing when no GIF is open
 
-Please update `help-keybindings.ts` with the new bindings.
+Please update `help-keybindings.ts` with the new bindings. Check that you do not break any of the existing bindings.
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
