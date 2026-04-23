@@ -8,7 +8,7 @@
   }: {
     scale: number;
     isModified: boolean;
-    onReset: () => void;
+    onReset: () => void | Promise<void>;
     visible: boolean;
     rightOffset?: number;
   } = $props();

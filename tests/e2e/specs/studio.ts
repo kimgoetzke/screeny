@@ -198,6 +198,13 @@ async function getLoadedGifFitMetrics() {
   });
 }
 
+async function waitForZoomReset() {
+  await browser.waitUntil(async () => (await $('[data-testid="zoom-reset"]')).isExisting(), {
+    timeout: 5_000,
+    timeoutMsg: "expected reset zoom control to appear",
+  });
+}
+
 async function getEmptyViewerAlignment() {
   return browser.execute(() => {
     const viewer = document.querySelector('[data-testid="frame-viewer"]');
@@ -1623,7 +1630,7 @@ describe("Studio — inspector panel improvements (Phase 6)", () => {
 describe("Studio — initial GIF fit", () => {
   let expandedVisibleWidth = 0;
 
-  it("fits a landscape GIF to 80% of the visible width on load with the inspector expanded", async () => {
+  it("fits a landscape GIF to 70% of the visible width on load with the inspector expanded", async () => {
     const restore = await $('[data-testid="inspector-restore"]');
     if (await restore.isExisting()) {
       await jsClick('[data-testid="inspector-restore"]');
@@ -1638,8 +1645,8 @@ describe("Studio — initial GIF fit", () => {
 
     expandedVisibleWidth = result.visibleWidth;
 
-    expect(Math.abs(result.widthRatio - 0.8)).toBeLessThanOrEqual(0.02);
-    expect(result.heightRatio).toBeLessThan(0.8);
+    expect(Math.abs(result.widthRatio - 0.7)).toBeLessThanOrEqual(0.02);
+    expect(result.heightRatio).toBeLessThan(0.7);
     expect(result.canvasWidth).toBeLessThanOrEqual(result.visibleWidth + 1);
     expect(result.canvasHeight).toBeLessThanOrEqual(result.visibleHeight + 1);
     expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
@@ -1647,7 +1654,7 @@ describe("Studio — initial GIF fit", () => {
     await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
   });
 
-  it("fits a portrait GIF to 80% of the visible height when loaded with the inspector minimised", async () => {
+  it("fits a portrait GIF to 70% of the visible height when loaded with the inspector minimised", async () => {
     await jsClick('[data-testid="inspector-minimise"]');
     await browser.pause(200);
 
@@ -1658,12 +1665,76 @@ describe("Studio — initial GIF fit", () => {
     if (!result) return;
 
     expect(result.visibleWidth).toBeGreaterThan(expandedVisibleWidth);
-    expect(Math.abs(result.heightRatio - 0.8)).toBeLessThanOrEqual(0.02);
-    expect(result.widthRatio).toBeLessThan(0.8);
+    expect(Math.abs(result.heightRatio - 0.7)).toBeLessThanOrEqual(0.02);
+    expect(result.widthRatio).toBeLessThan(0.7);
     expect(result.canvasWidth).toBeLessThanOrEqual(result.visibleWidth + 1);
     expect(result.canvasHeight).toBeLessThanOrEqual(result.visibleHeight + 1);
     expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
     expect(Math.abs(result.deltaY)).toBeLessThanOrEqual(1);
     await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+  });
+
+  it("reset zoom re-centres the GIF after inspector minimise and restore change the visible canvas width", async () => {
+    const restore = await $('[data-testid="inspector-restore"]');
+    if (await restore.isExisting()) {
+      await jsClick('[data-testid="inspector-restore"]');
+      await browser.pause(200);
+    }
+
+    await loadFixture("landscape.gif", 1);
+
+    const expandedMetrics = await getLoadedGifFitMetrics();
+    expect(expandedMetrics).not.toBeNull();
+    if (!expandedMetrics) return;
+
+    await expect(await $('[data-testid="zoom-reset"]')).not.toBeExisting();
+
+    await jsClick('[data-testid="inspector-minimise"]');
+    await browser.pause(200);
+    await waitForZoomReset();
+
+    const shiftedMinimisedMetrics = await getLoadedGifFitMetrics();
+    expect(shiftedMinimisedMetrics).not.toBeNull();
+    if (!shiftedMinimisedMetrics) return;
+
+    expect(shiftedMinimisedMetrics.visibleWidth).toBeGreaterThan(expandedMetrics.visibleWidth);
+    expect(Math.abs(shiftedMinimisedMetrics.deltaX)).toBeGreaterThan(1);
+
+    await jsClick('[data-testid="zoom-reset"]');
+    await browser.pause(200);
+
+    const resetMinimisedMetrics = await getLoadedGifFitMetrics();
+    expect(resetMinimisedMetrics).not.toBeNull();
+    if (!resetMinimisedMetrics) return;
+
+    expect(Math.abs(resetMinimisedMetrics.widthRatio - 0.7)).toBeLessThanOrEqual(0.02);
+    expect(Math.abs(resetMinimisedMetrics.deltaX)).toBeLessThanOrEqual(1);
+    expect(Math.abs(resetMinimisedMetrics.deltaY)).toBeLessThanOrEqual(1);
+    await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+    await expect(await $('[data-testid="zoom-reset"]')).not.toBeExisting();
+
+    await jsClick('[data-testid="inspector-restore"]');
+    await browser.pause(200);
+    await waitForZoomReset();
+
+    const shiftedExpandedMetrics = await getLoadedGifFitMetrics();
+    expect(shiftedExpandedMetrics).not.toBeNull();
+    if (!shiftedExpandedMetrics) return;
+
+    expect(shiftedExpandedMetrics.visibleWidth).toBeLessThan(resetMinimisedMetrics.visibleWidth);
+    expect(Math.abs(shiftedExpandedMetrics.deltaX)).toBeGreaterThan(1);
+
+    await jsClick('[data-testid="zoom-reset"]');
+    await browser.pause(200);
+
+    const resetExpandedMetrics = await getLoadedGifFitMetrics();
+    expect(resetExpandedMetrics).not.toBeNull();
+    if (!resetExpandedMetrics) return;
+
+    expect(Math.abs(resetExpandedMetrics.widthRatio - 0.7)).toBeLessThanOrEqual(0.02);
+    expect(Math.abs(resetExpandedMetrics.deltaX)).toBeLessThanOrEqual(1);
+    expect(Math.abs(resetExpandedMetrics.deltaY)).toBeLessThanOrEqual(1);
+    await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+    await expect(await $('[data-testid="zoom-reset"]')).not.toBeExisting();
   });
 });

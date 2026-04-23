@@ -49,30 +49,33 @@ Status: **In progress**
 - [x] Improve fade-out of background grid/GIF borders
 - [ ] Replace splash screen placeholders
 - [ ] Improve key bindings again
-- [ ] Fix load position/alignment regression
+- [x] Fix load position/alignment regression
 - [ ] Review refactoring opportunities
 
 ### Prompt planning
-
-#### Fix load position/alignment regression
-
-Status: **Not ready**
-
-When a GIF is loaded, it is placed in a way that it takes up exactly 80% of the available space to the closest window edge e.g. a horizontally long image will have 10% of each the left and the right and larger gaps at the top and the bottom. Can you please increase this to 70% i.e. 15% on each side? This must apply to all sides equally not only to the left and right.
-
-Also, there's currently a mechanism that adjusts the GIF twice, once after the first frame is loaded and once again after the last frame has been loaded. Can you please take out the second time we align the position of the GIF/canvas?
-
-Finally, we have a regression where you used to be able to, once a GIF was loaded, toggle the inspector panel and the "Reset zoom" zoom button would appear. Clicking it would center the image position again, taking into account the new available canvas space. This functionality would work with any inspector change i.e. inspector panel minimised or maximised and it would always allow you to re-center the image correctly. Can you please restore this functionality?
-
-<Check if E2E tests are required>
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 #### Improve GIF loading speed
 
 Status: **In progress**
 
 See `2026-04-15 gif-loading-perf`.
+
+#### Fix bug where closing while loading breaks things
+
+Status: **Blocked by `Improve GIF loading speed`**
+
+#### Improve key bindings again
+
+Please introduce new key bindings for my application.
+
+- `Alt` + `Left`/`Right` should move the selected frame(s) to the left/right by one frame
+- `Ctrl` + `Alt` + `Left`/`Right` should move the selected frame(s) to the start/end
+- `Ctrl` + `Q` should close the currently open GIF and do nothing when no GIF is open
+
+Please update `help-keybindings.ts` with the new bindings. Check that you do not break any of the existing bindings.
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+
 
 ##### Review refactoring opportunities
 
@@ -99,22 +102,6 @@ For every issue you report, include:
 Keep recommendations concrete, low-risk, and behaviour-preserving unless a behavioural change is explicitly warranted.
 
 Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
-
-#### Fix bug where closing while loading breaks things
-
-Status: **Blocked by `Improve GIF loading speed`**
-
-#### Improve key bindings again
-
-Please introduce new key bindings for my application.
-
-- `Alt` + `Left`/`Right` should move the selected frame(s) to the left/right by one frame
-- `Ctrl` + `Alt` + `Left`/`Right` should move the selected frame(s) to the start/end
-- `Ctrl` + `Q` should close the currently open GIF and do nothing when no GIF is open
-
-Please update `help-keybindings.ts` with the new bindings. Check that you do not break any of the existing bindings.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ---
 

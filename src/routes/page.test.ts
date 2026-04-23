@@ -9,19 +9,21 @@ describe("+page.svelte", () => {
       expect(pageSource).toMatch(
         /<FrameViewer[\s\S]{0,160}baseScale=\{viewerBaseScale\}[\s\S]{0,120}bind:scale=\{viewerScale\}/,
       );
-      expect(pageSource).toMatch(/<ZoomIndicator[\s\S]{0,120}scale=\{viewerScale\}/);
+      expect(pageSource).toMatch(/<ZoomIndicator[\s\S]{0,120}scale=\{zoomIndicatorScale\}/);
     });
 
-    it("uses the load-time initial pan as the unmodified reset state", () => {
-      expect(pageSource).toMatch(/let\s+initialViewerPanX\s*=\s*\$state\(\s*0\s*\)/);
+    it("tracks a reset target separately from the current viewer state", () => {
+      expect(pageSource).toMatch(/let\s+resetViewerBaseScale\s*=\s*\$state\(\s*1\s*\)/);
+      expect(pageSource).toMatch(/let\s+resetViewerPanX\s*=\s*\$state\(\s*0\s*\)/);
+      expect(pageSource).toMatch(/let\s+resetViewerPanY\s*=\s*\$state\(\s*0\s*\)/);
       expect(pageSource).toMatch(
-        /function\s+resetView\b[\s\S]{0,160}viewerScale\s*=\s*1[\s\S]{0,120}viewerPanX\s*=\s*initialViewerPanX/,
+        /async\s+function\s+resetView\b[\s\S]{0,220}const\s+viewerState\s*=\s*await\s+getTargetViewerState\(\)[\s\S]{0,120}setResetViewerState\(viewerState\)[\s\S]{0,120}setCurrentViewerState\(viewerState\)/,
       );
-      expect(pageSource).toMatch(/isModified=\{viewerScale !== 1 \|\| viewerPanX !== initialViewerPanX \|\| viewerPanY !== 0\}/);
+      expect(pageSource).toMatch(/isModified=\{isViewerModified\}/);
     });
 
-    it("passes the load-time initial pan into FrameViewer so the empty state and fade stay aligned", () => {
-      expect(pageSource).toMatch(/centreOffsetX=\{initialViewerPanX\}/);
+    it("passes the current reset target pan into FrameViewer so the empty state and fade stay aligned", () => {
+      expect(pageSource).toMatch(/centreOffsetX=\{resetViewerPanX\}/);
     });
 
     it("applies the computed initial viewer state when the first streamed frame arrives", () => {
@@ -31,10 +33,10 @@ describe("+page.svelte", () => {
       );
     });
 
-    it("still applies the computed initial viewer state after loading completes as a fallback", () => {
-      expect(pageSource).toMatch(
-        /async\s+function\s+handleDrop\b[\s\S]{0,1600}await\s+applyInitialViewerState\(\)/,
-      );
+    it("does not reapply the computed initial viewer state after loading completes", () => {
+      const handleDropMatch = pageSource.match(/async\s+function\s+handleDrop\b[\s\S]*?\n  }\n<\/script>/);
+      expect(handleDropMatch?.[0]).toBeDefined();
+      expect(handleDropMatch?.[0]).not.toMatch(/finally\s*\{[\s\S]{0,220}applyInitialViewerState\(\)/);
     });
 
     it("records total frames from the start event before frame updates begin", () => {
@@ -48,7 +50,7 @@ describe("+page.svelte", () => {
         /async\s+function\s+handleDrop\b[\s\S]{0,400}frameStore\.startLoading\(\)[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,900}invoke\("decode_gif_stream"/,
       );
       expect(pageSource).toMatch(
-        /async\s+function\s+handleDrop\b[\s\S]{0,2000}await\s+applyInitialViewerState\(\)[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
+        /async\s+function\s+handleDrop\b[\s\S]{0,2000}finally\s*\{[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
       );
     });
 
@@ -63,6 +65,12 @@ describe("+page.svelte", () => {
     it("only renders the inspector while frames are loaded", () => {
       expect(pageSource).toMatch(
         /\{#if\s+inspectorVisible\s*\}[\s\S]{0,80}<Inspector\s+bind:minimised=\{inspectorMinimised\}\s*\/>[\s\S]{0,20}\{\/if\}/,
+      );
+    });
+
+    it("refreshes the reset target when the inspector layout changes", () => {
+      expect(pageSource).toMatch(
+        /\$effect\(\(\)\s*=>\s*\{[\s\S]{0,120}inspectorVisible[\s\S]{0,120}inspectorMinimised[\s\S]{0,220}syncResetViewerState\(\)/,
       );
     });
 

@@ -13,13 +13,13 @@ export interface InitialViewerState {
   panY: number;
 }
 
-const INITIAL_FIT_RATIO = 0.8;
+const INITIAL_FIT_RATIO = 0.7;
 
 export function calculateInitialViewerState({
   gifWidth,
   gifHeight,
   viewerWidth,
-  viewerHeight: _viewerHeight,
+  viewerHeight,
   visibleWidth,
   visibleHeight,
 }: InitialViewerStateInput): InitialViewerState {
@@ -31,18 +31,15 @@ export function calculateInitialViewerState({
     };
   }
 
-  const preferredScale =
-    gifHeight > gifWidth
-      ? (visibleHeight * INITIAL_FIT_RATIO) / gifHeight
-      : (visibleWidth * INITIAL_FIT_RATIO) / gifWidth;
   const maxWidthScale = visibleWidth / gifWidth;
   const maxHeightScale = visibleHeight / gifHeight;
-  const baseScale = Math.min(preferredScale, maxWidthScale, maxHeightScale);
+  const baseScale = Math.min(maxWidthScale, maxHeightScale) * INITIAL_FIT_RATIO;
   const visibleOffsetX = (visibleWidth - viewerWidth) / 2;
+  const visibleOffsetY = (visibleHeight - viewerHeight) / 2;
 
   return {
     baseScale,
     panX: visibleOffsetX / baseScale,
-    panY: 0,
+    panY: visibleOffsetY / baseScale,
   };
 }

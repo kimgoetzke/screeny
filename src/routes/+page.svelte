@@ -5,7 +5,7 @@
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import type { DecodeEvent } from "$lib/types";
   import { waitForNextPaint } from "$lib/paint";
-  import { calculateInitialViewerState } from "$lib/viewer-fit";
+  import { calculateInitialViewerState, type InitialViewerState } from "$lib/viewer-fit";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import FrameViewer from "$lib/components/FrameViewer.svelte";
   import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
@@ -21,6 +21,12 @@
   const MINIMISED_ZOOM_RIGHT_OFFSET = 60;
   const EXPANDED_DROP_OVERLAY_RIGHT_MARGIN = 265;
   const MINIMISED_DROP_OVERLAY_RIGHT_MARGIN = 55;
+  const VIEWER_STATE_EPSILON = 0.0001;
+  const DEFAULT_VIEWER_STATE: InitialViewerState = {
+    baseScale: 1,
+    panX: 0,
+    panY: 0,
+  };
 
   let inspectorMinimised = $state(false);
   let inspectorVisible = $derived(frameStore.hasFrames);
@@ -49,7 +55,7 @@
       (event.key === "r" || event.key === "R")
     ) {
       event.preventDefault();
-      resetView();
+      void resetView();
     }
   }
 
@@ -62,14 +68,36 @@
 
   let viewerBaseScale = $state(1);
   let viewerScale = $state(1);
-  let initialViewerPanX = $state(0);
+  let resetViewerBaseScale = $state(1);
+  let resetViewerPanX = $state(0);
+  let resetViewerPanY = $state(0);
   let viewerPanX = $state(0);
   let viewerPanY = $state(0);
+  let zoomIndicatorScale = $derived((viewerBaseScale * viewerScale) / resetViewerBaseScale);
+  let isViewerModified = $derived.by(
+    () =>
+      Math.abs(zoomIndicatorScale - 1) > VIEWER_STATE_EPSILON ||
+      Math.abs(viewerPanX - resetViewerPanX) > VIEWER_STATE_EPSILON ||
+      Math.abs(viewerPanY - resetViewerPanY) > VIEWER_STATE_EPSILON,
+  );
 
-  function resetView() {
+  function setResetViewerState(viewerState: InitialViewerState) {
+    resetViewerBaseScale = viewerState.baseScale;
+    resetViewerPanX = viewerState.panX;
+    resetViewerPanY = viewerState.panY;
+  }
+
+  function setCurrentViewerState(viewerState: InitialViewerState) {
+    viewerBaseScale = viewerState.baseScale;
     viewerScale = 1;
-    viewerPanX = initialViewerPanX;
-    viewerPanY = 0;
+    viewerPanX = viewerState.panX;
+    viewerPanY = viewerState.panY;
+  }
+
+  async function resetView() {
+    const viewerState = await getTargetViewerState();
+    setResetViewerState(viewerState);
+    setCurrentViewerState(viewerState);
   }
 
   function getVisibleViewerBounds() {
@@ -94,26 +122,20 @@
     };
   }
 
-  async function applyInitialViewerState() {
+  async function getTargetViewerState(): Promise<InitialViewerState> {
     const frame = frameStore.selectedFrame;
     if (!frame) {
-      viewerBaseScale = 1;
-      initialViewerPanX = 0;
-      resetView();
-      return;
+      return DEFAULT_VIEWER_STATE;
     }
 
     await tick();
 
     const visibleViewerBounds = getVisibleViewerBounds();
     if (!visibleViewerBounds) {
-      viewerBaseScale = 1;
-      initialViewerPanX = 0;
-      resetView();
-      return;
+      return DEFAULT_VIEWER_STATE;
     }
 
-    const initialViewerState = calculateInitialViewerState({
+    return calculateInitialViewerState({
       gifWidth: frame.width,
       gifHeight: frame.height,
       viewerWidth: visibleViewerBounds.viewerWidth,
@@ -121,13 +143,23 @@
       visibleWidth: visibleViewerBounds.visibleWidth,
       visibleHeight: visibleViewerBounds.visibleHeight,
     });
-
-    viewerBaseScale = initialViewerState.baseScale;
-    initialViewerPanX = initialViewerState.panX;
-    viewerScale = 1;
-    viewerPanX = initialViewerState.panX;
-    viewerPanY = initialViewerState.panY;
   }
+
+  async function syncResetViewerState() {
+    setResetViewerState(await getTargetViewerState());
+  }
+
+  async function applyInitialViewerState() {
+    const viewerState = await getTargetViewerState();
+    setResetViewerState(viewerState);
+    setCurrentViewerState(viewerState);
+  }
+
+  $effect(() => {
+    inspectorVisible;
+    inspectorMinimised;
+    void syncResetViewerState();
+  });
 
   onMount(() => {
     invoke("close_splashscreen");
@@ -186,7 +218,6 @@
     } catch (error) {
       dropError = `Failed to decode GIF: ${error}`;
     } finally {
-      await applyInitialViewerState();
       if (frameStore.isLoading) {
         await waitForNextPaint();
         frameStore.finishLoading();
@@ -200,7 +231,7 @@
   <div class="viewer-area" bind:this={viewerArea}>
     <FrameViewer
       showEmptyState={!dragging}
-      centreOffsetX={initialViewerPanX}
+      centreOffsetX={resetViewerPanX}
       baseScale={viewerBaseScale}
       bind:scale={viewerScale}
       bind:panX={viewerPanX}
@@ -210,8 +241,8 @@
       <Inspector bind:minimised={inspectorMinimised} />
     {/if}
     <ZoomIndicator
-      scale={viewerScale}
-      isModified={viewerScale !== 1 || viewerPanX !== initialViewerPanX || viewerPanY !== 0}
+      scale={zoomIndicatorScale}
+      isModified={isViewerModified}
       onReset={resetView}
       visible={inspectorVisible}
       rightOffset={zoomRightOffset}
