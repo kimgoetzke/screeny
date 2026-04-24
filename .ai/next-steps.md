@@ -2,7 +2,7 @@
 
 ## Features
 
-### POC
+### Studio POC
 
 Status: **Completed**
 
@@ -17,7 +17,7 @@ Status: **Completed**
 - [x] Improve styling
 - [x] Improve GIF loading speed
 
-### V1
+### Studio V1
 
 Status: **In progress**
 
@@ -44,12 +44,12 @@ Status: **In progress**
 - [x] Add inspector buttons to move frame(s)
 - [x] Add select-to-first/last key binding
 - [x] Load GIF to fill visible canvas
-- [ ] Improve GIF loading speed
-- [ ] Fix bug where closing while loading breaks things
 - [x] Improve fade-out of background grid/GIF borders
-- [ ] Replace splash screen placeholders
 - [x] Improve key bindings again
 - [x] Fix load position/alignment regression
+- [ ] Replace splash screen placeholders
+- [ ] Improve GIF loading speed
+- [ ] Fix bug where closing while loading breaks things
 - [ ] Review refactoring opportunities
 
 ### Prompt planning
@@ -63,25 +63,6 @@ See `2026-04-15 gif-loading-perf`.
 #### Fix bug where closing while loading breaks things
 
 Status: **Blocked by `Improve GIF loading speed`**
-
-#### Improve key bindings again
-
-Status: **In progress**
-
-Please introduce new key bindings for my application.
-
-- `Alt` + `Left`/`Right` should move the selected frame(s) to the left/right by one frame
-- `Ctrl` + `Alt` + `Left`/`Right` should move the selected frame(s) to the start/end
-- `Ctrl` + `Q` should close the currently open GIF (but show the notification pop up asking for confirmation) and do nothing when no GIF is open
-- `F1` should toggle the help menu
-
-Please update `help-keybindings.ts` with the new bindings. Check that you do not break any of the existing bindings. You must add E2E test coverage.
-
-Also, you previously introduced a regression where frames where excluded from using `Tab` to navigate to the next UI element. Can you please re-intrudoce this exclusion? To be clear: `Tab` and `Shift` + `Tab` should permit cycling through UI elements as they currently do but frames should simply be excluded. They are already navigated with other, direct key bindings.
-
-If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask list the changes to existing tests you need to make, explain why, and ask if the change is acceptable by adding a question to the `questions.md` file as per the `planning` skill.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ##### Review refactoring opportunities
 
@@ -112,6 +93,8 @@ Please check for warnings and address them in the best practice way or explicitl
 ---
 
 Also, please write an E2E test for this feature.
+
+If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
