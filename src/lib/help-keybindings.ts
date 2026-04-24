@@ -8,6 +8,8 @@ export const helpKeyBindings: HelpKeyBinding[] = [
   { context: "Global", binding: "Space", action: "Toggle playback" },
   { context: "Global", binding: "Enter", action: "Confirm/select" },
   { context: "Global", binding: "Escape", action: "Cancel" },
+  { context: "Global", binding: "Ctrl+Q", action: "Close current GIF" },
+  { context: "Global", binding: "F1", action: "Toggle help menu" },
   { context: "Canvas", binding: "MouseWheel", action: "Zoom in/out" },
   { context: "Canvas", binding: "Ctrl+I", action: "Toggle inspector minimised state" },
   { context: "Canvas", binding: "Ctrl+R", action: "Reset zoom" },
@@ -18,6 +20,18 @@ export const helpKeyBindings: HelpKeyBinding[] = [
   { context: "Timeline", binding: "Shift+ArrowRight", action: "Extend selection right" },
   { context: "Timeline", binding: "Ctrl+ArrowLeft", action: "Select first frame" },
   { context: "Timeline", binding: "Ctrl+ArrowRight", action: "Select last frame" },
+  { context: "Timeline", binding: "Alt+ArrowLeft", action: "Move selected frame(s) left" },
+  { context: "Timeline", binding: "Alt+ArrowRight", action: "Move selected frame(s) right" },
+  {
+    context: "Timeline",
+    binding: "Ctrl+Alt+ArrowLeft",
+    action: "Move selected frame(s) to start",
+  },
+  {
+    context: "Timeline",
+    binding: "Ctrl+Alt+ArrowRight",
+    action: "Move selected frame(s) to end",
+  },
   {
     context: "Timeline",
     binding: "Ctrl+Shift+ArrowLeft",

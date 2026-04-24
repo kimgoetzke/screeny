@@ -222,6 +222,36 @@
         showCloseConfirm = true;
     }
 
+    function toggleHelpMenu() {
+        showHelpMenu = !showHelpMenu;
+    }
+
+    function handleWindowKeyDown(event: KeyboardEvent) {
+        if (
+            !event.ctrlKey &&
+            !event.altKey &&
+            !event.shiftKey &&
+            !event.metaKey &&
+            event.key === "F1"
+        ) {
+            event.preventDefault();
+            toggleHelpMenu();
+            return;
+        }
+
+        if (
+            event.ctrlKey &&
+            !event.altKey &&
+            !event.shiftKey &&
+            !event.metaKey &&
+            (event.key === "q" || event.key === "Q")
+        ) {
+            if (!frameStore.hasFrames) return;
+            event.preventDefault();
+            handleClose();
+        }
+    }
+
     function confirmClose() {
         frameStore.clear();
         showCloseConfirm = false;
@@ -247,6 +277,13 @@
     async function handleCloseWindow() {
         await getCurrentWindow().close();
     }
+
+    $effect(() => {
+        window.addEventListener("keydown", handleWindowKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleWindowKeyDown);
+        };
+    });
 </script>
 
 {#if showFilePicker}
@@ -387,7 +424,7 @@
         <div class="toolbar-titlebar-actions">
             <button
                 class="icon-btn titlebar-btn"
-                onclick={() => (showHelpMenu = true)}
+                onclick={toggleHelpMenu}
                 data-testid="btn-help"
                 title="Help"
                 aria-label="Open help menu"

@@ -131,8 +131,14 @@
         if (event.ctrlKey && event.shiftKey) {
           frameStore.selectToFirstFrame();
           if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
-        } else if (event.ctrlKey) {
+        } else if (event.ctrlKey && !event.altKey) {
           frameStore.selectFirstFrame();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        } else if (event.ctrlKey && event.altKey) {
+          frameStore.moveSelectedFramesToStart();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        } else if (event.altKey) {
+          frameStore.moveSelectedFrameLeft();
           if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
         } else if (event.shiftKey) {
           frameStore.extendSelectionLeft();
@@ -149,8 +155,14 @@
         if (event.ctrlKey && event.shiftKey) {
           frameStore.selectToLastFrame();
           if (frameStore.selectionActiveId) scrollFrameIntoView(frameStore.selectionActiveId);
-        } else if (event.ctrlKey) {
+        } else if (event.ctrlKey && !event.altKey) {
           frameStore.selectLastFrame();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        } else if (event.ctrlKey && event.altKey) {
+          frameStore.moveSelectedFramesToEnd();
+          if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
+        } else if (event.altKey) {
+          frameStore.moveSelectedFrameRight();
           if (frameStore.selectedFrameId) scrollFrameIntoView(frameStore.selectedFrameId);
         } else if (event.shiftKey) {
           frameStore.extendSelectionRight();
@@ -212,7 +224,13 @@
   }
 </script>
 
-<div class="timeline" class:is-dragging={dragActive} data-testid="timeline" bind:this={timelineEl} onwheel={handleTimelineWheel}>
+<div
+  class="timeline"
+  class:is-dragging={dragActive}
+  data-testid="timeline"
+  bind:this={timelineEl}
+  onwheel={handleTimelineWheel}
+>
   {#if frameStore.hasFrames}
     <div class="frames-strip" data-testid="frames-strip" bind:this={framesStripEl}>
       {#if dragActive && insertionX !== null}
@@ -228,7 +246,7 @@
           class:selected={isSelected}
           class:being-dragged={isBeingDragged}
           role="button"
-          tabindex="0"
+          tabindex="-1"
           data-testid="frame-thumb-{index}"
           data-frame-id={frame.id}
           onpointerdown={(e) => handleFramePointerDown(index, e)}
@@ -246,6 +264,7 @@
           </div>
           <button
             class="delete-btn"
+            tabindex="-1"
             data-testid="frame-delete-{index}"
             onclick={(e) => {
               e.stopPropagation();

@@ -102,6 +102,26 @@ describe("Toolbar", () => {
     expect(body).toContain('data-testid="btn-window-close"');
   });
 
+  describe("keyboard shortcuts", () => {
+    it("registers a window-level keydown listener for toolbar shortcuts", () => {
+      expect(toolbarSource).toContain("keydown");
+      expect(toolbarSource).toMatch(/window\.addEventListener\s*\(\s*["']keydown["']/);
+    });
+
+    it("handles F1 by toggling the help menu", () => {
+      expect(toolbarSource).toMatch(/key\s*===\s*["']F1["']/);
+      expect(toolbarSource).toMatch(/showHelpMenu\s*=\s*!\s*showHelpMenu/);
+      expect(toolbarSource).toMatch(/F1[\s\S]{0,120}preventDefault/);
+    });
+
+    it("handles Ctrl+Q by reusing the close-confirm flow only when a GIF is open", () => {
+      expect(toolbarSource).toMatch(/key\s*===\s*["']q["']|key\s*===\s*["']Q["']/);
+      expect(toolbarSource).toContain("handleClose");
+      expect(toolbarSource).toMatch(/Ctrl\+Q|ctrlKey/);
+      expect(toolbarSource).toMatch(/frameStore\.hasFrames/);
+    });
+  });
+
   describe("loading progress", () => {
     it("renders Loading... before any measurable progress arrives", () => {
       frameStore.startLoading();

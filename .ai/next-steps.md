@@ -48,7 +48,7 @@ Status: **In progress**
 - [ ] Fix bug where closing while loading breaks things
 - [x] Improve fade-out of background grid/GIF borders
 - [ ] Replace splash screen placeholders
-- [ ] Improve key bindings again
+- [x] Improve key bindings again
 - [x] Fix load position/alignment regression
 - [ ] Review refactoring opportunities
 
@@ -66,16 +66,22 @@ Status: **Blocked by `Improve GIF loading speed`**
 
 #### Improve key bindings again
 
+Status: **In progress**
+
 Please introduce new key bindings for my application.
 
 - `Alt` + `Left`/`Right` should move the selected frame(s) to the left/right by one frame
 - `Ctrl` + `Alt` + `Left`/`Right` should move the selected frame(s) to the start/end
-- `Ctrl` + `Q` should close the currently open GIF and do nothing when no GIF is open
+- `Ctrl` + `Q` should close the currently open GIF (but show the notification pop up asking for confirmation) and do nothing when no GIF is open
+- `F1` should toggle the help menu
 
-Please update `help-keybindings.ts` with the new bindings. Check that you do not break any of the existing bindings.
+Please update `help-keybindings.ts` with the new bindings. Check that you do not break any of the existing bindings. You must add E2E test coverage.
+
+Also, you previously introduced a regression where frames where excluded from using `Tab` to navigate to the next UI element. Can you please re-intrudoce this exclusion? To be clear: `Tab` and `Shift` + `Tab` should permit cycling through UI elements as they currently do but frames should simply be excluded. They are already navigated with other, direct key bindings.
+
+If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask list the changes to existing tests you need to make, explain why, and ask if the change is acceptable by adding a question to the `questions.md` file as per the `planning` skill.
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
-
 
 ##### Review refactoring opportunities
 

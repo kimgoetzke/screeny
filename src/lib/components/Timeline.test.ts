@@ -34,6 +34,32 @@ describe("Timeline", () => {
     });
   });
 
+  describe("Alt+Arrow move-frame keyboard shortcuts", () => {
+    it("Alt+ArrowLeft calls moveSelectedFrameLeft", () => {
+      expect(timelineSource).toMatch(
+        /ArrowLeft[\s\S]{0,1200}event\.altKey[\s\S]{0,200}moveSelectedFrameLeft/,
+      );
+    });
+
+    it("Alt+ArrowRight calls moveSelectedFrameRight", () => {
+      expect(timelineSource).toMatch(
+        /ArrowRight[\s\S]{0,1200}event\.altKey[\s\S]{0,200}moveSelectedFrameRight/,
+      );
+    });
+
+    it("Ctrl+Alt+ArrowLeft calls moveSelectedFramesToStart", () => {
+      expect(timelineSource).toMatch(
+        /ArrowLeft[\s\S]{0,500}else if \(event\.ctrlKey && event\.altKey\)[\s\S]{0,120}moveSelectedFramesToStart/,
+      );
+    });
+
+    it("Ctrl+Alt+ArrowRight calls moveSelectedFramesToEnd", () => {
+      expect(timelineSource).toMatch(
+        /ArrowRight[\s\S]{0,500}else if \(event\.ctrlKey && event\.altKey\)[\s\S]{0,120}moveSelectedFramesToEnd/,
+      );
+    });
+  });
+
   describe("Ctrl+Shift+Arrow select-to-boundary keyboard shortcuts", () => {
     it("Ctrl+Shift+ArrowLeft calls selectToFirstFrame", () => {
       expect(timelineSource).toMatch(
@@ -112,6 +138,16 @@ describe("Timeline", () => {
       expect(thumbsByIndex[0]).not.toContain("selected");
       expect(thumbsByIndex[1]).toContain("selected");
       expect(thumbsByIndex[2]).not.toContain("selected");
+    });
+
+    it("excludes frame thumbnails from Tab navigation", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+
+      const { body } = render(Timeline);
+
+      expect(body).toContain('data-testid="frame-thumb-0"');
+      expect(body).toContain('tabindex="-1"');
+      expect(body).not.toContain('tabindex="0"');
     });
   });
 

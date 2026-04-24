@@ -14,13 +14,40 @@ import { $, $$, browser, expect } from "@wdio/globals";
  */
 
 /** Dispatch a window-level keydown event, as if the user pressed a key. */
-async function dispatchKey(key: string, options: { shiftKey?: boolean; ctrlKey?: boolean } = {}) {
+async function dispatchKey(
+  key: string,
+  options: { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {},
+) {
   await browser.execute(
-    (k: string, opts: { shiftKey?: boolean; ctrlKey?: boolean }) =>
+    (k: string, opts: { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean }) =>
       window.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, ...opts })),
     key,
     options,
   );
+}
+
+async function getFrameOrder() {
+  return browser.execute(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-testid^="frame-thumb-"]')).map(
+      (element) => element.dataset.frameId ?? "",
+    ),
+  );
+}
+
+async function focusElement(selector: string) {
+  const element = await $(selector);
+  await element.waitForExist({ timeout: 5_000 });
+  await browser.execute((el: HTMLElement) => el.focus(), element as unknown as HTMLElement);
+}
+
+async function getActiveTestId() {
+  return browser.execute(() => {
+    if (!(document.activeElement instanceof HTMLElement)) {
+      return null;
+    }
+
+    return document.activeElement.getAttribute("data-testid");
+  });
 }
 
 /** Dispatch a Ctrl+wheel event on the frame viewer to trigger cursor-centred zoom. */
@@ -337,6 +364,33 @@ describe("Studio — app launch", () => {
     await expect(await $('[data-testid="help-menu"]')).not.toBeExisting();
   });
 
+  it("F1 toggles the help overlay and shows the new shortcut bindings", async () => {
+    await dispatchKey("F1");
+
+    const helpMenu = await $('[data-testid="help-menu"]');
+    await helpMenu.waitForExist({ timeout: 5_000 });
+    await expect(helpMenu).toBeDisplayed();
+
+    const keybindingsText = await browser.execute(() => {
+      const table = document.querySelector('[data-testid="help-keybindings-table"]');
+      return table instanceof HTMLElement ? table.innerText : "";
+    });
+    expect(keybindingsText).toContain("Ctrl+Q");
+    expect(keybindingsText).toContain("F1");
+    expect(keybindingsText).toContain("Alt+ArrowLeft");
+    expect(keybindingsText).toContain("Ctrl+Alt+ArrowRight");
+
+    await dispatchKey("F1");
+    await expect(await $('[data-testid="help-menu"]')).not.toBeExisting();
+  });
+
+  it("Ctrl+Q does nothing when no GIF is open", async () => {
+    await dispatchKey("q", { ctrlKey: true });
+
+    await expect(await $('[data-testid="dialog"]')).not.toBeExisting();
+    await expect(await $('[data-testid="btn-open"]')).toBeDisplayed();
+  });
+
   it("drop overlay uses the full viewer width while the inspector is hidden", async () => {
     const result = await browser.execute(() => {
       const viewerArea = document.querySelector(".viewer-area");
@@ -597,6 +651,15 @@ describe("Studio — close project", () => {
 
   it("should show the confirmation dialog when clicking Close", async () => {
     await jsClick('[data-testid="btn-close"]');
+    const dialog = await $('[data-testid="dialog"]');
+    await dialog.waitForExist({ timeout: 5_000 });
+    await expect(dialog).toBeDisplayed();
+  });
+
+  it("Ctrl+Q shows the same confirmation dialog when a GIF is open", async () => {
+    await jsClick('[data-testid="btn-dialog-cancel"]');
+    await dispatchKey("q", { ctrlKey: true });
+
     const dialog = await $('[data-testid="dialog"]');
     await dialog.waitForExist({ timeout: 5_000 });
     await expect(dialog).toBeDisplayed();
@@ -1168,6 +1231,55 @@ describe("Studio — keyboard navigation", () => {
     const indicator = await $('[data-testid="zoom-indicator"]');
     await indicator.waitForExist({ timeout: 5_000 });
     await expect(await $('[data-testid="zoom-level"]')).toHaveText("100%");
+  });
+
+  it("Alt+ArrowRight and Alt+ArrowLeft move the selected frame by one position", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    const originalOrder = await getFrameOrder();
+
+    await dispatchKey("ArrowRight", { altKey: true });
+    await browser.pause(200);
+    expect(await getFrameOrder()).toEqual([originalOrder[1], originalOrder[0], originalOrder[2]]);
+
+    await dispatchKey("ArrowLeft", { altKey: true });
+    await browser.pause(200);
+    expect(await getFrameOrder()).toEqual(originalOrder);
+  });
+
+  it("Ctrl+Alt+ArrowRight and Ctrl+Alt+ArrowLeft move the selected frame to the end and back to the start", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    const originalOrder = await getFrameOrder();
+
+    await dispatchKey("ArrowRight", { ctrlKey: true, altKey: true });
+    await browser.pause(200);
+    expect(await getFrameOrder()).toEqual([originalOrder[1], originalOrder[2], originalOrder[0]]);
+
+    await dispatchKey("ArrowLeft", { ctrlKey: true, altKey: true });
+    await browser.pause(200);
+    expect(await getFrameOrder()).toEqual(originalOrder);
+  });
+
+  it("Tab and Shift+Tab keep cycling focus without landing on frame thumbnails", async () => {
+    await focusElement('[data-testid="btn-close"]');
+    expect(await getActiveTestId()).toBe("btn-close");
+
+    const visited = new Set<string>();
+    for (let index = 0; index < 10; index += 1) {
+      await browser.keys("Tab");
+      await browser.pause(100);
+      const activeTestId = await getActiveTestId();
+      if (activeTestId) {
+        visited.add(activeTestId);
+      }
+    }
+
+    expect(visited.has("btn-export")).toBe(true);
+    expect(Array.from(visited).some((testId) => testId.startsWith("frame-thumb-"))).toBe(false);
+
+    await focusElement('[data-testid="btn-export"]');
+    await browser.keys(["Shift", "Tab"]);
+    await browser.pause(100);
+    expect(await getActiveTestId()).toBe("btn-close");
   });
 
   it("ArrowRight moves selection to the next frame", async () => {
