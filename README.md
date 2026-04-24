@@ -14,24 +14,11 @@ A cross-platform GIF recording and editing application built with Tauri, SvelteK
 
 - Minimalist GIF editor with a canvas, tool bar, timeline, inspector panel
 - GIF playback
-- Zoom in/out, move GIF around
+- Zoom in/out, move GIF around on canvas
 - Basic frame management: delete/move, dedupe, change frame duration, duplicate (all available as individual and bulk operations)
-- Thoughtful various mouse/key bindings
+- Intuitive mouse/key bindings (full list available in help menu)
 
 <img src="assets/screenshot-4.png" width="700" alt="Screenshot"/>
-
-## Key bindings
-
-- `Ctrl` + `Mouse wheel` - Zoom in/out
-- `Shift` + `Mouse wheel` - Scroll timeline
-- `Left`/`Right` - Move selected frame
-- `Shift` + `Left`/`Right` - Expand/reduce frame selection
-- `Ctrl` + `A` - Select all frames
-- `Delete` - Remove selected frame(s)
-- `Space` - Start/stop playback
-- `Tab` - Select next UI element
-- `Shift` + `Tab` - Select previous UI element
-- `Enter` - "Click" selected UI element
 
 ## How to develop
 
