@@ -6,7 +6,7 @@ pub mod encode;
 /// JSON shape (adjacently tagged):
 /// `{ "type": "start",    "data": { "totalBytes": N, "totalFrames": N } }`
 /// `{ "type": "progress", "data": { "bytesRead": N, "totalBytes": N } }`
-/// `{ "type": "frame",    "data": { "id": "...", "imageData": "...", ... } }`
+/// `{ "type": "frame",    "data": { "id": "...", "imageData": "<base64 raw RGBA>", ... } }`
 /// `{ "type": "complete", "data": { "frameCount": N } }`
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "camelCase")]
@@ -43,8 +43,11 @@ pub struct Frame {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportFrame {
+    /// Raw RGBA bytes encoded as base64 (width × height × 4 bytes).
     pub image_data: String,
     pub duration: u32,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[cfg(test)]

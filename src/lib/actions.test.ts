@@ -226,14 +226,14 @@ describe("exportGif", () => {
     expect(result.error).toContain("write failed");
   });
 
-  it("should pass only imageData and duration to export", async () => {
+  it("should pass imageData, width, height, and duration to export", async () => {
     const backend = mockBackend();
     const frames = [makeFrame("a")];
 
     await exportGif(mockDialog(), backend, frames);
 
     expect(backend.export).toHaveBeenCalledWith(
-      [{ imageData: "data:image/png;base64,a", duration: 100 }],
+      [{ imageData: "data:image/png;base64,a", duration: 100, width: 10, height: 10 }],
       "/some/export.gif",
     );
   });

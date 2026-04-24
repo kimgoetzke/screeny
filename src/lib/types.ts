@@ -9,6 +9,8 @@ export interface Frame {
 export interface ExportFrame {
   imageData: string;
   duration: number;
+  width: number;
+  height: number;
 }
 
 export interface DecodeStart {

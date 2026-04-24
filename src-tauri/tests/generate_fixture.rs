@@ -17,7 +17,6 @@ fn make_export_frame(
     duration: u32,
 ) -> screeny_lib::gif::ExportFrame {
     use base64::{engine::general_purpose::STANDARD, Engine};
-    use image::{codecs::png::PngEncoder, ImageEncoder, RgbaImage};
 
     let pixel_count = (width * height) as usize;
     let mut pixels = Vec::with_capacity(pixel_count * 4);
@@ -25,16 +24,11 @@ fn make_export_frame(
         pixels.extend_from_slice(&colour);
     }
 
-    let img = RgbaImage::from_raw(width, height, pixels).unwrap();
-    let mut png_bytes = Vec::new();
-    PngEncoder::new(&mut png_bytes)
-        .write_image(img.as_raw(), width, height, image::ExtendedColorType::Rgba8)
-        .unwrap();
-
-    let b64 = STANDARD.encode(&png_bytes);
     screeny_lib::gif::ExportFrame {
-        image_data: format!("data:image/png;base64,{b64}"),
+        image_data: STANDARD.encode(&pixels),
         duration,
+        width,
+        height,
     }
 }
 

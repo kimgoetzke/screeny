@@ -210,6 +210,30 @@ describe("Timeline", () => {
     });
   });
 
+  describe("streaming frame visibility", () => {
+    it("renders frame thumbnails as they arrive during loading", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(3);
+      frameStore.addFrame(makeFrame("a"));
+      frameStore.addFrame(makeFrame("b"));
+
+      const { body } = render(Timeline);
+
+      expect(body).toContain('data-testid="frame-thumb-0"');
+      expect(body).toContain('data-testid="frame-thumb-1"');
+    });
+
+    it("does not show a loading placeholder that hides the timeline", () => {
+      frameStore.startLoading();
+      frameStore.addFrame(makeFrame("a"));
+
+      const { body } = render(Timeline);
+
+      expect(body).not.toContain('data-testid="timeline-loading"');
+      expect(body).toContain('data-testid="frame-thumb-0"');
+    });
+  });
+
   describe("multi-frame drag indicator", () => {
     it("applies being-dragged class to selected frames during a multi-frame pointer drag", () => {
       // Verify that the source wires isDraggingSelection to the being-dragged CSS class

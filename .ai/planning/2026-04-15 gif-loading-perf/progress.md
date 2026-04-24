@@ -97,12 +97,6 @@
   - `src-tauri/src/e2e.rs` — removed `e2e_open_fixture`
   - `src-tauri/tests/generate_fixture.rs` — replaced `decode_gif_file` with `decode_gif_stream_path`
 
-## Test Results
-
-| Test | Input | Expected | Actual | Status |
-| ---- | ----- | -------- | ------ | ------ |
-|      |       |          |        |        |
-
 ## Error Log
 
 | Timestamp | Error | Attempt | Resolution |
@@ -156,15 +150,92 @@
   - `src/routes/+page.svelte` / `page.test.ts` — updated drag/drop loading flow
   - `src/lib/paint.ts` — new shared paint-boundary helper
 
+### Phase 6: Frontend Batching — Reduce Render Churn (2026-04-22)
+
+- **Status:** complete
+- Actions taken (TDD red-green-refactor throughout):
+  - `frames.svelte.ts`: swapped `frames = [...frames, frame]` for in-place `frames.push(frame)` mutation (Svelte 5 `$state` proxy reacts to mutation methods); added `addFrames(newFrames: Frame[])` bulk helper
+  - `frames.test.ts`: added reference-preservation test on `addFrame` plus 6 new tests covering `addFrames`
+  - New module `src/lib/frame-batcher.ts`: `createFrameBatcher(onFlush)` buffers incoming frames and flushes once per `requestAnimationFrame`; exposes explicit `flush()` for timing-sensitive moments; 6 tests
+  - `Toolbar.svelte`: open flow feeds each streamed frame through the batcher; explicit `flush()` before `onFirstFrame` and in `finally`
+  - `+page.svelte`: drag-and-drop flow mirrors the same batcher usage
+  - `FrameViewer.svelte`: effect now tracks only `frameStore.selectedFrameId` and reads frame via `untrack`
+  - `Timeline.svelte`: added top-level branch rendering "Decoding frames…" placeholder while `frameStore.isLoading` is true; thumbnails materialise once after `finishLoading`
+  - Validation: `npx vitest run` — 327/327 tests pass; `npx svelte-check` — 0 errors; `npx vite build` — clean
+- Files created/modified:
+  - `src/lib/stores/frames.svelte.ts` (push mutation, `addFrames`)
+  - `src/lib/stores/frames.test.ts` (new tests)
+  - `src/lib/frame-batcher.ts` (new)
+  - `src/lib/frame-batcher.test.ts` (new)
+  - `src/lib/components/Toolbar.svelte` + `Toolbar.test.ts`
+  - `src/routes/+page.svelte` + `src/routes/page.test.ts`
+  - `src/lib/components/FrameViewer.svelte` + `FrameViewer.test.ts`
+  - `src/lib/components/Timeline.svelte` + `Timeline.test.ts`
+
+## Session: 2026-04-23
+
+### Phase 7: Partial Phase 6 Revert — Restore Streaming UX
+
+- **Status:** complete
+- Context: Phase 6 achieved zero load-time reduction and introduced a UX regression — users could no longer see frames streaming in during load. The batching approach and Timeline placeholder were identified as the cause.
+- Actions taken:
+  - Removed `createFrameBatcher` import and usage from `Toolbar.svelte` — now calls `frameStore.addFrame(frame)` directly
+  - Removed `createFrameBatcher` import and usage from `+page.svelte` — now calls `frameStore.addFrame(event.data)` directly
+  - Removed `{#if frameStore.isLoading}` placeholder branch from `Timeline.svelte`; outer condition restored to `{#if frameStore.hasFrames}`
+  - Removed `.loading-placeholder` CSS rule from `Timeline.svelte`
+  - Deleted `src/lib/frame-batcher.ts` and `src/lib/frame-batcher.test.ts`
+  - Updated `Timeline.test.ts`: replaced "suppresses thumbnails during load" describe block with "streaming frame visibility" block (2 new tests asserting frames are visible during load)
+  - Updated `Toolbar.test.ts`: removed 4 batcher-specific tests, added 1 test asserting `frameStore.addFrame` is called directly
+  - Updated `page.test.ts`: removed 3 batcher-specific tests, added 1 test asserting `frameStore.addFrame(event.data)` is called directly
+  - 315/315 frontend tests pass
+- Files created/modified:
+  - `src/lib/components/Timeline.svelte` + `Timeline.test.ts`
+  - `src/lib/components/Toolbar.svelte` + `Toolbar.test.ts`
+  - `src/routes/+page.svelte` + `src/routes/page.test.ts`
+  - `src/lib/frame-batcher.ts` (deleted)
+  - `src/lib/frame-batcher.test.ts` (deleted)
+
+### Phase 8: Raw RGBA Encoding — Eliminate Per-Frame PNG Compression
+
+- **Status:** complete
+- Context: `encode_canvas_as_data_url` (`decode.rs:204`) was running per frame inside the decode loop, applying zlib compression (PNG encoding). At 50–100ms/frame for real screen-recording content, this was the dominant load-time cost (~80–100%).
+- Actions taken (TDD):
+  - Updated `actions.test.ts`: renamed export test to assert `width`/`height` are included in `ExportFrame`
+  - Updated `types.ts`: added `width: number` and `height: number` to `ExportFrame` interface
+  - Updated `actions.ts`: `exportGif` now includes `width: f.width, height: f.height` in each export frame
+  - Updated `mod.rs` (`ExportFrame`): added `width: u32` and `height: u32` fields; updated doc comment for `Frame.image_data`
+  - Updated `decode.rs`: removed `image` crate imports; removed `encode_canvas_as_data_url` and `decode_data_url_to_rgba`; replaced hot-path call with `STANDARD.encode(&canvas)` (raw RGBA base64, no zlib); removed PNG-format tests; added `test_decode_produces_raw_rgba_base64` and `test_decode_raw_rgba_pixel_values`; updated `test_decode_streaming_sends_all_frames` to check raw RGBA byte length
+  - Updated `encode.rs`: removed `decode_data_url_to_rgba` import; added `STANDARD.decode` + `chunks_exact(4)` raw RGBA decode; updated `make_export_frame` to use `STANDARD.encode(&pixels)` (raw RGBA base64)
+  - Updated `generate_fixture.rs`: updated `make_export_frame` to use raw RGBA base64 and include `width`/`height`
+  - Updated `FrameViewer.svelte`: replaced `new Image()` / `img.src` with `atob` → `Uint8ClampedArray` → `new ImageData` → `ctx.putImageData` (synchronous, no browser PNG decode)
+  - Updated `Timeline.svelte`: replaced `<img src={frame.imageData}>` with `<canvas use:drawRgba={frame}>` using a Svelte `use:` action; updated `.frame-thumb img` CSS to `.frame-thumb canvas`
+  - 25/25 Rust tests pass; 315/315 frontend tests pass; `svelte-check` 0 errors; `pnpm build` clean
+- Files created/modified:
+  - `src-tauri/src/gif/decode.rs`
+  - `src-tauri/src/gif/mod.rs`
+  - `src-tauri/src/gif/encode.rs`
+  - `src-tauri/tests/generate_fixture.rs`
+  - `src/lib/types.ts`
+  - `src/lib/actions.ts`
+  - `src/lib/actions.test.ts`
+  - `src/lib/components/FrameViewer.svelte`
+  - `src/lib/components/Timeline.svelte`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+| ---- | ----- | -------- | ------ | ------ |
+|      |       |          |        |        |
+
 ## 5-Question Reboot Check
 
 | Question             | Answer |
 | -------------------- | ------ |
-| Where am I?          | Phase 6 pending — Phase 5 is now complete, but the larger responsiveness fix still lives in batching |
-| Where am I going?    | Phase 6 (frontend batching), then reevaluate Phase 7 (payload redesign) |
-| What's the goal?     | 10x faster GIF loading with progress, no crash dialog |
-| What have I learned? | See findings.md and 2026-04-17 loading-validation.md — streaming moved the bottleneck but didn't remove it; per-frame PNG encode and frontend array churn are the remaining causes |
-| What have I done?    | Phases 1-5 complete (streaming, hybrid progress UI, paint-boundary handling, async Rust command, cleanup, automated validation); Phase 6 is the next implementation target |
+| Where am I?          | Phases 1–8 complete |
+| Where am I going?    | Q7 (IPC volume at 1080p) open for empirical measurement; no immediate action required |
+| What's the goal?     | 10x faster GIF loading with streaming progress, no crash dialog |
+| What have I learned? | PNG encoding per frame was the dominant bottleneck; raw RGBA base64 eliminates it. `generate_fixture.rs` also needed updating. SSR tests are unaffected by `imageData` format changes. Phase 6 batching was purely frontend-side and could not reduce Rust CPU time. |
+| What have I done?    | Phases 1–8 complete: streaming IPC, progress UI, frontend optimisations, Phase 6 UX revert, raw RGBA encoding replacing per-frame PNG compression. |
 
 ---
 
