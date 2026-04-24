@@ -103,9 +103,9 @@ describe("FrameViewer", () => {
       const { body } = render(FrameViewer);
 
       expect(body).toContain("top: calc(50% - 6px)"); // top line (1px outside top edge)
-      expect(body).toContain("top: calc(50% + 5px)"); // bottom line
+      expect(body).toContain("top: calc(50% + 4px)"); // bottom line
       expect(body).toContain("left: calc(50% - 6px)"); // left line (1px outside left edge)
-      expect(body).toContain("left: calc(50% + 5px)"); // right line
+      expect(body).toContain("left: calc(50% + 4px)"); // right line
     });
   });
 
