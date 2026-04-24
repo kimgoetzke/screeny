@@ -118,7 +118,11 @@
     aria-hidden="true"
     style="--fade-center-x: calc(50% + {displayPanX}px); --fade-center-y: calc(50% + {panY}px)"
   >
-    <div class="viewer-grid-stage" data-testid="viewer-grid-stage" style={stageTransform}>
+    <div
+      class="viewer-grid-stage"
+      data-testid="viewer-grid-stage"
+      style={stageTransform + `; --fade-radius: ${Math.max(gifWidth, gifHeight) / 2 + 40}px`}
+    >
       <div class="viewer-grid" data-testid="viewer-grid"></div>
     </div>
   </div>
@@ -128,7 +132,11 @@
     aria-hidden="true"
     style="--fade-center-x: calc(50% + {displayPanX}px); --fade-center-y: calc(50% + {panY}px)"
   >
-    <div class="viewer-guide-stage" data-testid="viewer-guide-stage" style={stageTransform}>
+    <div
+      class="viewer-guide-stage"
+      data-testid="viewer-guide-stage"
+      style={stageTransform + `; --fade-radius: ${Math.max(gifWidth, gifHeight) / 2 + 40}px`}
+    >
       {#if frameStore.hasFrames}
         <div
           class="guide-line guide-line-h"
@@ -138,7 +146,7 @@
         <div
           class="guide-line guide-line-h"
           data-testid="guide-line-bottom"
-          style="top: calc(50% + {gifHeight / 2}px)"
+          style="top: calc(50% + {gifHeight / 2 - 1}px)"
         ></div>
         <div
           class="guide-line guide-line-v"
@@ -148,7 +156,7 @@
         <div
           class="guide-line guide-line-v"
           data-testid="guide-line-right"
-          style="left: calc(50% + {gifWidth / 2}px)"
+          style="left: calc(50% + {gifWidth / 2 - 1}px)"
         ></div>
       {/if}
     </div>
@@ -195,11 +203,24 @@
     display: grid;
     place-items: center;
     pointer-events: none;
+    /* fade width when transitioning from opaque GIF area to transparent edges */
+    --fade-fade-width: 3000px;
+  }
+
+  .viewer-grid,
+  .guide-line {
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 50%,
+      black 0px,
+      black var(--fade-radius, 9999px),
+      transparent calc(var(--fade-radius, 9999px) + var(--fade-fade-width, 64px)),
+      transparent 100%
+    );
     mask-image: radial-gradient(
-      circle at var(--fade-center-x, 50%) var(--fade-center-y, 50%),
-      black 0%,
-      black 18%,
-      transparent 65%,
+      circle at 50% 50%,
+      black 0px,
+      black var(--fade-radius, 9999px),
+      transparent calc(var(--fade-radius, 9999px) + var(--fade-fade-width, 64px)),
       transparent 100%
     );
   }
@@ -254,13 +275,13 @@
 
   .guide-line-h {
     width: 9600px;
-    height: 1px;
+    height: 2px;
     left: 50%;
     transform: translateX(-50%);
   }
 
   .guide-line-v {
-    width: 1px;
+    width: 2px;
     height: 9600px;
     top: 50%;
     transform: translateY(-50%);
