@@ -15,7 +15,8 @@ describe("HelpMenu", () => {
     });
 
     expect(body).toContain('data-testid="help-version"');
-    expect(body).toContain("Version 0.1.0");
+    expect(body).toContain(">Version<");
+    expect(body).toContain(">0.1.0<");
     expect(body).toContain('data-testid="help-github-button"');
     expect(body).toContain('data-testid="help-keybindings-table"');
     expect(body).toContain(">Context<");

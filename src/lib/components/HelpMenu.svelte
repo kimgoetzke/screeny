@@ -38,7 +38,6 @@
     <div class="help-menu-header">
       <div>
         <p class="help-menu-eyebrow">Help</p>
-        <h2 id="help-menu-title">Screeny</h2>
       </div>
       <button
         class="help-menu-close"
@@ -51,7 +50,8 @@
     </div>
 
     <section class="help-menu-section">
-      <p class="help-version" data-testid="help-version">Version {version}</p>
+      <h3 id="help-version-title">Version</h3>
+      <p class="help-version" data-testid="help-version">{version}</p>
     </section>
 
     <section class="help-menu-section help-github-section">
