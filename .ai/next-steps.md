@@ -47,7 +47,7 @@ Status: **In progress**
 - [x] Improve fade-out of background grid/GIF borders
 - [x] Improve key bindings again
 - [x] Fix load position/alignment regression
-- [ ] Replace splash screen placeholders
+- [x] Replace splash screen placeholders
 - [ ] Improve GIF loading speed
 - [ ] Fix bug where closing while loading breaks things
 - [ ] Review refactoring opportunities

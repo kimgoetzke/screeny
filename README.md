@@ -2,13 +2,13 @@
 
 A cross-platform GIF recording and editing application built with Tauri, SvelteKit, and Rust.
 
+> [!NOTE]
+> The application in this repository is incomplete and under active development.
+
 ## IMPORTANT
 
 > [!IMPORTANT]
 > Unlike all of my other repositories, this is an AI-first experiment where I will try to stay as far as away from the code as I can. The goal is improve my agent-based workflows and learn more about AI-first software engineering.
-
-> [!NOTE]
-> The application in this repository is incomplete and under active development.
 
 ## Features
 

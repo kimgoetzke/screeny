@@ -5,28 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bf3900cb-30de-4d23-8479-f8b73f0cd660" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src-tauri/.svelte-kit/ambient.d.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/.svelte-kit/generated/client/app.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/.svelte-kit/generated/client/matchers.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/.svelte-kit/generated/client/nodes/0.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/.svelte-kit/generated/client/nodes/1.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/.svelte-kit/tsconfig.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/src/e2e.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src-tauri/tests/generate_fixture.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/e2e/specs/studio.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/e2e/tsconfig.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/e2e/wdio.conf.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/fixtures/test.gif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.claude/settings.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.ai/next-steps.md" beforeDir="false" afterPath="$PROJECT_DIR$/.ai/next-steps.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src-tauri/src/gif/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src-tauri/src/gif/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src-tauri/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src-tauri/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/components/FrameViewer.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/components/FrameViewer.svelte" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/components/Timeline.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/components/Timeline.svelte" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/components/Toolbar.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/components/Toolbar.svelte" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/routes/+page.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/+page.svelte" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,7 +33,7 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/kgoe/projects/screeny",
+    "last_opened_file_path": "/home/kgoe/projects/screeny/.claude",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -59,6 +43,11 @@
     "settings.editor.selected.configurable": "configurable.group.appearance"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/.claude" />
+    </key>
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="bf3900cb-30de-4d23-8479-f8b73f0cd660" name="Changes" comment="" />
@@ -68,6 +57,7 @@
       <updated>1776007137365</updated>
       <workItem from="1776007138718" duration="1192000" />
       <workItem from="1776052153055" duration="867000" />
+      <workItem from="1777093462676" duration="692000" />
     </task>
     <servers />
   </component>

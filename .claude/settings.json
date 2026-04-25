@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo test:*)",
+      "Bash(cargo check:*)",
+      "Bash(npx vitest:*)",
+      "Bash(pnpm check:*)",
+      "Bash(pnpm tauri:*)",
+      "Bash(pnpm vitest:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm test:unit:*)",
+      "Bash(pnpm test:e2e)",
+      "Bash(SCREENY_E2E=1 pnpm:*)",
+      "Bash(SCREENY_E2E=1 tauri-driver:*)",
+      "Bash(pnpm --dir */screeny build 2>&1)",
+      "Bash(pnpm --dir */screeny check 2>&1)",
+      "Bash(pnpm --prefix */screeny test:unit)",
+      "WebFetch(domain:webkitgtk.org)",
+      "WebFetch(domain:v2.tauri.app)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:design.gitlab.com)",
+      "WebFetch(domain:medium.com)"
+    ]
+  }
+}
