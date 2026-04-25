@@ -35,8 +35,13 @@ describe("+page.svelte", () => {
     it("applies the computed initial viewer state when the first streamed frame arrives", () => {
       expect(pageSource).toMatch(/async\s+function\s+applyInitialViewerState\b/);
       expect(pageSource).toMatch(
-        /event\.type === "frame"[\s\S]{0,200}frameStore\.addFrame\(event\.data\)[\s\S]{0,260}applyInitialViewerState\(\)/,
+        /event\.type === "frame"[\s\S]{0,260}applyInitialViewerState\(\)/,
       );
+    });
+
+    it("adds each streamed frame directly to the store without batching", () => {
+      expect(pageSource).not.toContain("createFrameBatcher");
+      expect(pageSource).toMatch(/frameStore\.addFrame\(event\.data\)/);
     });
 
     it("does not reapply the computed initial viewer state after loading completes", () => {

@@ -1,5 +1,28 @@
 <script lang="ts">
   import { frameStore } from "$lib/stores/frames.svelte";
+  import type { Frame } from "$lib/types";
+
+  function renderRgba(canvas: HTMLCanvasElement, frame: Frame) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rawBytes = atob(frame.imageData);
+    const uint8 = new Uint8ClampedArray(rawBytes.length);
+    for (let i = 0; i < rawBytes.length; i++) {
+      uint8[i] = rawBytes.charCodeAt(i);
+    }
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+    ctx.putImageData(new ImageData(uint8, frame.width, frame.height), 0, 0);
+  }
+
+  function drawRgba(node: HTMLCanvasElement, frame: Frame) {
+    renderRgba(node, frame);
+    return {
+      update(newFrame: Frame) {
+        renderRgba(node, newFrame);
+      },
+    };
+  }
 
   // Drag state — pointer-event based to avoid HTML5 DnD unreliability in WebKitGTK/Wayland
   let dragFrameIndex = $state<number | null>(null);
@@ -255,7 +278,7 @@
             if (e.key === "Enter") frameStore.selectFrame(frame.id);
           }}
         >
-          <img src={frame.imageData} alt="Frame {index + 1}" draggable="false" />
+          <canvas use:drawRgba={frame} aria-label="Frame {index + 1}"></canvas>
           <div class="frame-info">
             <span class="frame-number">{index + 1}</span>
             <span class="frame-duration" data-testid="frame-duration-{index}"
@@ -351,7 +374,7 @@
     opacity: 0.4;
   }
 
-  .frame-thumb img {
+  .frame-thumb canvas {
     height: 100%;
     width: auto;
     display: block;

@@ -4,8 +4,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
-use image::codecs::png::PngEncoder;
-use image::{ImageEncoder, RgbaImage};
 
 use super::{DecodeEvent, Frame};
 
@@ -201,7 +199,8 @@ where
         }
 
         composite_frame(&mut canvas, width, frame);
-        let image_data = encode_canvas_as_data_url(&canvas, width, height)?;
+        // Encode the composited canvas as raw RGBA base64 — no PNG compression overhead.
+        let image_data = STANDARD.encode(&canvas);
         let duration = (frame.delay as u32) * 10;
 
         // Report byte-level progress after each frame — bytes_counter is updated by
@@ -250,36 +249,6 @@ where
     decode_gif_streaming(file, total_bytes, on_event)
 }
 
-fn encode_canvas_as_data_url(canvas: &[u8], width: u32, height: u32) -> Result<String, String> {
-    let img = RgbaImage::from_raw(width, height, canvas.to_vec())
-        .ok_or("Failed to create image from canvas")?;
-
-    // image 0.25 defaults to CompressionType::Fast + FilterType::Adaptive, which is already
-    // optimal for in-memory thumbnails: Adaptive-filtered data compresses much faster than raw.
-    let mut png_bytes = Vec::new();
-    PngEncoder::new(&mut png_bytes)
-        .write_image(img.as_raw(), width, height, image::ExtendedColorType::Rgba8)
-        .map_err(|e| format!("Failed to encode PNG: {e}"))?;
-
-    let b64 = STANDARD.encode(&png_bytes);
-    Ok(format!("data:image/png;base64,{b64}"))
-}
-
-/// Decode a base64 PNG data URL back to RGBA pixels.
-pub fn decode_data_url_to_rgba(data_url: &str) -> Result<RgbaImage, String> {
-    let b64 = data_url
-        .strip_prefix("data:image/png;base64,")
-        .ok_or("Invalid data URL format")?;
-
-    let png_bytes = STANDARD
-        .decode(b64)
-        .map_err(|e| format!("Failed to decode base64: {e}"))?;
-
-    let img = image::load_from_memory_with_format(&png_bytes, image::ImageFormat::Png)
-        .map_err(|e| format!("Failed to decode PNG: {e}"))?;
-
-    Ok(img.to_rgba8())
-}
 
 #[cfg(test)]
 mod tests {
@@ -365,86 +334,36 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_produces_valid_data_urls() {
-        let gif_data = create_test_gif(&[[255, 0, 0, 255]], 2, 2, 5);
+    fn test_decode_produces_raw_rgba_base64() {
+        let width: u16 = 2;
+        let height: u16 = 2;
+        let gif_data = create_test_gif(&[[255, 0, 0, 255]], width, height, 5);
 
         let frames = collect_frames(&gif_data);
-        assert!(frames[0].image_data.starts_with("data:image/png;base64,"));
+
+        // imageData must be plain base64 (no data URL prefix)
+        assert!(!frames[0].image_data.starts_with("data:"));
+
+        // Decoded bytes must be exactly width × height × 4 RGBA bytes
+        let raw = STANDARD.decode(&frames[0].image_data).unwrap();
+        assert_eq!(raw.len(), (width as usize) * (height as usize) * 4);
     }
 
     #[test]
-    fn test_fast_png_encoding_produces_valid_data_url() {
-        // 10x10 grey canvas
-        let canvas = vec![128u8; 4 * 10 * 10];
-        let data_url = encode_canvas_as_data_url(&canvas, 10, 10).unwrap();
-        assert!(data_url.starts_with("data:image/png;base64,"));
-        assert!(data_url.len() > "data:image/png;base64,".len());
-    }
+    fn test_decode_raw_rgba_pixel_values() {
+        // 2×2 solid red frame
+        let gif_data = create_test_gif(&[[255, 0, 0, 255]], 2, 2, 5);
+        let frames = collect_frames(&gif_data);
 
-    #[test]
-    fn test_fast_png_round_trip() {
-        // 4x4 solid-red canvas
-        let canvas: Vec<u8> = (0..16).flat_map(|_| [255u8, 0, 0, 255]).collect();
-        let data_url = encode_canvas_as_data_url(&canvas, 4, 4).unwrap();
-        let img = decode_data_url_to_rgba(&data_url).unwrap();
-        assert_eq!(img.width(), 4);
-        assert_eq!(img.height(), 4);
-        let pixel = img.get_pixel(0, 0);
-        assert_eq!(pixel[0], 255, "Red channel");
-        assert_eq!(pixel[1], 0, "Green channel");
-        assert_eq!(pixel[2], 0, "Blue channel");
-        assert_eq!(pixel[3], 255, "Alpha channel");
-    }
+        let raw = STANDARD.decode(&frames[0].image_data).unwrap();
 
-    // Timing tests are meaningless in unoptimised debug builds — run in release only.
-    #[cfg(not(debug_assertions))]
-    #[test]
-    fn test_fast_compression_is_faster_than_best() {
-        use image::codecs::png::{CompressionType, FilterType};
-        use std::hint::black_box;
-        use std::time::Instant;
-
-        // Regression guard: PngEncoder::new() defaults to CompressionType::Fast.
-        // Verify this stays faster than CompressionType::Best (high/slow compression)
-        // so any accidental regression to slow settings is caught.
-        let width: u32 = 640;
-        let height: u32 = 480;
-        let canvas = vec![128u8; (width * height * 4) as usize];
-
-        let runs = 10;
-
-        // Fast compression (current default via PngEncoder::new())
-        let start = Instant::now();
-        let mut fast_checksum: u64 = 0;
-        for _ in 0..runs {
-            let mut buf = Vec::new();
-            PngEncoder::new(&mut buf)
-                .write_image(&canvas, width, height, image::ExtendedColorType::Rgba8)
-                .unwrap();
-            fast_checksum =
-                fast_checksum.wrapping_add(buf.iter().map(|&b| b as u64).sum::<u64>());
+        // All pixels should be red (R=255, G=0, B=0, A=255)
+        for chunk in raw.chunks_exact(4) {
+            assert_eq!(chunk[0], 255, "R channel");
+            assert_eq!(chunk[1], 0,   "G channel");
+            assert_eq!(chunk[2], 0,   "B channel");
+            assert_eq!(chunk[3], 255, "A channel");
         }
-        let fast_duration = start.elapsed();
-        let _ = black_box(fast_checksum);
-
-        // Best/high compression (slow — must not accidentally regress to this)
-        let start = Instant::now();
-        let mut best_checksum: u64 = 0;
-        for _ in 0..runs {
-            let mut buf = Vec::new();
-            PngEncoder::new_with_quality(&mut buf, CompressionType::Best, FilterType::Adaptive)
-                .write_image(&canvas, width, height, image::ExtendedColorType::Rgba8)
-                .unwrap();
-            best_checksum =
-                best_checksum.wrapping_add(buf.iter().map(|&b| b as u64).sum::<u64>());
-        }
-        let best_duration = start.elapsed();
-        let _ = black_box(best_checksum);
-
-        assert!(
-            fast_duration < best_duration,
-            "Fast compression ({fast_duration:?}) was not faster than Best ({best_duration:?})"
-        );
     }
 
     #[test]
@@ -466,22 +385,6 @@ mod tests {
         assert_eq!(frames[2].duration, 100, "frame 2 duration");
         assert_eq!(frames[0].image_data, frames[1].image_data, "frame 0 and 1 must be identical");
         assert_ne!(frames[0].image_data, frames[2].image_data, "frame 2 must differ");
-    }
-
-    #[test]
-    fn test_data_url_round_trip() {
-        let gif_data = create_test_gif(&[[255, 0, 0, 255]], 2, 2, 5);
-        let frames = collect_frames(&gif_data);
-
-        // Decode the data URL back to RGBA
-        let rgba = decode_data_url_to_rgba(&frames[0].image_data).unwrap();
-        assert_eq!(rgba.width(), 2);
-        assert_eq!(rgba.height(), 2);
-
-        // All pixels should be close to red (quantisation may shift values slightly)
-        let pixel = rgba.get_pixel(0, 0);
-        assert!(pixel[0] > 200, "Red channel should be high, got {}", pixel[0]);
-        assert!(pixel[3] == 255, "Alpha should be 255");
     }
 
     // --- Phase 2: streaming tests ---
@@ -518,8 +421,10 @@ mod tests {
         .unwrap();
 
         assert_eq!(frames.len(), 3);
+        // Each imageData must be decodable base64 of the correct byte length (4 × 4 × 4 RGBA)
         for frame in &frames {
-            assert!(frame.image_data.starts_with("data:image/png;base64,"));
+            let raw = STANDARD.decode(&frame.image_data).unwrap();
+            assert_eq!(raw.len(), 4 * 4 * 4);
         }
     }
 

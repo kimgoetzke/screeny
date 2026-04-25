@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { frameStore } from "$lib/stores/frames.svelte";
+  import { untrack } from "svelte";
+    import { frameStore } from "$lib/stores/frames.svelte";
 
   let {
     showEmptyState = true,
@@ -35,21 +36,27 @@
   const ZOOM_FACTOR = 1.1;
 
   $effect(() => {
-    const frame = frameStore.selectedFrame;
-    if (!canvas || !frame) return;
+    // Track only the selected id; frame lookup is read under untrack so that
+        // appending unrelated frames during streaming load does not retrigger the redraw.
+        const frameId = frameStore.selectedFrameId;
+        if (!canvas || !frameId) return;
+
+        const frame = untrack(() => frameStore.selectedFrame);
+    if (!frame) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const img = new Image();
-    img.onload = () => {
-      canvas!.width = img.naturalWidth;
-      canvas!.height = img.naturalHeight;
-      ctx.clearRect(0, 0, canvas!.width, canvas!.height);
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = frame.imageData;
-  });
+    // imageData is raw RGBA base64 — decode directly into ImageData, no PNG parse needed.
+        const rawBytes = atob(frame.imageData);
+        const uint8 = new Uint8ClampedArray(rawBytes.length);
+    for (let i = 0; i < rawBytes.length; i++) {
+            uint8[i] = rawBytes.charCodeAt(i);
+        }
+      canvas.width = frame.width;
+      canvas.height = frame.height;
+      ctx.putImageData(new ImageData(uint8, frame.width, frame.height), 0, 0);
+    });
 
   function handleWheel(event: WheelEvent) {
     event.preventDefault();

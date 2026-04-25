@@ -273,6 +273,62 @@ describe("frameStore", () => {
       expect(frameStore.selectedFrameId).toBe("a");
       expect(frameStore.frames).toHaveLength(2);
     });
+
+    it("preserves the frames array reference across appends (mutation-friendly)", () => {
+      frameStore.addFrame(makeFrame("a"));
+      const before = frameStore.frames;
+      frameStore.addFrame(makeFrame("b"));
+
+      expect(frameStore.frames).toBe(before);
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b"]);
+    });
+  });
+
+  describe("addFrames (batched)", () => {
+    it("appends multiple frames to the frames list in order", () => {
+      frameStore.addFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+
+      expect(frameStore.frames).toHaveLength(3);
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+
+    it("selects the first frame when batching into an empty store", () => {
+      frameStore.addFrames([makeFrame("a"), makeFrame("b")]);
+
+      expect(frameStore.selectedFrameId).toBe("a");
+      expect(frameStore.selectedFrameIds).toEqual(new Set(["a"]));
+    });
+
+    it("keeps the existing selection when batching onto a non-empty store", () => {
+      frameStore.addFrame(makeFrame("a"));
+      frameStore.addFrames([makeFrame("b"), makeFrame("c")]);
+
+      expect(frameStore.selectedFrameId).toBe("a");
+      expect(frameStore.frames.map((f) => f.id)).toEqual(["a", "b", "c"]);
+    });
+
+    it("updates loadingFrameCount while loading", () => {
+      frameStore.startLoading();
+      frameStore.setLoadingTotalFrames(5);
+      frameStore.addFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+
+      expect(frameStore.loadingFrameCount).toBe(3);
+    });
+
+    it("is a no-op for an empty input", () => {
+      frameStore.addFrames([]);
+
+      expect(frameStore.frames).toHaveLength(0);
+      expect(frameStore.selectedFrameId).toBeNull();
+    });
+
+    it("preserves the frames array reference across batched appends (mutation-friendly)", () => {
+      frameStore.addFrames([makeFrame("a")]);
+      const before = frameStore.frames;
+      frameStore.addFrames([makeFrame("b"), makeFrame("c")]);
+
+      expect(frameStore.frames).toBe(before);
+    });
   });
 
   describe("isLoading", () => {

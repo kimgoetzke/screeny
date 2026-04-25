@@ -186,8 +186,13 @@ describe("Toolbar", () => {
 
     it("requests the initial fit from the first streamed frame instead of waiting for decode completion", () => {
       expect(toolbarSource).toMatch(
-        /openGifStreaming\([\s\S]{0,1200}onFirstFrame:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,200}onLoad\?\.\(\)/,
+        /openGifStreaming\([\s\S]{0,1400}onFirstFrame:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,400}onLoad\?\.\(\)/,
       );
+    });
+
+    it("adds each streamed frame directly to the store without batching", () => {
+      expect(toolbarSource).not.toContain("createFrameBatcher");
+      expect(toolbarSource).toMatch(/frameStore\.addFrame\(/);
     });
   });
 

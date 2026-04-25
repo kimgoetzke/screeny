@@ -109,6 +109,21 @@ describe("FrameViewer", () => {
     });
   });
 
+  describe("redraw guard during streaming load", () => {
+    it("tracks only selectedFrameId so unrelated frame appends do not retrigger the effect", () => {
+      expect(frameViewerSource).toMatch(
+        /\$effect\(\(\)\s*=>\s*\{[\s\S]{0,600}frameStore\.selectedFrameId/,
+      );
+    });
+
+    it("reads the frame data under untrack so the effect does not depend on the frames array", () => {
+      expect(frameViewerSource).toContain("untrack");
+      expect(frameViewerSource).toMatch(
+        /untrack\(\s*\(\)\s*=>\s*frameStore\.(selectedFrame|frames)/,
+      );
+    });
+  });
+
   describe("inspector-aware centering", () => {
     it("sets the fade mask centre CSS variable from panX", () => {
       frameStore.setFrames([makeFrame("a")]);

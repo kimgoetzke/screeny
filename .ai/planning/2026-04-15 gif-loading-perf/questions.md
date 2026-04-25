@@ -79,3 +79,10 @@ Option 1 gives a percentage that reflects actual encode progress. Option 2 is si
 Option 3 please.
 
 <!-- Processed: Hybrid approach adopted. New `Start { total_bytes, total_frames }` event added to DecodeEvent; GIF pre-scan for frame count; byte % during read, "frame X of Y" once streaming begins. Phase 5 tasks and decisions table updated in plan.md. -->
+
+## Q7: IPC volume at high resolution
+
+After Phase 8, raw RGBA base64 is ~2–11× larger per frame than PNG base64 (depending on resolution and content). For high-resolution GIFs (1080p+) with many frames, this could shift the bottleneck from Rust CPU to IPC transfer. Should we implement a downscaled preview path now, or measure empirically first and defer if not needed?
+
+### Response
+

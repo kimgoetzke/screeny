@@ -495,13 +495,27 @@ export const frameStore = {
   },
 
   addFrame(frame: Frame) {
-    frames = [...frames, frame];
+    const wasEmpty = frames.length === 0;
+    frames.push(frame);
     if (isLoading) {
       loadingFrameCount = frames.length;
     }
-    if (frames.length === 1) {
+    if (wasEmpty) {
       selectedFrameId = frame.id;
       selectedFrameIds = new Set([frame.id]);
+    }
+  },
+
+  addFrames(newFrames: Frame[]) {
+    if (newFrames.length === 0) return;
+    const wasEmpty = frames.length === 0;
+    frames.push(...newFrames);
+    if (isLoading) {
+      loadingFrameCount = frames.length;
+    }
+    if (wasEmpty) {
+      selectedFrameId = newFrames[0].id;
+      selectedFrameIds = new Set([newFrames[0].id]);
     }
   },
 

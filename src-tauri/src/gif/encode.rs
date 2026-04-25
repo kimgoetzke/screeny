@@ -1,8 +1,9 @@
 use std::fs::File;
 use std::path::Path;
 
+use base64::{Engine, engine::general_purpose::STANDARD};
+
 use super::ExportFrame;
-use super::decode::decode_data_url_to_rgba;
 
 /// Encode frames into a GIF file using gifski.
 pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(), String> {
@@ -10,10 +11,8 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
         return Err("No frames to export".to_string());
     }
 
-    // Decode the first frame to get dimensions
-    let first_rgba = decode_data_url_to_rgba(&frames[0].image_data)?;
-    let width = first_rgba.width();
-    let height = first_rgba.height();
+    let width = frames[0].width;
+    let height = frames[0].height;
 
     let settings = gifski::Settings {
         width: Some(width),
@@ -36,14 +35,16 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
 
     let mut timestamp = 0.0;
     for (i, frame) in frames.iter().enumerate() {
-        let rgba = decode_data_url_to_rgba(&frame.image_data)?;
+        let raw = STANDARD
+            .decode(&frame.image_data)
+            .map_err(|e| format!("Failed to decode frame {i}: {e}"))?;
 
-        let pixels: Vec<rgb::RGBA8> = rgba
-            .pixels()
-            .map(|p| rgb::RGBA8::new(p[0], p[1], p[2], p[3]))
+        let pixels: Vec<rgb::RGBA8> = raw
+            .chunks_exact(4)
+            .map(|c| rgb::RGBA8::new(c[0], c[1], c[2], c[3]))
             .collect();
 
-        let img = imgref::ImgVec::new(pixels, width as usize, height as usize);
+        let img = imgref::ImgVec::new(pixels, frame.width as usize, frame.height as usize);
 
         collector
             .add_frame_rgba(i, img, timestamp)
@@ -79,27 +80,18 @@ mod tests {
         frames
     }
 
-    /// Create an ExportFrame from solid RGBA colour.
+    /// Create an ExportFrame from a solid RGBA colour using raw RGBA base64.
     fn make_export_frame(colour: [u8; 4], width: u32, height: u32, duration: u32) -> ExportFrame {
-        use base64::{Engine, engine::general_purpose::STANDARD};
-        use image::{RgbaImage, codecs::png::PngEncoder, ImageEncoder};
-
         let pixel_count = (width * height) as usize;
         let mut pixels = Vec::with_capacity(pixel_count * 4);
         for _ in 0..pixel_count {
             pixels.extend_from_slice(&colour);
         }
-
-        let img = RgbaImage::from_raw(width, height, pixels).unwrap();
-        let mut png_bytes = Vec::new();
-        PngEncoder::new(&mut png_bytes)
-            .write_image(img.as_raw(), width, height, image::ExtendedColorType::Rgba8)
-            .unwrap();
-
-        let b64 = STANDARD.encode(&png_bytes);
         ExportFrame {
-            image_data: format!("data:image/png;base64,{b64}"),
+            image_data: STANDARD.encode(&pixels),
             duration,
+            width,
+            height,
         }
     }
 

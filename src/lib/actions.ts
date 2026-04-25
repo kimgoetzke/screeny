@@ -86,6 +86,8 @@ export async function exportGif(
   const exportFrames: ExportFrame[] = frames.map((f) => ({
     imageData: f.imageData,
     duration: f.duration,
+    width: f.width,
+    height: f.height,
   }));
 
   try {
