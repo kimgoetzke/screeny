@@ -48,21 +48,21 @@ Status: **In progress**
 - [x] Improve key bindings again
 - [x] Fix load position/alignment regression
 - [x] Replace splash screen placeholders
-- [ ] Improve GIF loading speed
+- [x] Improve GIF loading speed
 - [ ] Fix bug where closing while loading breaks things
 - [ ] Review refactoring opportunities
 
 ### Prompt planning
 
-#### Improve GIF loading speed
-
-Status: **In progress**
-
-See `2026-04-15 gif-loading-perf`.
-
 #### Fix bug where closing while loading breaks things
 
-Status: **Blocked by `Improve GIF loading speed`**
+Status: **Ready**
+
+It's currently not possible to close a GIF during the loading process. Please plan the work to allow for this to happen. The goal is to gracefully stop loading the GIF and bringing the UI in the state where a new GIF can be loaded again, exactly as if no GIF had ever been opened.
+
+If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ##### Review refactoring opportunities
 
