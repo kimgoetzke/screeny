@@ -112,10 +112,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            let splashscreen_url = format!("splashscreen.html?version={}", env!("CARGO_PKG_VERSION"));
             tauri::WebviewWindowBuilder::new(
                 app,
                 "splashscreen",
-                tauri::WebviewUrl::App("splashscreen.html".into()),
+                tauri::WebviewUrl::App(splashscreen_url.into()),
             )
             .title("screeny")
             .inner_size(360.0, 240.0)

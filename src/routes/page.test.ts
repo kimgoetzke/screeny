@@ -3,6 +3,12 @@ import pageSource from "./+page.svelte?raw";
 
 describe("+page.svelte", () => {
   describe("inspector-aware centering", () => {
+    it("closes the splashscreen after the main page has mounted", () => {
+      expect(pageSource).toMatch(
+        /tick\(\)\.then\(\(\)\s*=>\s*\{[\s\S]{0,80}invoke\("close_splashscreen"\)/,
+      );
+    });
+
     it("tracks the load-time base scale separately from the relative zoom factor", () => {
       expect(pageSource).toMatch(/let\s+viewerBaseScale\s*=\s*\$state\(\s*1\s*\)/);
       expect(pageSource).toMatch(/let\s+viewerScale\s*=\s*\$state\(\s*1\s*\)/);

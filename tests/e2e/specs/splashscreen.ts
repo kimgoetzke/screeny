@@ -77,8 +77,21 @@ describe("Splashscreen — rendering", () => {
 
     await browser.switchToWindow(splashHandle);
 
-    const text = await $("p");
-    await expect(text).toBeDisplayed();
-    await expect(text).toHaveText("screeny");
+    const title = await $("[data-testid='splash-title']");
+    await expect(title).toBeDisplayed();
+    await expect(title).toHaveText("SCREENY");
+  });
+
+  it("should display the app version text", async () => {
+    if (!splashHandle) return;
+
+    await browser.switchToWindow(splashHandle);
+
+    const version = await $("[data-testid='splash-version']");
+    await expect(version).toBeDisplayed();
+
+    const versionText = await version.getText();
+    expect(versionText).toMatch(/^Version \S+/);
+    expect(versionText).not.toContain("Loading");
   });
 });

@@ -162,7 +162,9 @@
   });
 
   onMount(() => {
-    invoke("close_splashscreen");
+    void tick().then(() => {
+      invoke("close_splashscreen");
+    });
 
     let unlisten: (() => void) | undefined;
 
