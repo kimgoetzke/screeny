@@ -3,11 +3,13 @@
   import { onMount, tick } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import Canvas from "$lib/components/Canvas.svelte";
+  import { calculateInitialCanvasState, type InitialCanvasState } from "$lib/canvas-fit";
   import { openProjectFromPath } from "$lib/projectOpen";
   import { tauriGifBackend } from "$lib/tauriGifBackend";
-  import { calculateInitialViewerState, type InitialViewerState } from "$lib/viewer-fit";
+  import { getVisibleCanvasWidth } from "$lib/inspectorLayout";
+  import { isContextualKeyboardBinding } from "$lib/keyboardPolicy";
   import Toolbar from "$lib/components/Toolbar.svelte";
-  import FrameViewer from "$lib/components/FrameViewer.svelte";
   import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
   import Timeline from "$lib/components/Timeline.svelte";
   import Inspector from "$lib/components/Inspector.svelte";
@@ -15,14 +17,14 @@
 
   let dragging = $state(false);
   let dropError = $state("");
-  let viewerArea: HTMLDivElement | undefined = $state();
+  let canvasArea: HTMLDivElement | undefined = $state();
 
   const EXPANDED_ZOOM_RIGHT_OFFSET = 268;
   const MINIMISED_ZOOM_RIGHT_OFFSET = 60;
   const EXPANDED_DROP_OVERLAY_RIGHT_MARGIN = 265;
   const MINIMISED_DROP_OVERLAY_RIGHT_MARGIN = 55;
   const VIEWER_STATE_EPSILON = 0.0001;
-  const DEFAULT_VIEWER_STATE: InitialViewerState = {
+  const DEFAULT_CANVAS_STATE: InitialCanvasState = {
     baseScale: 1,
     panX: 0,
     panY: 0,
@@ -43,6 +45,7 @@
 
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (!inspectorVisible) return;
+    if (isContextualKeyboardBinding(event)) return;
     if (event.ctrlKey && (event.key === "i" || event.key === "I")) {
       event.preventDefault();
       inspectorMinimised = !inspectorMinimised;
@@ -55,7 +58,7 @@
       (event.key === "r" || event.key === "R")
     ) {
       event.preventDefault();
-      void resetView();
+      void resetCanvasView();
     }
   }
 
@@ -66,99 +69,95 @@
     };
   });
 
-  let viewerBaseScale = $state(1);
-  let viewerScale = $state(1);
-  let resetViewerBaseScale = $state(1);
-  let resetViewerPanX = $state(0);
-  let resetViewerPanY = $state(0);
-  let viewerPanX = $state(0);
-  let viewerPanY = $state(0);
-  let zoomIndicatorScale = $derived((viewerBaseScale * viewerScale) / resetViewerBaseScale);
-  let isViewerModified = $derived.by(
+  let canvasBaseScale = $state(1);
+  let canvasScale = $state(1);
+  let resetCanvasBaseScale = $state(1);
+  let resetCanvasPanX = $state(0);
+  let resetCanvasPanY = $state(0);
+  let canvasPanX = $state(0);
+  let canvasPanY = $state(0);
+  let zoomIndicatorScale = $derived((canvasBaseScale * canvasScale) / resetCanvasBaseScale);
+  let isCanvasModified = $derived.by(
     () =>
       Math.abs(zoomIndicatorScale - 1) > VIEWER_STATE_EPSILON ||
-      Math.abs(viewerPanX - resetViewerPanX) > VIEWER_STATE_EPSILON ||
-      Math.abs(viewerPanY - resetViewerPanY) > VIEWER_STATE_EPSILON,
+      Math.abs(canvasPanX - resetCanvasPanX) > VIEWER_STATE_EPSILON ||
+      Math.abs(canvasPanY - resetCanvasPanY) > VIEWER_STATE_EPSILON,
   );
 
-  function setResetViewerState(viewerState: InitialViewerState) {
-    resetViewerBaseScale = viewerState.baseScale;
-    resetViewerPanX = viewerState.panX;
-    resetViewerPanY = viewerState.panY;
+  function setResetCanvasState(canvasState: InitialCanvasState) {
+    resetCanvasBaseScale = canvasState.baseScale;
+    resetCanvasPanX = canvasState.panX;
+    resetCanvasPanY = canvasState.panY;
   }
 
-  function setCurrentViewerState(viewerState: InitialViewerState) {
-    viewerBaseScale = viewerState.baseScale;
-    viewerScale = 1;
-    viewerPanX = viewerState.panX;
-    viewerPanY = viewerState.panY;
+  function setCurrentCanvasState(canvasState: InitialCanvasState) {
+    canvasBaseScale = canvasState.baseScale;
+    canvasScale = 1;
+    canvasPanX = canvasState.panX;
+    canvasPanY = canvasState.panY;
   }
 
-  async function resetView() {
-    const viewerState = await getTargetViewerState();
-    setResetViewerState(viewerState);
-    setCurrentViewerState(viewerState);
+  async function resetCanvasView() {
+    const canvasState = await getTargetCanvasState();
+    setResetCanvasState(canvasState);
+    setCurrentCanvasState(canvasState);
   }
 
-  function getVisibleViewerBounds() {
-    if (!viewerArea) return null;
+  function getVisibleCanvasBounds() {
+    if (!canvasArea) return null;
 
-    const viewerRect = viewerArea.getBoundingClientRect();
-    let visibleWidth = viewerRect.width;
-
-    if (inspectorVisible) {
-      const inspector = viewerArea.querySelector('[data-testid="inspector"]');
-      if (inspector instanceof HTMLElement) {
-        const inspectorRect = inspector.getBoundingClientRect();
-        visibleWidth = Math.max(inspectorRect.left - viewerRect.left, 1);
-      }
-    }
+    const canvasRect = canvasArea.getBoundingClientRect();
+    const visibleWidth = getVisibleCanvasWidth({
+      canvasWidth: canvasRect.width,
+      inspectorVisible,
+      inspectorMinimised,
+    });
 
     return {
-      viewerWidth: viewerRect.width,
-      viewerHeight: viewerRect.height,
-      visibleWidth,
-      visibleHeight: viewerRect.height,
+      canvasWidth: canvasRect.width,
+      canvasHeight: canvasRect.height,
+      visibleCanvasWidth: visibleWidth,
+      visibleCanvasHeight: canvasRect.height,
     };
   }
 
-  async function getTargetViewerState(): Promise<InitialViewerState> {
+  async function getTargetCanvasState(): Promise<InitialCanvasState> {
     const frame = frameStore.selectedFrame;
     if (!frame) {
-      return DEFAULT_VIEWER_STATE;
+      return DEFAULT_CANVAS_STATE;
     }
 
     await tick();
 
-    const visibleViewerBounds = getVisibleViewerBounds();
-    if (!visibleViewerBounds) {
-      return DEFAULT_VIEWER_STATE;
+    const visibleCanvasBounds = getVisibleCanvasBounds();
+    if (!visibleCanvasBounds) {
+      return DEFAULT_CANVAS_STATE;
     }
 
-    return calculateInitialViewerState({
+    return calculateInitialCanvasState({
       gifWidth: frame.width,
       gifHeight: frame.height,
-      viewerWidth: visibleViewerBounds.viewerWidth,
-      viewerHeight: visibleViewerBounds.viewerHeight,
-      visibleWidth: visibleViewerBounds.visibleWidth,
-      visibleHeight: visibleViewerBounds.visibleHeight,
+      canvasWidth: visibleCanvasBounds.canvasWidth,
+      canvasHeight: visibleCanvasBounds.canvasHeight,
+      visibleCanvasWidth: visibleCanvasBounds.visibleCanvasWidth,
+      visibleCanvasHeight: visibleCanvasBounds.visibleCanvasHeight,
     });
   }
 
-  async function syncResetViewerState() {
-    setResetViewerState(await getTargetViewerState());
+  async function syncResetCanvasState() {
+    setResetCanvasState(await getTargetCanvasState());
   }
 
-  async function applyInitialViewerState() {
-    const viewerState = await getTargetViewerState();
-    setResetViewerState(viewerState);
-    setCurrentViewerState(viewerState);
+  async function applyInitialCanvasState() {
+    const canvasState = await getTargetCanvasState();
+    setResetCanvasState(canvasState);
+    setCurrentCanvasState(canvasState);
   }
 
   $effect(() => {
     inspectorVisible;
     inspectorMinimised;
-    void syncResetViewerState();
+    void syncResetCanvasState();
   });
 
   onMount(() => {
@@ -195,7 +194,7 @@
   async function handleDrop(path: string) {
     dropError = "";
     const result = await openProjectFromPath(path, tauriGifBackend, {
-      onFirstFrame: applyInitialViewerState,
+      onFirstFrame: applyInitialCanvasState,
     });
 
     if (result.error) {
@@ -205,23 +204,23 @@
 </script>
 
 <div class="app" data-testid="app">
-  <Toolbar onLoad={applyInitialViewerState} />
-  <div class="viewer-area" bind:this={viewerArea}>
-    <FrameViewer
+  <Toolbar onLoad={applyInitialCanvasState} />
+  <div class="canvas-area" bind:this={canvasArea}>
+    <Canvas
       showEmptyState={!dragging}
-      centreOffsetX={resetViewerPanX}
-      baseScale={viewerBaseScale}
-      bind:scale={viewerScale}
-      bind:panX={viewerPanX}
-      bind:panY={viewerPanY}
+      centreOffsetX={resetCanvasPanX}
+      baseScale={canvasBaseScale}
+      bind:scale={canvasScale}
+      bind:panX={canvasPanX}
+      bind:panY={canvasPanY}
     />
     {#if inspectorVisible}
       <Inspector bind:minimised={inspectorMinimised} />
     {/if}
     <ZoomIndicator
       scale={zoomIndicatorScale}
-      isModified={isViewerModified}
-      onReset={resetView}
+      isModified={isCanvasModified}
+      onReset={resetCanvasView}
       visible={inspectorVisible}
       rightOffset={zoomRightOffset}
     />
@@ -259,7 +258,7 @@
     height: 100vh;
   }
 
-  .viewer-area {
+  .canvas-area {
     position: relative;
     flex: 1;
     display: flex;

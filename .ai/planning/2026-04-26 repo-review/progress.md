@@ -95,13 +95,52 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 6: Frontend interaction plumbing cleanup
+
+- **Status:** Complete
+- Actions taken:
+  - Ran the `domain-model` skill and resolved **Canvas** as the canonical preview-surface term plus **Keyboard Binding** as app-wide by default, with contextual `Enter`/`Escape`
+  - Ran the `tdd` skill; added `src/lib/keyboardPolicy.ts` and `src/lib/keyboardPolicy.test.ts` so shortcut policy is explicit and shared across page, toolbar, and timeline listeners
+  - Added `src/lib/inspectorLayout.ts` and `src/lib/inspectorLayout.test.ts`; `+page.svelte` now derives visible canvas width from the inspector layout contract instead of querying `[data-testid="inspector"]`
+  - Updated `Timeline.svelte` so drag geometry uses `data-frame-id` rather than test ids at runtime
+  - Renamed the preview-surface code to match the resolved domain term: `FrameViewer` → `Canvas`, `viewer-fit` → `canvas-fit`, related page state names, and studio E2E selectors
+  - Updated `HelpMenu.svelte`, `NotificationDialog.svelte`, and `FilePicker.svelte` to remove ignored click-event warnings; file-picker entries now support keyboard activation
+  - Added/updated focused tests in `FilePicker.test.ts`, `HelpMenu.test.ts`, `NotificationDialog.test.ts`, and `Timeline.test.ts`
+  - Rebuilt the desktop app and reran the studio E2E spec after the canvas selector rename to confirm the desktop path still works
+  - Confirmed 0 svelte-check errors/warnings after all changes
+- Files created/modified:
+  - `context.md` (updated — Canvas and Keyboard Binding terms added)
+  - `src/lib/canvas-fit.ts` (renamed from `viewer-fit.ts`)
+  - `src/lib/canvas-fit.test.ts` (renamed from `viewer-fit.test.ts`)
+  - `src/lib/keyboardPolicy.ts` (created)
+  - `src/lib/keyboardPolicy.test.ts` (created)
+  - `src/lib/inspectorLayout.ts` (created)
+  - `src/lib/inspectorLayout.test.ts` (created)
+  - `src/routes/+page.svelte` (updated)
+  - `src/lib/components/Toolbar.svelte` (updated)
+  - `src/lib/components/Canvas.svelte` (renamed from `FrameViewer.svelte`)
+  - `src/lib/components/Canvas.test.ts` (renamed from `FrameViewer.test.ts`)
+  - `src/lib/components/Inspector.svelte` (updated)
+  - `src/lib/components/Timeline.svelte` (updated)
+  - `src/lib/components/Timeline.test.ts` (updated)
+  - `src/lib/components/FilePicker.svelte` (updated)
+  - `src/lib/components/FilePicker.test.ts` (created)
+  - `src/lib/components/HelpMenu.svelte` (updated)
+  - `src/lib/components/HelpMenu.test.ts` (updated)
+  - `src/lib/components/NotificationDialog.svelte` (updated)
+  - `src/lib/components/NotificationDialog.test.ts` (updated)
+  - `tests/e2e/specs/studio.ts` (updated — canvas selector rename)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
 | Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings | ✓ |
 | Frontend build | `pnpm build` | Production build succeeds | Passed | ✓ |
-| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 16 files / 346 tests (Phase 5) | ✓ |
+| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 19 files / 353 tests (Phase 6) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 2 spec files / 103 tests | ✓ |

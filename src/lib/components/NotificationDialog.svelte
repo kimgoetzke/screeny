@@ -24,11 +24,15 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="backdrop" onclick={handleBackdropClick} role="presentation" data-testid="dialog-backdrop">
+<div
+  class="backdrop"
+  onpointerdown={handleBackdropClick}
+  role="presentation"
+  data-testid="dialog-backdrop"
+>
   <div
     class="dialog"
-    onclick={(e) => e.stopPropagation()}
+    onpointerdown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"

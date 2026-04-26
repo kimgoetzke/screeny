@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { INSPECTOR_LAYOUT } from "$lib/inspectorLayout";
   import { frameStore } from "$lib/stores/frames.svelte";
 
   let { minimised = $bindable(false) }: { minimised?: boolean } = $props();
@@ -59,7 +60,14 @@
   }
 </script>
 
-<aside class="inspector" class:minimised data-testid="inspector">
+<aside
+  class="inspector"
+  class:minimised
+  data-testid="inspector"
+  style:--inspector-right-inset={`${INSPECTOR_LAYOUT.rightInset}px`}
+  style:--inspector-expanded-width={`${INSPECTOR_LAYOUT.expandedWidth}px`}
+  style:--inspector-minimised-width={`${INSPECTOR_LAYOUT.minimisedWidth}px`}
+>
   {#if !minimised}
     <div class="inspector-header">
       <span class="inspector-title">Inspector</span>
@@ -293,10 +301,10 @@
 <style>
   .inspector {
     position: absolute;
-    right: 15px;
+    right: var(--inspector-right-inset);
     top: 20px;
     bottom: 20px;
-    width: 240px;
+    width: var(--inspector-expanded-width);
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -307,7 +315,7 @@
   }
 
   .inspector.minimised {
-    width: 32px;
+    width: var(--inspector-minimised-width);
   }
 
   .inspector-header {

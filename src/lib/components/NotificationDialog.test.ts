@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "svelte/server";
 import NotificationDialog from "./NotificationDialog.svelte";
+import notificationDialogSource from "./NotificationDialog.svelte?raw";
 
 describe("NotificationDialog", () => {
   describe("message", () => {
@@ -106,6 +107,11 @@ describe("NotificationDialog", () => {
         },
       });
       expect(body).toContain('data-testid="dialog-backdrop"');
+    });
+
+    it("uses pointer backdrop handling without ignored a11y warnings", () => {
+      expect(notificationDialogSource).toContain("onpointerdown={handleBackdropClick}");
+      expect(notificationDialogSource).not.toContain("svelte-ignore a11y_click_events_have_key_events");
     });
   });
 });

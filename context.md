@@ -28,6 +28,14 @@ The action of encoding the current Project's Frames to a GIF file on disk. Does 
 
 The animated preview of a Project that cycles through its Frames at their declared durations. Controlled by Play and Stop. Only available when the Project is Active.
 
+### Canvas
+
+The main preview surface for the current Project, including zoom, pan, and inspector-aware framing.
+
+### Keyboard Binding
+
+A documented keyboard command that is app-wide by default; text-editing controls keep native key behaviour, while generic confirmation and cancellation keys such as Enter and Escape may be contextual.
+
 ### Project Lifecycle
 
 The orchestration layer that wires together the DialogProvider, GifBackend, frameStore, and rendering synchronisation to execute the Open, Close, Cancel, and Export actions. Lives in `src/lib/projectLifecycle.ts`, separate from the Toolbar component so it can be tested independently.
@@ -64,3 +72,4 @@ The four lifecycle states a Project moves through:
 ## Flagged ambiguities
 
 - "drag-drop import" was used as if it were distinct from **Open** — resolved: it is the same **Open** action initiated via a different path source.
+- "viewer" / "canvas" were used interchangeably for the main preview surface — resolved: **Canvas** is the domain term, and the code now uses that term consistently.

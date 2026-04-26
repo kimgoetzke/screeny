@@ -10,37 +10,37 @@ describe("+page.svelte", () => {
     });
 
     it("tracks the load-time base scale separately from the relative zoom factor", () => {
-      expect(pageSource).toMatch(/let\s+viewerBaseScale\s*=\s*\$state\(\s*1\s*\)/);
-      expect(pageSource).toMatch(/let\s+viewerScale\s*=\s*\$state\(\s*1\s*\)/);
+      expect(pageSource).toMatch(/let\s+canvasBaseScale\s*=\s*\$state\(\s*1\s*\)/);
+      expect(pageSource).toMatch(/let\s+canvasScale\s*=\s*\$state\(\s*1\s*\)/);
       expect(pageSource).toMatch(
-        /<FrameViewer[\s\S]{0,160}baseScale=\{viewerBaseScale\}[\s\S]{0,120}bind:scale=\{viewerScale\}/,
+        /<Canvas[\s\S]{0,160}baseScale=\{canvasBaseScale\}[\s\S]{0,120}bind:scale=\{canvasScale\}/,
       );
       expect(pageSource).toMatch(/<ZoomIndicator[\s\S]{0,120}scale=\{zoomIndicatorScale\}/);
     });
 
-    it("tracks a reset target separately from the current viewer state", () => {
-      expect(pageSource).toMatch(/let\s+resetViewerBaseScale\s*=\s*\$state\(\s*1\s*\)/);
-      expect(pageSource).toMatch(/let\s+resetViewerPanX\s*=\s*\$state\(\s*0\s*\)/);
-      expect(pageSource).toMatch(/let\s+resetViewerPanY\s*=\s*\$state\(\s*0\s*\)/);
+    it("tracks a reset target separately from the current canvas state", () => {
+      expect(pageSource).toMatch(/let\s+resetCanvasBaseScale\s*=\s*\$state\(\s*1\s*\)/);
+      expect(pageSource).toMatch(/let\s+resetCanvasPanX\s*=\s*\$state\(\s*0\s*\)/);
+      expect(pageSource).toMatch(/let\s+resetCanvasPanY\s*=\s*\$state\(\s*0\s*\)/);
       expect(pageSource).toMatch(
-        /async\s+function\s+resetView\b[\s\S]{0,220}const\s+viewerState\s*=\s*await\s+getTargetViewerState\(\)[\s\S]{0,120}setResetViewerState\(viewerState\)[\s\S]{0,120}setCurrentViewerState\(viewerState\)/,
+        /async\s+function\s+resetCanvasView\b[\s\S]{0,220}const\s+canvasState\s*=\s*await\s+getTargetCanvasState\(\)[\s\S]{0,120}setResetCanvasState\(canvasState\)[\s\S]{0,120}setCurrentCanvasState\(canvasState\)/,
       );
-      expect(pageSource).toMatch(/isModified=\{isViewerModified\}/);
+      expect(pageSource).toMatch(/isModified=\{isCanvasModified\}/);
     });
 
-    it("passes the current reset target pan into FrameViewer so the empty state and fade stay aligned", () => {
-      expect(pageSource).toMatch(/centreOffsetX=\{resetViewerPanX\}/);
+    it("passes the current reset target pan into Canvas so the empty state and fade stay aligned", () => {
+      expect(pageSource).toMatch(/centreOffsetX=\{resetCanvasPanX\}/);
     });
 
     it("routes drag-drop through the shared Open flow while keeping inline drop errors", () => {
       expect(pageSource).toMatch(
-        /openProjectFromPath\(\s*path,\s*tauriGifBackend,\s*\{[\s\S]{0,120}onFirstFrame:\s*applyInitialViewerState/,
+        /openProjectFromPath\(\s*path,\s*tauriGifBackend,\s*\{[\s\S]{0,120}onFirstFrame:\s*applyInitialCanvasState/,
       );
       expect(pageSource).toMatch(/if\s*\(result\.error\)\s*\{[\s\S]{0,40}dropError\s*=\s*result\.error/);
     });
 
     it("Toolbar receives onLoad prop pointing to the initial-fit loader", () => {
-      expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*applyInitialViewerState\s*\}?/);
+      expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*applyInitialCanvasState\s*\}?/);
     });
 
     it("tracks inspector visibility from frameStore.hasFrames", () => {
@@ -55,11 +55,11 @@ describe("+page.svelte", () => {
 
     it("refreshes the reset target when the inspector layout changes", () => {
       expect(pageSource).toMatch(
-        /\$effect\(\(\)\s*=>\s*\{[\s\S]{0,120}inspectorVisible[\s\S]{0,120}inspectorMinimised[\s\S]{0,220}syncResetViewerState\(\)/,
+        /\$effect\(\(\)\s*=>\s*\{[\s\S]{0,120}inspectorVisible[\s\S]{0,120}inspectorMinimised[\s\S]{0,220}syncResetCanvasState\(\)/,
       );
     });
 
-    it("uses the full viewer width for the drop overlay when the inspector is hidden", () => {
+    it("uses the full canvas width for the drop overlay when the inspector is hidden", () => {
       expect(pageSource).toMatch(
         /let\s+visibleDropOverlayRightMargin\s*=\s*\$derived\(\s*inspectorVisible\s*\?\s*dropOverlayRightMargin\s*:\s*10\s*\)/,
       );
@@ -82,13 +82,13 @@ describe("+page.svelte", () => {
       expect(pageSource).toContain("inspectorMinimised");
     });
 
-    it("does not move the current viewer pan while toggling the inspector", () => {
+    it("does not move the current canvas pan while toggling the inspector", () => {
       const handlerMatch = pageSource.match(
         /function\s+handleWindowKeyDown[\s\S]*?\n  }\n\n  \$effect/,
       );
       expect(handlerMatch?.[0]).toBeDefined();
-      expect(handlerMatch?.[0]).not.toContain("viewerPanX");
-      expect(handlerMatch?.[0]).not.toContain("viewerPanY");
+      expect(handlerMatch?.[0]).not.toContain("canvasPanX");
+      expect(handlerMatch?.[0]).not.toContain("canvasPanY");
     });
   });
 
@@ -106,7 +106,7 @@ describe("+page.svelte", () => {
 
     it("prevents the default reload behaviour before resetting the view", () => {
       expect(pageSource).toMatch(
-        /\(event\.key === "r" \|\| event\.key === "R"\)[\s\S]{0,200}event\.preventDefault\(\)[\s\S]{0,80}resetView\(\)/,
+        /\(event\.key === "r" \|\| event\.key === "R"\)[\s\S]{0,200}event\.preventDefault\(\)[\s\S]{0,80}resetCanvasView\(\)/,
       );
     });
   });

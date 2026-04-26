@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import HelpMenu from "./HelpMenu.svelte";
+import helpMenuSource from "./HelpMenu.svelte?raw";
 import { helpKeyBindings } from "$lib/help-keybindings";
 
 describe("HelpMenu", () => {
@@ -42,5 +43,10 @@ describe("HelpMenu", () => {
     expect(body).toContain("Ctrl+Shift+ArrowRight");
     expect(body).toContain("Extend selection to last frame");
     expect(body).toContain("Escape");
+  });
+
+  it("closes via pointer backdrop handling without ignored a11y warnings", () => {
+    expect(helpMenuSource).toContain("onpointerdown={onClose}");
+    expect(helpMenuSource).not.toContain("svelte-ignore a11y_click_events_have_key_events");
   });
 });

@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 6
+Phase 7
 
 ## Phases
 
@@ -103,20 +103,20 @@ Phase 6
   - **Relevant context:** This phase intentionally groups interaction-contract issues because they all affect top-level UI coordination and accessibility semantics.
   - **Additional research:** Confirm whether any current shortcuts intentionally overlap and whether inspector width/minimised state can be exposed through existing bindings rather than new state.
   - **Relevant skills:** `research-codebase` for event-flow tracing; `tdd` before any code changes.
-- [ ] Re-read this plan and trace current shortcut/layout/focus behaviour through the referenced files
-- [ ] Decide which findings to fix now versus defer/reject, and record that rationale in `findings.md`
-- [ ] Decide the narrowest safe interaction-contract change set and invoke `tdd` before implementation
-- [ ] If implementing, keep behaviour-preserving where possible and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and trace current shortcut/layout/focus behaviour through the referenced files
+- [x] Decide which findings to fix now versus defer/reject, and record that rationale in `findings.md`
+- [x] Decide the narrowest safe interaction-contract change set and invoke `tdd` before implementation
+- [x] If implementing, keep behaviour-preserving where possible and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 7: Frontend rendering utility extraction
 
 - **Background**
-  - **What:** Raw RGBA-to-canvas rendering logic is duplicated in `FrameViewer.svelte` and `Timeline.svelte`.
+  - **What:** Raw RGBA-to-canvas rendering logic is duplicated in `Canvas.svelte` and `Timeline.svelte`.
   - **Why it matters:** Any rendering change requires duplicate low-level edits, which is easy to miss.
   - **Suggested fix:** Extract a shared canvas rendering utility and use it in both components.
-  - **References:** `src/lib/components/FrameViewer.svelte`, `src/lib/components/Timeline.svelte`, `findings.md`
+  - **References:** `src/lib/components/Canvas.svelte`, `src/lib/components/Timeline.svelte`, `findings.md`
   - **Relevant context:** This is a small, high-confidence refactor candidate with narrow blast radius.
   - **Additional research:** Confirm whether the two call sites have any intentional differences in sizing or image-data handling before extracting.
   - **Relevant skills:** `tdd` before any code changes; `research-codebase` only if the renderer contracts are unclear.
@@ -150,7 +150,7 @@ Phase 6
   - **What:** `src/lib/stores/frames.test.ts` is 1565 lines, several tests assert raw source text or regexes instead of behaviour, and the current SSR-only component-test approach may be encouraging brittle checks.
   - **Why it matters:** Tests become hard to maintain, noisy under refactor, and weaker at protecting user-visible behaviour.
   - **Suggested fix:** Split large test files by behaviour area, move source-text assertions toward behaviour or pure-helper tests, and explicitly decide whether to keep the current SSR-only strategy or add a separate DOM-oriented test layer.
-  - **References:** `src/lib/stores/frames.test.ts`, `src/routes/page.test.ts`, `src/lib/components/FrameViewer.test.ts`, `src/lib/components/Timeline.test.ts`, `src/lib/components/Toolbar.test.ts`, `src/lib/splashscreen.test.ts`, `vite.config.js`, `findings.md`
+  - **References:** `src/lib/stores/frames.test.ts`, `src/routes/page.test.ts`, `src/lib/components/Canvas.test.ts`, `src/lib/components/Timeline.test.ts`, `src/lib/components/Toolbar.test.ts`, `src/lib/splashscreen.test.ts`, `vite.config.js`, `findings.md`
   - **Relevant context:** Project guidance currently says unit tests use SSR rendering only and must not use `mount()` without broader config changes, so any DOM-test decision needs careful justification.
   - **Additional research:** Confirm whether a DOM-oriented component test layer is worth the extra config complexity, or whether extracting more pure helpers gives enough behaviour coverage while staying SSR-only.
   - **Relevant skills:** `tdd` before any test changes; `research-codebase` for local test-pattern discovery.

@@ -19,16 +19,15 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   class="help-menu-backdrop"
-  onclick={onClose}
+  onpointerdown={onClose}
   role="presentation"
   data-testid="help-menu-backdrop"
 >
   <div
     class="help-menu"
-    onclick={(event) => event.stopPropagation()}
+    onpointerdown={(event) => event.stopPropagation()}
     role="dialog"
     aria-modal="true"
     aria-labelledby="help-menu-title"

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { frameStore } from "$lib/stores/frames.svelte";
+  import { shouldHandleTimelineKeyboardBinding } from "$lib/keyboardPolicy";
   import type { Frame } from "$lib/types";
 
   function renderRgba(canvas: HTMLCanvasElement, frame: Frame) {
@@ -69,9 +70,7 @@
     // Determine which insertion slot the cursor is nearest to.
     // Slot 0 = before frame 0, slot n = after frame n-1.
     // The midpoint of each frame thumbnail is the boundary between adjacent slots.
-    const thumbs = Array.from(
-      framesStripEl.querySelectorAll<HTMLElement>('[data-testid^="frame-thumb-"]'),
-    );
+    const thumbs = Array.from(framesStripEl.querySelectorAll<HTMLElement>("[data-frame-id]"));
     const stripRect = framesStripEl.getBoundingClientRect();
 
     let newInsertionIndex = thumbs.length;
@@ -127,8 +126,7 @@
   }
 
   function handleWindowKeyDown(event: KeyboardEvent) {
-    const tag = (event.target as HTMLElement | null)?.tagName;
-    const inInput = tag === "INPUT" || tag === "TEXTAREA";
+    const inInput = !shouldHandleTimelineKeyboardBinding(event);
 
     // Ctrl+A: select all frames
     if (event.ctrlKey && event.key === "a" && !inInput) {

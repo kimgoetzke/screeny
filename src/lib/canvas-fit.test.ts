@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { calculateInitialViewerState } from "./viewer-fit";
+import { calculateInitialCanvasState } from "./canvas-fit";
 
-describe("calculateInitialViewerState", () => {
-  it("fits a portrait GIF to 70% of the visible height and centres it in the visible viewer area", () => {
-    const result = calculateInitialViewerState({
+describe("calculateInitialCanvasState", () => {
+  it("fits a portrait GIF to 70% of the visible height and centres it in the visible canvas area", () => {
+    const result = calculateInitialCanvasState({
       gifWidth: 200,
       gifHeight: 400,
-      viewerWidth: 1200,
-      viewerHeight: 800,
-      visibleWidth: 945,
-      visibleHeight: 800,
+      canvasWidth: 1200,
+      canvasHeight: 800,
+      visibleCanvasWidth: 945,
+      visibleCanvasHeight: 800,
     });
 
     expect(result.baseScale).toBe(1.4);
@@ -18,13 +18,13 @@ describe("calculateInitialViewerState", () => {
   });
 
   it("fits a landscape GIF to 70% of the visible width", () => {
-    const result = calculateInitialViewerState({
+    const result = calculateInitialCanvasState({
       gifWidth: 400,
       gifHeight: 200,
-      viewerWidth: 1200,
-      viewerHeight: 800,
-      visibleWidth: 945,
-      visibleHeight: 800,
+      canvasWidth: 1200,
+      canvasHeight: 800,
+      visibleCanvasWidth: 945,
+      visibleCanvasHeight: 800,
     });
 
     expect(result.baseScale).toBeCloseTo(1.65375, 6);
@@ -33,13 +33,13 @@ describe("calculateInitialViewerState", () => {
   });
 
   it("uses the smaller visible dimension so the closest edges keep a 15% margin", () => {
-    const result = calculateInitialViewerState({
+    const result = calculateInitialCanvasState({
       gifWidth: 900,
       gifHeight: 1000,
-      viewerWidth: 500,
-      viewerHeight: 1000,
-      visibleWidth: 200,
-      visibleHeight: 1000,
+      canvasWidth: 500,
+      canvasHeight: 1000,
+      visibleCanvasWidth: 200,
+      visibleCanvasHeight: 1000,
     });
 
     expect(result.baseScale).toBeCloseTo((200 / 900) * 0.7, 6);

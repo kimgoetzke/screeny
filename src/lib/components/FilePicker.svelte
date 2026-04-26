@@ -49,6 +49,12 @@
     }
   }
 
+  function handleEntryKeydown(event: KeyboardEvent, entry: DirEntry) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    handleEntryClick(entry);
+  }
+
   function handleNavigateKeydown(event: KeyboardEvent) {
     if (event.key === "Enter") {
       loadDir(navigatePath);
@@ -67,9 +73,9 @@
   });
 </script>
 
-<div class="backdrop" role="presentation" onclick={onCancel} data-testid="file-picker-backdrop"></div>
+<div class="backdrop" role="presentation" onpointerdown={onCancel} data-testid="file-picker-backdrop"></div>
 
-<div class="picker" data-testid="file-picker" role="dialog" aria-label="Open file">
+<div class="picker" data-testid="file-picker" role="dialog" aria-modal="true" aria-label="Open file">
   <div class="picker-header">
     <button class="btn-up" onclick={goUp} title="Go up" aria-label="Go to parent directory">↑</button>
     <input
@@ -89,14 +95,15 @@
 
   <ul class="entry-list" role="listbox">
     {#each entries as entry (entry.path)}
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
       <li
         role="option"
         aria-selected={selectedPath === entry.path}
+        tabindex="0"
         class="entry"
         class:selected={selectedPath === entry.path}
         class:is-dir={entry.is_dir}
         onclick={() => handleEntryClick(entry)}
+        onkeydown={(event) => handleEntryKeydown(event, entry)}
         data-testid="file-picker-entry-{entry.name}"
       >
         <span class="entry-icon">{entry.is_dir ? "📁" : "🎞"}</span>

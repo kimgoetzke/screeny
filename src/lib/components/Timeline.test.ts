@@ -228,7 +228,7 @@ describe("Timeline", () => {
     });
 
     it("guards against firing inside input or textarea elements", () => {
-      expect(timelineSource).toMatch(/INPUT|TEXTAREA|input|textarea/);
+      expect(timelineSource).toContain("shouldHandleTimelineKeyboardBinding");
     });
   });
 
@@ -242,7 +242,7 @@ describe("Timeline", () => {
     });
 
     it("guards against firing inside input or textarea elements", () => {
-      expect(timelineSource).toMatch(/key\s*[!=]==\s*["']d["'][\s\S]{0,100}inInput/);
+      expect(timelineSource).toContain("shouldHandleTimelineKeyboardBinding");
     });
   });
 
@@ -271,6 +271,11 @@ describe("Timeline", () => {
   });
 
   describe("multi-frame drag indicator", () => {
+    it("uses frame ids rather than test ids for drag geometry lookups", () => {
+      expect(timelineSource).toContain('querySelectorAll<HTMLElement>("[data-frame-id]")');
+      expect(timelineSource).not.toContain('[data-testid^="frame-thumb-"]');
+    });
+
     it("applies being-dragged class to selected frames during a multi-frame pointer drag", () => {
       // Verify that the source wires isDraggingSelection to the being-dragged CSS class
       // so selected frames are visually dimmed while they are being moved.

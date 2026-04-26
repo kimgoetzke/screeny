@@ -27,7 +27,7 @@
   let gifWidth = $derived(frameStore.selectedFrame?.width ?? 0);
   let gifHeight = $derived(frameStore.selectedFrame?.height ?? 0);
   let actualScale = $derived(baseScale * scale);
-  let stageTransform = $derived(
+  let canvasStageTransform = $derived(
     `transform: scale(${actualScale}) translate(${displayPanX}px, ${panY}px)`,
   );
 
@@ -67,7 +67,7 @@
 
     // Cursor-centred zoom: adjust pan so the point under the cursor stays fixed.
     // With transform: scale(s) translate(tx, ty) and transform-origin: center center,
-    // the pivot is the viewer centre. mx/my are the cursor offsets from that pivot.
+    // the pivot is the canvas centre. mx/my are the cursor offsets from that pivot.
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const mx = event.clientX - (rect.left + rect.width / 2);
     const my = event.clientY - (rect.top + rect.height / 2);
@@ -108,11 +108,11 @@
 </script>
 
 <div
-  class="viewer"
+  class="canvas"
   class:is-panning={isPanning}
   role="application"
-  aria-label="Frame viewer"
-  data-testid="frame-viewer"
+  aria-label="Project canvas"
+  data-testid="project-canvas"
   onwheel={handleWheel}
   onpointerdown={handlePointerDown}
   onpointermove={handlePointerMove}
@@ -120,29 +120,29 @@
   oncontextmenu={handleContextMenu}
 >
   <div
-    class="viewer-grid-fade"
-    data-testid="viewer-grid-fade"
+    class="canvas-grid-fade"
+    data-testid="canvas-grid-fade"
     aria-hidden="true"
     style="--fade-center-x: calc(50% + {displayPanX}px); --fade-center-y: calc(50% + {panY}px)"
   >
     <div
-      class="viewer-grid-stage"
-      data-testid="viewer-grid-stage"
-      style={stageTransform + `; --fade-radius: ${Math.max(gifWidth, gifHeight) / 2 + 40}px`}
+      class="canvas-grid-stage"
+      data-testid="canvas-grid-stage"
+      style={canvasStageTransform + `; --fade-radius: ${Math.max(gifWidth, gifHeight) / 2 + 40}px`}
     >
-      <div class="viewer-grid" data-testid="viewer-grid"></div>
+      <div class="canvas-grid" data-testid="canvas-grid"></div>
     </div>
   </div>
   <div
-    class="viewer-guide-fade"
-    data-testid="viewer-guide-fade"
+    class="canvas-guide-fade"
+    data-testid="canvas-guide-fade"
     aria-hidden="true"
     style="--fade-center-x: calc(50% + {displayPanX}px); --fade-center-y: calc(50% + {panY}px)"
   >
     <div
-      class="viewer-guide-stage"
-      data-testid="viewer-guide-stage"
-      style={stageTransform + `; --fade-radius: ${Math.max(gifWidth, gifHeight) / 2 + 40}px`}
+      class="canvas-guide-stage"
+      data-testid="canvas-guide-stage"
+      style={canvasStageTransform + `; --fade-radius: ${Math.max(gifWidth, gifHeight) / 2 + 40}px`}
     >
       {#if frameStore.hasFrames}
         <div
@@ -168,7 +168,7 @@
       {/if}
     </div>
   </div>
-  <div class="viewer-stage" data-testid="viewer-stage" style={stageTransform}>
+  <div class="canvas-stage" data-testid="canvas-stage" style={canvasStageTransform}>
     {#if frameStore.hasFrames}
       <canvas bind:this={canvas} data-testid="frame-canvas"></canvas>
     {/if}
@@ -176,7 +176,7 @@
   {#if !frameStore.hasFrames && showEmptyState}
     <div
       class="empty"
-      data-testid="viewer-empty"
+      data-testid="canvas-empty"
       style:transform="translateX({displayCentreOffsetX}px)"
     >
       <p>Open or drop a GIF to get started</p>
@@ -185,7 +185,7 @@
 </div>
 
 <style>
-  .viewer {
+  .canvas {
     flex: 1;
     position: relative;
     display: grid;
@@ -195,16 +195,16 @@
     min-height: 0;
   }
 
-  .viewer-grid-fade,
-  .viewer-guide-fade,
-  .viewer-grid-stage,
-  .viewer-guide-stage,
-  .viewer-stage {
+  .canvas-grid-fade,
+  .canvas-guide-fade,
+  .canvas-grid-stage,
+  .canvas-guide-stage,
+  .canvas-stage {
     grid-area: 1 / 1;
   }
 
-  .viewer-grid-fade,
-  .viewer-guide-fade {
+  .canvas-grid-fade,
+  .canvas-guide-fade {
     width: 100%;
     height: 100%;
     display: grid;
@@ -214,7 +214,7 @@
     --fade-fade-width: 3000px;
   }
 
-  .viewer-grid,
+  .canvas-grid,
   .guide-line {
     -webkit-mask-image: radial-gradient(
       circle at 50% 50%,
@@ -232,9 +232,9 @@
     );
   }
 
-  .viewer-grid-stage,
-  .viewer-guide-stage,
-  .viewer-stage {
+  .canvas-grid-stage,
+  .canvas-guide-stage,
+  .canvas-stage {
     position: relative;
     width: 1px;
     height: 1px;
@@ -242,7 +242,7 @@
     pointer-events: none;
   }
 
-  .viewer-grid {
+  .canvas-grid {
     position: absolute;
     left: 50%;
     top: 50%;
@@ -294,7 +294,7 @@
     transform: translateY(-50%);
   }
 
-  .viewer.is-panning {
+  .canvas.is-panning {
     cursor: grabbing;
   }
 

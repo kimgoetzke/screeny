@@ -11,6 +11,7 @@
     import { helpKeyBindings } from "$lib/help-keybindings";
     import FilePicker from "$lib/components/FilePicker.svelte";
     import NotificationDialog from "$lib/components/NotificationDialog.svelte";
+    import { isContextualKeyboardBinding } from "$lib/keyboardPolicy";
     import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/tauriGifBackend";
 
     let { onLoad }: { onLoad?: () => Promise<void> | void } = $props();
@@ -153,6 +154,8 @@
     }
 
     function handleWindowKeyDown(event: KeyboardEvent) {
+        if (isContextualKeyboardBinding(event)) return;
+
         if (
             !event.ctrlKey &&
             !event.altKey &&

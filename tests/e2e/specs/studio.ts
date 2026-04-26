@@ -50,11 +50,11 @@ async function getActiveTestId() {
   });
 }
 
-/** Dispatch a Ctrl+wheel event on the frame viewer to trigger cursor-centred zoom. */
+/** Dispatch a Ctrl+wheel event on the project canvas to trigger cursor-centred zoom. */
 async function ctrlWheel(deltaY: number) {
   await browser.execute((dy: number) => {
-    const viewer = document.querySelector('[data-testid="frame-viewer"]')!;
-    viewer.dispatchEvent(
+    const projectCanvas = document.querySelector('[data-testid="project-canvas"]')!;
+    projectCanvas.dispatchEvent(
       new WheelEvent("wheel", { deltaY: dy, ctrlKey: true, bubbles: true, cancelable: true }),
     );
   }, deltaY);
@@ -223,22 +223,22 @@ async function resetPlaybackState() {
 
 async function getLoadedGifFitMetrics() {
   return browser.execute(() => {
-    const viewer = document.querySelector('[data-testid="frame-viewer"]');
+    const projectCanvas = document.querySelector('[data-testid="project-canvas"]');
     const canvas = document.querySelector('[data-testid="frame-canvas"]');
     const inspector = document.querySelector('[data-testid="inspector"]');
 
-    if (!(viewer instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
+    if (!(projectCanvas instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
       return null;
     }
 
-    const viewerRect = viewer.getBoundingClientRect();
+    const canvasSurfaceRect = projectCanvas.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
     const inspectorRect = inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : null;
-    const visibleRightEdge = inspectorRect ? inspectorRect.left : viewerRect.right;
-    const visibleWidth = visibleRightEdge - viewerRect.left;
-    const visibleHeight = viewerRect.height;
-    const visibleCentreX = viewerRect.left + visibleWidth / 2;
-    const visibleCentreY = viewerRect.top + visibleHeight / 2;
+    const visibleRightEdge = inspectorRect ? inspectorRect.left : canvasSurfaceRect.right;
+    const visibleWidth = visibleRightEdge - canvasSurfaceRect.left;
+    const visibleHeight = canvasSurfaceRect.height;
+    const visibleCentreX = canvasSurfaceRect.left + visibleWidth / 2;
+    const visibleCentreY = canvasSurfaceRect.top + visibleHeight / 2;
     const canvasCentreX = canvasRect.left + canvasRect.width / 2;
     const canvasCentreY = canvasRect.top + canvasRect.height / 2;
 
@@ -264,21 +264,21 @@ async function waitForZoomReset() {
 
 async function getEmptyViewerAlignment() {
   return browser.execute(() => {
-    const viewer = document.querySelector('[data-testid="frame-viewer"]');
-    const empty = document.querySelector('[data-testid="viewer-empty"]');
-    if (!(viewer instanceof HTMLElement) || !(empty instanceof HTMLElement)) {
+    const projectCanvas = document.querySelector('[data-testid="project-canvas"]');
+    const empty = document.querySelector('[data-testid="canvas-empty"]');
+    if (!(projectCanvas instanceof HTMLElement) || !(empty instanceof HTMLElement)) {
       return null;
     }
 
-    const viewerRect = viewer.getBoundingClientRect();
+    const canvasRect = projectCanvas.getBoundingClientRect();
     const emptyRect = empty.getBoundingClientRect();
-    const viewerCentreX = viewerRect.left + viewerRect.width / 2;
+    const canvasCentreX = canvasRect.left + canvasRect.width / 2;
     const emptyCentreX = emptyRect.left + emptyRect.width / 2;
 
     return {
-      viewerCentreX,
+      canvasCentreX,
       emptyCentreX,
-      deltaX: emptyCentreX - viewerCentreX,
+      deltaX: emptyCentreX - canvasCentreX,
     };
   });
 }
@@ -323,13 +323,13 @@ describe("Studio — app launch", () => {
     await expect(await $('[data-testid="inspector"]')).not.toBeExisting();
   });
 
-  it("should show the empty viewer state", async () => {
-    const empty = await $('[data-testid="viewer-empty"]');
+  it("should show the empty canvas state", async () => {
+    const empty = await $('[data-testid="canvas-empty"]');
     await expect(empty).toBeDisplayed();
     await expect(empty).toHaveText(expect.stringContaining("Open or drop a GIF to get started"));
   });
 
-  it("should centre the empty viewer within the visible canvas when no GIF is loaded", async () => {
+  it("should centre the empty canvas within the visible canvas when no GIF is loaded", async () => {
     const result = await getEmptyViewerAlignment();
 
     expect(result).not.toBeNull();
@@ -421,17 +421,17 @@ describe("Studio — app launch", () => {
     await expect(await $('[data-testid="btn-open"]')).toBeDisplayed();
   });
 
-  it("drop overlay uses the full viewer width while the inspector is hidden", async () => {
+  it("drop overlay uses the full canvas width while the inspector is hidden", async () => {
     const result = await browser.execute(() => {
-      const viewerArea = document.querySelector(".viewer-area");
+      const canvasArea = document.querySelector(".canvas-area");
       const inspector = document.querySelector('[data-testid="inspector"]');
-      if (!(viewerArea instanceof HTMLElement)) return null;
+      if (!(canvasArea instanceof HTMLElement)) return null;
 
-      const viewerRect = viewerArea.getBoundingClientRect();
+      const canvasRect = canvasArea.getBoundingClientRect();
       return {
         inspectorVisible: inspector instanceof HTMLElement,
-        expectedOverlayRightEdge: viewerRect.right - 10,
-        viewerRightEdge: viewerRect.right,
+        expectedOverlayRightEdge: canvasRect.right - 10,
+        canvasRightEdge: canvasRect.right,
       };
     });
 
@@ -439,7 +439,7 @@ describe("Studio — app launch", () => {
     if (!result) return;
 
     expect(result.inspectorVisible).toBe(false);
-    expect(result.expectedOverlayRightEdge).toBe(result.viewerRightEdge - 10);
+    expect(result.expectedOverlayRightEdge).toBe(result.canvasRightEdge - 10);
   });
 });
 
@@ -485,29 +485,30 @@ describe("Studio — open GIF fixture", () => {
     expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
   });
 
-  it("should centre the loaded GIF within the visible viewer area excluding the inspector", async () => {
+  it("should centre the loaded GIF within the visible canvas area excluding the inspector", async () => {
     const result = await browser.execute(() => {
-      const viewer = document.querySelector('[data-testid="frame-viewer"]');
+      const projectCanvas = document.querySelector('[data-testid="project-canvas"]');
       const canvas = document.querySelector('[data-testid="frame-canvas"]');
       const inspector = document.querySelector('[data-testid="inspector"]');
-      if (!(viewer instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
+      if (!(projectCanvas instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
         return null;
       }
 
-      const viewerRect = viewer.getBoundingClientRect();
+      const canvasSurfaceRect = projectCanvas.getBoundingClientRect();
       const canvasRect = canvas.getBoundingClientRect();
       const inspectorRect =
-        inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : viewerRect;
+        inspector instanceof HTMLElement ? inspector.getBoundingClientRect() : canvasSurfaceRect;
 
-      const visibleRightEdge = inspector instanceof HTMLElement ? inspectorRect.left : viewerRect.right;
-      const visibleCentreX = (viewerRect.left + visibleRightEdge) / 2;
+      const visibleRightEdge =
+        inspector instanceof HTMLElement ? inspectorRect.left : canvasSurfaceRect.right;
+      const visibleCentreX = (canvasSurfaceRect.left + visibleRightEdge) / 2;
       const canvasCentreX = canvasRect.left + canvasRect.width / 2;
 
       return {
         visibleCentreX,
         canvasCentreX,
         deltaX: canvasCentreX - visibleCentreX,
-        viewerRect,
+        canvasSurfaceRect,
         canvasRect,
         inspectorRect: inspector instanceof HTMLElement ? inspectorRect : null,
       };
@@ -519,8 +520,8 @@ describe("Studio — open GIF fixture", () => {
     expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
   });
 
-  it("should hide the empty viewer", async () => {
-    const empty = await $('[data-testid="viewer-empty"]');
+  it("should hide the empty canvas", async () => {
+    const empty = await $('[data-testid="canvas-empty"]');
     await expect(empty).not.toBeExisting();
   });
 
@@ -719,7 +720,7 @@ describe("Studio — close project", () => {
     expect(thumbs).toHaveLength(0);
   });
 
-  it("should re-centre the empty viewer after closing the current GIF", async () => {
+  it("should re-centre the empty canvas after closing the current GIF", async () => {
     const result = await getEmptyViewerAlignment();
 
     expect(result).not.toBeNull();
@@ -1371,12 +1372,12 @@ describe("Studio — keyboard navigation", () => {
 describe("Studio — zoom indicator", () => {
   // Entry state: 2 frames loaded (after keyboard nav suite deleted one)
 
-  it("viewer stage that carries the background grid scales when zooming", async () => {
-    const grid = await $('[data-testid="viewer-grid"]');
+  it("canvas stage that carries the background grid scales when zooming", async () => {
+    const grid = await $('[data-testid="canvas-grid"]');
     await grid.waitForExist({ timeout: 5_000 });
 
     const transformBefore = await browser.execute(() => {
-      const stage = document.querySelector('[data-testid="viewer-stage"]');
+      const stage = document.querySelector('[data-testid="canvas-stage"]');
       return stage ? getComputedStyle(stage).transform : null;
     });
 
@@ -1384,7 +1385,7 @@ describe("Studio — zoom indicator", () => {
     await browser.pause(300);
 
     const transformAfter = await browser.execute(() => {
-      const stage = document.querySelector('[data-testid="viewer-stage"]');
+      const stage = document.querySelector('[data-testid="canvas-stage"]');
       return stage ? getComputedStyle(stage).transform : null;
     });
 
@@ -1414,9 +1415,9 @@ describe("Studio — zoom indicator", () => {
   it("zoom level persists when navigating between frames", async () => {
     // Zoom in by dispatching three wheel events
     await browser.execute(() => {
-      const viewer = document.querySelector('[data-testid="frame-viewer"]')!;
+      const projectCanvas = document.querySelector('[data-testid="project-canvas"]')!;
       for (let i = 0; i < 3; i++) {
-        viewer.dispatchEvent(
+        projectCanvas.dispatchEvent(
           new WheelEvent("wheel", { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true }),
         );
       }
@@ -1752,12 +1753,12 @@ describe("Studio — inspector panel improvements (Phase 6)", () => {
       // Since the overlay is only rendered during drag, we check the inspector left edge
       // vs what the overlay right edge would be.
       const inspector = document.querySelector('[data-testid="inspector"]');
-      const viewerArea = document.querySelector(".viewer-area") as HTMLElement;
-      if (!inspector || !viewerArea) return null;
+      const canvasArea = document.querySelector(".canvas-area") as HTMLElement;
+      if (!inspector || !canvasArea) return null;
       const inspectorRect = inspector.getBoundingClientRect();
-      const viewerRect = viewerArea.getBoundingClientRect();
-      // Expected overlay right margin (expanded): 256px from viewer right
-      const expectedOverlayRightEdge = viewerRect.right - 256;
+      const canvasRect = canvasArea.getBoundingClientRect();
+      // Expected overlay right margin (expanded): 256px from canvas right
+      const expectedOverlayRightEdge = canvasRect.right - 256;
       return { inspectorLeft: inspectorRect.left, expectedOverlayRightEdge };
     });
 
