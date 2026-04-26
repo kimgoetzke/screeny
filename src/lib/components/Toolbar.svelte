@@ -2,12 +2,11 @@
     import { onMount } from "svelte";
     import { getVersion } from "@tauri-apps/api/app";
     import { Channel, invoke } from "@tauri-apps/api/core";
-    import { getCurrentWindow } from "@tauri-apps/api/window";
     import { openUrl } from "@tauri-apps/plugin-opener";
     import HelpMenu from "$lib/components/HelpMenu.svelte";
+    import WindowControls from "$lib/components/WindowControls.svelte";
     import { frameStore } from "$lib/stores/frames.svelte";
-    import { waitForNextPaint } from "$lib/paint";
-    import { openGifStreaming, exportGif } from "$lib/actions";
+    import { createProjectLifecycle } from "$lib/projectLifecycle";
     import type { DialogProvider, GifBackend } from "$lib/actions";
     import type { DecodeEvent } from "$lib/types";
     import { helpKeyBindings } from "$lib/help-keybindings";
@@ -18,8 +17,6 @@
 
     let loading = $state(false);
     let statusMessage = $state("");
-    let openCallId = 0;
-    let currentDecodeId = 0;
     let isE2e = $state(false);
 
     let showFilePicker = $state(false);
@@ -126,6 +123,8 @@
         return "Loading...";
     });
 
+    let currentDecodeId = 0;
+
     const backend: GifBackend = {
         decodeStreaming: async (path, onStart, onFrame, onProgress) => {
             const channel = new Channel<DecodeEvent>();
@@ -152,79 +151,14 @@
         export: (frames, path) => invoke("export_gif", { frames, path }),
     };
 
-    async function handleOpen() {
-        const myCallId = ++openCallId;
-        loading = true;
-        statusMessage = "";
-        let sessionAtStart: number;
-        try {
-            const result = await openGifStreaming(
-                getDialog(),
-                backend,
-                (frame) => {
-                    if (frameStore.loadSessionId === sessionAtStart) {
-                        frameStore.addFrame(frame);
-                    }
-                },
-                (progress) => frameStore.setLoadingProgress(progress),
-                {
-                    beforeDecode: async () => {
-                        frameStore.startLoading();
-                        sessionAtStart = frameStore.loadSessionId;
-                        await waitForNextPaint();
-                    },
-                    onStart: (start) => {
-                        frameStore.setLoadingTotalFrames(start.totalFrames);
-                    },
-                    onFirstFrame: async () => {
-                        await onLoad?.();
-                    },
-                    isCancelled: () => frameStore.loadSessionId !== sessionAtStart,
-                },
-            );
-            if (myCallId !== openCallId) return;
-            if (result.error) {
-                statusMessage = result.error;
-            } else {
-                statusMessage = result.message ?? "";
-            }
-        } finally {
-            if (myCallId !== openCallId) return;
-            if (frameStore.isLoading) {
-                await waitForNextPaint();
-                frameStore.finishLoading();
-            }
-            loading = false;
-        }
-    }
-
-    function handleCancelLoad() {
-        openCallId++;
-        frameStore.cancelLoad();
-        loading = false;
-        void invoke("cancel_gif_decode", { decodeId: currentDecodeId });
-    }
-
-    async function handleExport() {
-        loading = true;
-        statusMessage = "Exporting…";
-        try {
-            const result = await exportGif(
-                getDialog(),
-                backend,
-                frameStore.frames,
-            );
-            if (result.error) {
-                statusMessage = result.error;
-            } else if (result.message) {
-                statusMessage = result.message;
-            } else {
-                statusMessage = "";
-            }
-        } finally {
-            loading = false;
-        }
-    }
+    const { handleOpen, handleCancelLoad, handleExport } = createProjectLifecycle({
+        getDialog,
+        backend,
+        onLoad: async () => { await onLoad?.(); },
+        onLoadingChange: (v) => { loading = v; },
+        onStatusChange: (v) => { statusMessage = v; },
+        getDecodeId: () => currentDecodeId,
+    });
 
     function confirmSave() {
         showSaveInput = false;
@@ -284,18 +218,6 @@
     async function handleOpenGitHub() {
         await openUrl("https://github.com/kimgoetzke/screeny");
         showHelpMenu = false;
-    }
-
-    async function handleMinimiseWindow() {
-        await getCurrentWindow().minimize();
-    }
-
-    async function handleToggleMaximiseWindow() {
-        await getCurrentWindow().toggleMaximize();
-    }
-
-    async function handleCloseWindow() {
-        await getCurrentWindow().close();
     }
 
     $effect(() => {
@@ -471,73 +393,7 @@
                 </svg>
             </button>
 
-            <div class="window-controls">
-                <button
-                    class="icon-btn titlebar-btn window-control-btn"
-                    onclick={handleMinimiseWindow}
-                    data-testid="btn-window-minimise"
-                    title="Minimise window"
-                    aria-label="Minimise window"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 16 16"
-                        aria-hidden="true"
-                    >
-                        <rect
-                            x="3"
-                            y="7.25"
-                            width="10"
-                            height="1.5"
-                            fill="currentColor"
-                        />
-                    </svg>
-                </button>
-                <button
-                    class="icon-btn titlebar-btn window-control-btn"
-                    onclick={handleToggleMaximiseWindow}
-                    data-testid="btn-window-maximise"
-                    title="Maximise window"
-                    aria-label="Maximise window"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 16 16"
-                        aria-hidden="true"
-                    >
-                        <rect
-                            x="3.25"
-                            y="3.25"
-                            width="9.5"
-                            height="9.5"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                        />
-                    </svg>
-                </button>
-                <button
-                    class="icon-btn titlebar-btn window-control-btn window-close-btn"
-                    onclick={handleCloseWindow}
-                    data-testid="btn-window-close"
-                    title="Close window"
-                    aria-label="Close window"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 16 16"
-                        aria-hidden="true"
-                    >
-                        <path
-                            fill="currentColor"
-                            d="M4.28 3.22 8 6.94l3.72-3.72 1.06 1.06L9.06 8l3.72 3.72-1.06 1.06L8 9.06l-3.72 3.72-1.06-1.06L6.94 8 3.22 4.28Z"
-                        />
-                    </svg>
-                </button>
-            </div>
+            <WindowControls />
         </div>
     </div>
 </div>
@@ -601,20 +457,11 @@
         user-select: none;
     }
 
-    .toolbar-titlebar-actions,
-    .window-controls {
+    .toolbar-titlebar-actions {
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-
-    .toolbar-titlebar-actions {
         flex-shrink: 0;
-    }
-
-    .window-controls {
-        gap: 0;
-        border-radius: 8px;
     }
 
     .icon-btn {
@@ -628,32 +475,6 @@
         min-width: 36px;
         min-height: 36px;
         padding: 0;
-    }
-
-    .window-control-btn {
-        border: 1px solid var(--color-border);
-        border-radius: 0;
-        position: relative;
-        margin-left: -1px;
-    }
-
-    .window-controls .window-control-btn:first-child {
-        border-radius: 8px 0 0 8px;
-        margin-left: 0;
-    }
-
-    .window-controls .window-control-btn:last-child {
-        border-radius: 0 8px 8px 0;
-    }
-
-    .window-control-btn:hover:not(:disabled) {
-        z-index: 1;
-    }
-
-    .window-close-btn:hover:not(:disabled) {
-        background: var(--color-error);
-        border-color: var(--color-error);
-        color: white;
     }
 
     button {

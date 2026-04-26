@@ -175,27 +175,7 @@ describe("Toolbar", () => {
       );
     });
 
-    it("waits for a paint boundary before decode starts and before loading ends", () => {
-      expect(toolbarSource).toMatch(
-        /beforeDecode:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,200}frameStore\.startLoading\(\)[\s\S]{0,200}await\s+waitForNextPaint\(\)/,
-      );
-      expect(toolbarSource).toMatch(
-        /finally\s*\{[\s\S]{0,400}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
-      );
-    });
-
-    it("requests the initial fit from the first streamed frame instead of waiting for decode completion", () => {
-      expect(toolbarSource).toMatch(
-        /openGifStreaming\([\s\S]{0,1400}onFirstFrame:\s*async\s*\(\)\s*=>\s*\{[\s\S]{0,400}onLoad\?\.\(\)/,
-      );
-    });
-
-    it("adds each streamed frame directly to the store without batching", () => {
-      expect(toolbarSource).not.toContain("createFrameBatcher");
-      expect(toolbarSource).toMatch(/frameStore\.addFrame\(/);
-    });
   });
-
 
   describe("cancellation", () => {
     it("shows Cancel button when loading is in progress", () => {
@@ -220,15 +200,6 @@ describe("Toolbar", () => {
       expect(body).not.toContain('data-testid="btn-cancel"');
     });
 
-    it("handleCancelLoad calls frameStore.cancelLoad and invokes cancel_gif_decode", () => {
-      expect(toolbarSource).toMatch(/frameStore\.cancelLoad\(\)/);
-      expect(toolbarSource).toMatch(/invoke\(["']cancel_gif_decode["']/);
-    });
-
-    it("onFrame callback in handleOpen guards with session token before addFrame", () => {
-      expect(toolbarSource).toMatch(/loadSessionId/);
-      expect(toolbarSource).toMatch(/frameStore\.addFrame\(/);
-    });
   });
 
   describe("disabled states", () => {
