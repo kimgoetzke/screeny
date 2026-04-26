@@ -82,7 +82,7 @@ Please check for warnings and address them following generally accepted best pra
 
 ---
 
-Please start the next phase but read /domain-model first because I expect this skill will help you to structure any changes in a way that makes it easy for you and anyone else to work with the outcome of your changes.
+Please start the next phase but read /domain-model first because I expect this skill will help you to structure any changes in a way that makes it easy for you and anyone else to work with the outcome of your changes. Also note that the previous phases may have changed the project to a degree that this phase may not be redundant.
 
 ---
 

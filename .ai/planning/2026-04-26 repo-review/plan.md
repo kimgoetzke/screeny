@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 7
+Phase 8
 
 ## Phases
 
@@ -120,12 +120,12 @@ Phase 7
   - **Relevant context:** This is a small, high-confidence refactor candidate with narrow blast radius.
   - **Additional research:** Confirm whether the two call sites have any intentional differences in sizing or image-data handling before extracting.
   - **Relevant skills:** `tdd` before any code changes; `research-codebase` only if the renderer contracts are unclear.
-- [ ] Re-read this plan and confirm the duplicated rendering paths are functionally equivalent
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Invoke `tdd` before implementation if extraction proceeds
-- [ ] If implementing, keep the utility tiny and behaviour-preserving; ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and confirm the duplicated rendering paths are functionally equivalent
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Invoke `tdd` before implementation if extraction proceeds
+- [x] If implementing, keep the utility tiny and behaviour-preserving; ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 8: Frontend E2E suite decomposition and determinism
 

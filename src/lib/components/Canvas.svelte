@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
-    import { frameStore } from "$lib/stores/frames.svelte";
+  import { frameStore } from "$lib/stores/frames.svelte";
+  import { renderFrameToCanvas } from "$lib/frameRenderer";
 
   let {
     showEmptyState = true,
@@ -44,18 +45,7 @@
         const frame = untrack(() => frameStore.selectedFrame);
     if (!frame) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // imageData is raw RGBA base64 — decode directly into ImageData, no PNG parse needed.
-        const rawBytes = atob(frame.imageData);
-        const uint8 = new Uint8ClampedArray(rawBytes.length);
-    for (let i = 0; i < rawBytes.length; i++) {
-            uint8[i] = rawBytes.charCodeAt(i);
-        }
-      canvas.width = frame.width;
-      canvas.height = frame.height;
-      ctx.putImageData(new ImageData(uint8, frame.width, frame.height), 0, 0);
+    renderFrameToCanvas(canvas, frame);
     });
 
   function handleWheel(event: WheelEvent) {

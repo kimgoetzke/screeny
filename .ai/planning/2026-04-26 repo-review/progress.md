@@ -134,13 +134,30 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 7: Frontend rendering utility extraction
+
+- **Status:** Complete
+- Actions taken:
+  - Read domain-model skill and assessed `context.md` — no new domain terms needed (rendering is an implementation utility, not a domain concept)
+  - Confirmed the RGBA-to-canvas logic in `Canvas.svelte` (lines 47–58) and `Timeline.svelte` (`renderRgba`, lines 6–17) is functionally identical
+  - Applied TDD: wrote `src/lib/frameRenderer.test.ts` (5 tests, RED), created `src/lib/frameRenderer.ts` with `renderFrameToCanvas` (GREEN)
+  - Updated `Canvas.svelte` to call `renderFrameToCanvas` in the `$effect`, replacing 10 lines of inline logic
+  - Updated `Timeline.svelte` to delegate `renderRgba` to `renderFrameToCanvas`, keeping the `drawRgba` action wrapper intact
+  - Confirmed 0 svelte-check errors/warnings; all 358 unit tests pass
+- Files created/modified:
+  - `src/lib/frameRenderer.ts` (created)
+  - `src/lib/frameRenderer.test.ts` (created — 5 behaviour tests)
+  - `src/lib/components/Canvas.svelte` (updated — inline rendering replaced with `renderFrameToCanvas` call)
+  - `src/lib/components/Timeline.svelte` (updated — `renderRgba` body delegates to `renderFrameToCanvas`)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
 | Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings | ✓ |
 | Frontend build | `pnpm build` | Production build succeeds | Passed | ✓ |
-| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 19 files / 353 tests (Phase 6) | ✓ |
+| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 20 files / 358 tests (Phase 7) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 2 spec files / 103 tests | ✓ |
