@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 9
+Phase 10
 
 ## Phases
 
@@ -154,12 +154,12 @@ Phase 9
   - **Relevant context:** Project guidance currently says unit tests use SSR rendering only and must not use `mount()` without broader config changes, so any DOM-test decision needs careful justification.
   - **Additional research:** Confirm whether a DOM-oriented component test layer is worth the extra config complexity, or whether extracting more pure helpers gives enough behaviour coverage while staying SSR-only.
   - **Relevant skills:** `tdd` before any test changes; `research-codebase` for local test-pattern discovery.
-- [ ] Re-read this plan plus the project testing guidance and inspect the referenced tests
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide whether this phase stays SSR-only or just documents why a DOM layer is not worth adding right now; invoke `tdd` before changing tests
-- [ ] If implementing, keep or improve behavioural coverage and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan plus the project testing guidance and inspect the referenced tests
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Confirm the narrowed scope with the user: split the massive store test only; defer DOM-layer discussion and source-assertion cleanup
+- [x] Invoke `tdd`, then split `frames.test.ts` into smaller files aligned to the store architecture and current domain terms (Selection, Playback, Loading, Frame Editing)
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 10: Frontend TypeScript and dependency hygiene
 

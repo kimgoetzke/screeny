@@ -177,13 +177,38 @@
   - `tests/e2e/specs/studio.ts` (deleted)
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
 
+### Phase 9: Frontend store test-file decomposition
+
+- **Status:** Complete
+- Actions taken:
+  - Ran `domain-model`; confirmed no new glossary term or ADR was needed because the existing terms already map cleanly to the desired split (`Selection`, `Playback`, `Project State` for loading, `Frame Editing`)
+  - Narrowed the phase with the user: split the giant frame-store test only; defer SSR-vs-DOM strategy work and other brittle-test cleanup
+  - Ran `tdd` and replaced `src/lib/stores/frames.test.ts` with smaller focused files aligned to the current store structure
+  - Added `src/lib/stores/frameStore.test-support.ts` for shared frame fixtures and reset setup
+  - Split the coverage into `frames.store.test.ts`, `frames.playback.test.ts`, `frames.loading.test.ts`, `frames.selection.test.ts`, `frames.editing.deletion.test.ts`, `frames.editing.deduplication.test.ts`, `frames.editing.movement.test.ts`, `frames.editing.duration.test.ts`, and `frames.editing.duplication.test.ts`
+- Files created/modified:
+  - `src/lib/stores/frameStore.test-support.ts` (created)
+  - `src/lib/stores/frames.store.test.ts` (created)
+  - `src/lib/stores/frames.playback.test.ts` (created)
+  - `src/lib/stores/frames.loading.test.ts` (created)
+  - `src/lib/stores/frames.selection.test.ts` (created)
+  - `src/lib/stores/frames.editing.deletion.test.ts` (created)
+  - `src/lib/stores/frames.editing.deduplication.test.ts` (created)
+  - `src/lib/stores/frames.editing.movement.test.ts` (created)
+  - `src/lib/stores/frames.editing.duration.test.ts` (created)
+  - `src/lib/stores/frames.editing.duplication.test.ts` (created)
+  - `src/lib/stores/frames.test.ts` (deleted)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
 | Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings | ✓ |
 | Frontend build | `pnpm build` | Production build succeeds | Passed | ✓ |
-| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 20 files / 358 tests (Phase 7) | ✓ |
+| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 9) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests | ✓ |
