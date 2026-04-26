@@ -151,6 +151,32 @@
   - `src/lib/components/Timeline.svelte` (updated — `renderRgba` body delegates to `renderFrameToCanvas`)
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
 
+### Phase 8: Frontend E2E suite decomposition and determinism
+
+- **Status:** Complete
+- Actions taken:
+  - Read `domain-model` skill and confirmed no new domain terms needed; dropped "Phase 6" label from inspector describe name
+  - Created `tests/e2e/helpers.ts` — all shared helpers extracted from studio.ts plus new `resetToEmpty()`, `waitForFrameCount()`, `getLoadedGifFitMetrics()`, `waitForZoomReset()`, `getEmptyViewerAlignment()`, `getToolbarPlaybackAlignment()`
+  - Split studio.ts (1881 lines) into 7 focused spec files: `app-launch.ts`, `open-close.ts`, `playback.ts`, `frame-editing.ts`, `keyboard.ts`, `canvas.ts`, `inspector.ts`
+  - Each spec file has `before()` hooks using `loadFixture()` for independent state setup
+  - Fixed inspector.ts frame-count assertions to match 3-frame fixture (`FRAME 1 / 3`, `FRAMES 1-2 / 3`, `toHaveLength(4)` after duplicate, `frame-thumb-3` + `toHaveLength(3)` after delete)
+  - Added `before()` to keyboard.ts to load a fixture so first test can close the project
+  - Updated `wdio.conf.ts` to list all 8 spec files (splashscreen first)
+  - Deleted `tests/e2e/specs/studio.ts`
+  - All 8 spec files pass: 103 total tests in 1:45
+- Files created/modified:
+  - `tests/e2e/helpers.ts` (created)
+  - `tests/e2e/specs/app-launch.ts` (created)
+  - `tests/e2e/specs/open-close.ts` (created)
+  - `tests/e2e/specs/playback.ts` (created)
+  - `tests/e2e/specs/frame-editing.ts` (created)
+  - `tests/e2e/specs/keyboard.ts` (created)
+  - `tests/e2e/specs/canvas.ts` (created)
+  - `tests/e2e/specs/inspector.ts` (created)
+  - `tests/e2e/wdio.conf.ts` (updated — 8 spec files replacing studio.ts)
+  - `tests/e2e/specs/studio.ts` (deleted)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -160,7 +186,7 @@
 | Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 20 files / 358 tests (Phase 7) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
-| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 2 spec files / 103 tests | ✓ |
+| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests | ✓ |
 
 ---
 

@@ -12,7 +12,13 @@ export const config = {
   port: 4444,
   specs: [
     resolve(repoRoot, "tests/e2e/specs/splashscreen.ts"),
-    resolve(repoRoot, "tests/e2e/specs/studio.ts"),
+    resolve(repoRoot, "tests/e2e/specs/app-launch.ts"),
+    resolve(repoRoot, "tests/e2e/specs/open-close.ts"),
+    resolve(repoRoot, "tests/e2e/specs/playback.ts"),
+    resolve(repoRoot, "tests/e2e/specs/frame-editing.ts"),
+    resolve(repoRoot, "tests/e2e/specs/keyboard.ts"),
+    resolve(repoRoot, "tests/e2e/specs/canvas.ts"),
+    resolve(repoRoot, "tests/e2e/specs/inspector.ts"),
   ],
   maxInstances: 1,
   capabilities: [

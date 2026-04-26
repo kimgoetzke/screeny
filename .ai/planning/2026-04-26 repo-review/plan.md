@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 8
+Phase 9
 
 ## Phases
 
@@ -137,12 +137,12 @@ Phase 8
   - **Relevant context:** Full E2E validation already passes, so this is a maintainability/refactoring phase rather than a failure fix.
   - **Additional research:** Confirm which helpers already exist and which repeated setup flows can be standardised without changing test intent.
   - **Relevant skills:** `tdd` before test-architecture changes; `research-codebase` for local WDIO helper discovery.
-- [ ] Re-read this plan and map the current E2E suite into candidate feature-based files
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide whether to start with helper extraction, file splitting, or wait replacement; invoke `tdd` before changing tests
-- [ ] If implementing, keep behaviour coverage equivalent and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the relevant E2E-focused validation plus any affected broader checks, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and map the current E2E suite into candidate feature-based files
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide whether to start with helper extraction, file splitting, or wait replacement; invoke `tdd` before changing tests
+- [x] If implementing, keep behaviour coverage equivalent and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the relevant E2E-focused validation plus any affected broader checks, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 9: Frontend unit and component test strategy cleanup
 
