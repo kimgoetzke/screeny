@@ -202,16 +202,43 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 10: Frontend TypeScript and dependency hygiene
+
+- **Status:** Complete
+- Actions taken:
+  - Ran `domain-model`; confirmed no new glossary term or ADR was needed because this phase is implementation hygiene, not a domain change
+  - Narrowed the phase with the user: `tests/e2e/tsconfig.json` is now the single source of truth for E2E typing
+  - Ran `tdd`; inspected ambient-type usage and confirmed non-E2E tests already import `vitest`, while E2E types were only needed under `tests/e2e/`
+  - Removed `@wdio/globals/types` and `mocha` from the root `tsconfig.json`
+  - Discovered that root `pnpm check` still included `tests/e2e/**` via inherited `.svelte-kit/tsconfig.json` includes, then fixed the leakage by explicitly excluding `tests/e2e/**` in the root config
+  - Removed the per-file `/// <reference types="mocha" />` directives from the E2E specs and removed `@types/mocha` from `package.json`
+  - Updated `pnpm-lock.yaml` via `pnpm install`
+- Files created/modified:
+  - `tsconfig.json` (updated — root types narrowed to app-only and `tests/e2e/**` excluded)
+  - `package.json` (updated — removed `@types/mocha`)
+  - `pnpm-lock.yaml` (updated)
+  - `tests/e2e/specs/app-launch.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/open-close.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/playback.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/frame-editing.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/keyboard.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/canvas.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/inspector.ts` (updated — removed per-file Mocha reference)
+  - `tests/e2e/specs/splashscreen.ts` (updated — removed per-file Mocha reference)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
-| Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings | ✓ |
-| Frontend build | `pnpm build` | Production build succeeds | Passed | ✓ |
-| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 9) | ✓ |
-| Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
+| Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings (Phase 10) | ✓ |
+| Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 10) | ✓ |
+| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 10) | ✓ |
+| Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 10) | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
-| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests | ✓ |
+| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 10) | ✓ |
 
 ---
 

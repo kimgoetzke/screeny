@@ -76,6 +76,9 @@ Reasoning: this review spans separate frontend and backend areas, requires multi
 - Phase 9 domain-model check: no new domain terms or ADRs were needed. The existing glossary already covers the store split points that matter here: **Selection**, **Playback**, **Project State** (for loading), and **Frame Editing**.
 - Phase 9 decision: narrow the original review finding. Do not tackle SSR-vs-DOM strategy or raw-source assertion cleanup yet; only split `src/lib/stores/frames.test.ts` into smaller files that match the current store architecture and domain language.
 - Phase 9 implementation: replaced `src/lib/stores/frames.test.ts` with focused files for store basics, playback, loading, selection, and frame-editing subareas (deletion, deduplication, movement, duration, duplication), plus shared test support. Behaviour coverage stayed unchanged; only file structure changed.
+- Phase 10 domain-model check: no new glossary term or ADR was needed. The user explicitly wanted this phase treated as implementation hygiene only, not as a domain-language change.
+- Phase 10 decision: implement. Make `tests/e2e/tsconfig.json` the single source of truth for E2E framework types, remove E2E ambient types from the root app config, and remove `@types/mocha` only if validation stays green.
+- Phase 10 implementation: removing E2E globals from the root `tsconfig.json` exposed that `.svelte-kit/tsconfig.json` still pulls `../tests/**/*.ts` into the root `svelte-check` graph. Fixed the leakage by explicitly excluding `tests/e2e/**` from the root config, then removed the per-file `/// <reference types="mocha" />` directives and the redundant `@types/mocha` dependency. `pnpm check`, `pnpm build`, `pnpm test:unit`, `pnpm tauri build`, and `pnpm test:e2e` all passed.
 
 ## Resources
 

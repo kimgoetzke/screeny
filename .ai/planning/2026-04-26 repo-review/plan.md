@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 10
+Phase 11
 
 ## Phases
 
@@ -168,15 +168,15 @@ Phase 10
   - **Why it matters:** Ambient-type leakage broadens the app compile surface and makes it less clear which dependencies are actually needed.
   - **Suggested fix:** Keep E2E-only types scoped to the E2E config and verify whether `@types/mocha` can be removed safely.
   - **References:** `tsconfig.json`, `tests/e2e/tsconfig.json`, `package.json`, `findings.md`
-  - **Relevant context:** This is a low-risk frontend hygiene phase if compile/test results stay green.
-  - **Additional research:** Confirm whether any non-E2E file truly depends on `mocha` globals before removing them from the root config.
-  - **Relevant skills:** `tdd` before dependency/config changes; `research-codebase` if ambient-type usage is unclear.
-- [ ] Re-read this plan and inspect type usage across the repo to confirm whether the root config needs E2E globals
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide the smallest safe config/dependency change set and invoke `tdd` before implementation
-- [ ] If implementing, remove only proven-redundant declarations/dependencies and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- **Relevant context:** This is a low-risk frontend hygiene phase if compile/test results stay green.
+- **Additional research:** Confirm whether any non-E2E file truly depends on `mocha` globals before removing them from the root config.
+- **Relevant skills:** `tdd` before dependency/config changes; `research-codebase` if ambient-type usage is unclear.
+- [x] Re-read this plan and inspect type usage across the repo to confirm whether the root config needs E2E globals
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide the smallest safe config/dependency change set and invoke `tdd` before implementation
+- [x] If implementing, remove only proven-redundant declarations/dependencies and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 11: Cross-cutting repo artefact hygiene
 
