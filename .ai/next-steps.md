@@ -1,8 +1,6 @@
 # Next steps
 
-## Features
-
-### Studio POC
+## Studio POC
 
 Status: **Completed**
 
@@ -17,7 +15,7 @@ Status: **Completed**
 - [x] Improve styling
 - [x] Improve GIF loading speed
 
-### Studio V1
+## Studio V0.1
 
 Status: **In progress**
 
@@ -49,20 +47,10 @@ Status: **In progress**
 - [x] Fix load position/alignment regression
 - [x] Replace splash screen placeholders
 - [x] Improve GIF loading speed
-- [ ] Fix bug where closing while loading breaks things
+- [x] Fix bug where closing while loading breaks things
 - [ ] Review refactoring opportunities
 
 ### Prompt planning
-
-#### Fix bug where closing while loading breaks things
-
-Status: **Ready**
-
-It's currently not possible to close a GIF during the loading process. Please plan the work to allow for this to happen. The goal is to gracefully stop loading the GIF and bringing the UI in the state where a new GIF can be loaded again, exactly as if no GIF had ever been opened.
-
-If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ##### Review refactoring opportunities
 
@@ -88,7 +76,9 @@ For every issue you report, include:
 
 Keep recommendations concrete, low-risk, and behaviour-preserving unless a behavioural change is explicitly warranted.
 
-Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
+
+Please check for warnings and address them following generally accepted best practice or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ---
 
@@ -97,6 +87,16 @@ Also, please write an E2E test for this feature.
 If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
 
 You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+
+### Studio V0.2
+
+Status: **Not started**
+
+- [ ] Consider adding CI pipeline that creates binary
+- [ ] Research how to get app into Nix packages
+- [ ] Add basic text overlays
+- [ ] Import frames from other GIFs
+- [ ] Configure export (algorithm, colours, more...)
 
 ## Goals
 
