@@ -142,7 +142,6 @@
     margin-bottom: 4px;
   }
 
-  h2,
   h3 {
     font-size: 18px;
     color: var(--color-text-brightest);
