@@ -48,8 +48,9 @@ fn generate_test_gif() {
     println!("Wrote fixture to {}", output.display());
 
     // Verify it round-trips
+    let not_cancelled = std::sync::atomic::AtomicBool::new(false);
     let mut frames_decoded = Vec::new();
-    screeny_lib::gif::decode::decode_gif_stream_path(&output, |event| {
+    screeny_lib::gif::decode::decode_gif_stream_path(&output, &not_cancelled, |event| {
         if let screeny_lib::gif::DecodeEvent::Frame(frame) = event {
             frames_decoded.push(frame);
         }

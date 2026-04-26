@@ -24,6 +24,7 @@ export interface OpenGifStreamingOptions {
   beforeDecode?: () => Promise<void> | void;
   onStart?: (start: DecodeStart) => void;
   onFirstFrame?: (frame: Frame) => Promise<void> | void;
+  isCancelled?: () => boolean;
 }
 
 export async function openGifStreaming(
@@ -51,6 +52,7 @@ export async function openGifStreaming(
         options.onStart?.(start);
       },
       (frame) => {
+        if (options.isCancelled?.()) return;
         frameCount++;
         onFrame(frame);
         if (frameCount === 1) {
@@ -59,6 +61,7 @@ export async function openGifStreaming(
       },
       onProgress,
     );
+    if (options.isCancelled?.()) return {};
     return { message: `Loaded ${frameCount} frames` };
   } catch (error) {
     return { error: `Failed to decode GIF: ${error}` };

@@ -118,6 +118,13 @@ describe("+page.svelte", () => {
     });
   });
 
+  describe("cancellation", () => {
+    it("handleDrop guards addFrame with a session token before adding frames", () => {
+      expect(pageSource).toMatch(/loadSessionId/);
+      expect(pageSource).toMatch(/handleDrop[\s\S]{0,2000}frameStore\.addFrame/);
+    });
+  });
+
   describe("Ctrl+R keyboard shortcut", () => {
     it("handles ctrlKey + 'r' to reset zoom", () => {
       expect(pageSource).toMatch(/event\.ctrlKey/);

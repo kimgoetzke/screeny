@@ -177,6 +177,62 @@ describe("openGifStreaming", () => {
   });
 });
 
+describe("openGifStreaming — isCancelled", () => {
+  it("does not forward frames to onFrame when isCancelled returns true", async () => {
+    const frames = [makeFrame("a"), makeFrame("b")];
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation((_path, _onStart, onFrame) => {
+        frames.forEach(onFrame);
+        return Promise.resolve();
+      }),
+    });
+    const onFrame = vi.fn();
+
+    await openGifStreaming(mockDialog(), backend, onFrame, vi.fn(), {
+      isCancelled: () => true,
+    });
+
+    expect(onFrame).not.toHaveBeenCalled();
+  });
+
+  it("returns empty result (no message, no error) when isCancelled returns true", async () => {
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation((_path, _onStart, onFrame) => {
+        onFrame(makeFrame("a"));
+        return Promise.resolve();
+      }),
+    });
+
+    const result = await openGifStreaming(mockDialog(), backend, vi.fn(), vi.fn(), {
+      isCancelled: () => true,
+    });
+
+    expect(result.message).toBeUndefined();
+    expect(result.error).toBeUndefined();
+  });
+
+  it("only forwards frames received before isCancelled becomes true", async () => {
+    const frames = [makeFrame("a"), makeFrame("b"), makeFrame("c")];
+    let cancelAfter = 1;
+    let received = 0;
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation((_path, _onStart, onFrame) => {
+        frames.forEach(onFrame);
+        return Promise.resolve();
+      }),
+    });
+    const onFrame = vi.fn().mockImplementation(() => {
+      received++;
+    });
+
+    await openGifStreaming(mockDialog(), backend, onFrame, vi.fn(), {
+      isCancelled: () => received >= cancelAfter,
+    });
+
+    expect(onFrame).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("exportGif", () => {
   it("should export successfully", async () => {
     const frames = [makeFrame("a")];

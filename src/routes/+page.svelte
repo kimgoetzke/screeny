@@ -195,11 +195,14 @@
   async function handleDrop(path: string) {
     dropError = "";
     frameStore.startLoading();
+    const sessionAtStart = frameStore.loadSessionId;
+    const decodeId = Date.now();
     await waitForNextPaint();
     let didApplyInitialViewerState = false;
     try {
       const channel = new Channel<DecodeEvent>();
       channel.onmessage = (event) => {
+        if (frameStore.loadSessionId !== sessionAtStart) return;
         if (event.type === "start") {
           frameStore.setLoadingTotalFrames(event.data.totalFrames);
         } else if (event.type === "frame") {
@@ -216,11 +219,13 @@
           frameStore.setLoadingProgress(percentage);
         }
       };
-      await invoke("decode_gif_stream", { path, onEvent: channel });
+      await invoke("decode_gif_stream", { path, onEvent: channel, decodeId });
     } catch (error) {
-      dropError = `Failed to decode GIF: ${error}`;
+      if (frameStore.loadSessionId === sessionAtStart) {
+        dropError = `Failed to decode GIF: ${error}`;
+      }
     } finally {
-      if (frameStore.isLoading) {
+      if (frameStore.isLoading && frameStore.loadSessionId === sessionAtStart) {
         await waitForNextPaint();
         frameStore.finishLoading();
       }

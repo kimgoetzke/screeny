@@ -197,6 +197,40 @@ describe("Toolbar", () => {
   });
 
 
+  describe("cancellation", () => {
+    it("shows Cancel button when loading is in progress", () => {
+      frameStore.startLoading();
+
+      const { body } = render(Toolbar);
+
+      expect(body).toContain('data-testid="btn-cancel"');
+    });
+
+    it("does not show Open button when loading is in progress", () => {
+      frameStore.startLoading();
+
+      const { body } = render(Toolbar);
+
+      expect(body).not.toContain('data-testid="btn-open"');
+    });
+
+    it("does not show Cancel button when not loading", () => {
+      const { body } = render(Toolbar);
+
+      expect(body).not.toContain('data-testid="btn-cancel"');
+    });
+
+    it("handleCancelLoad calls frameStore.cancelLoad and invokes cancel_gif_decode", () => {
+      expect(toolbarSource).toMatch(/frameStore\.cancelLoad\(\)/);
+      expect(toolbarSource).toMatch(/invoke\(["']cancel_gif_decode["']/);
+    });
+
+    it("onFrame callback in handleOpen guards with session token before addFrame", () => {
+      expect(toolbarSource).toMatch(/loadSessionId/);
+      expect(toolbarSource).toMatch(/frameStore\.addFrame\(/);
+    });
+  });
+
   describe("disabled states", () => {
     beforeEach(() => {
       vi.useFakeTimers();

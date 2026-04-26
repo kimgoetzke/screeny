@@ -1,10 +1,17 @@
 mod e2e;
 pub mod gif;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use gif::ExportFrame;
 use tauri::{ipc::Channel, window::Color, Manager};
+
+struct AppState {
+    decode_cancels: Mutex<HashMap<u64, Arc<AtomicBool>>>,
+}
 
 #[derive(serde::Serialize, Clone)]
 pub struct DirEntry {
@@ -15,15 +22,37 @@ pub struct DirEntry {
 }
 
 #[tauri::command]
-async fn decode_gif_stream(path: String, on_event: Channel<gif::DecodeEvent>) -> Result<(), String> {
+async fn decode_gif_stream(
+    path: String,
+    on_event: Channel<gif::DecodeEvent>,
+    decode_id: u64,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let cancelled = Arc::new(AtomicBool::new(false));
+    {
+        let mut map = state.decode_cancels.lock().unwrap();
+        map.insert(decode_id, cancelled.clone());
+    }
     let path = PathBuf::from(path);
-    tauri::async_runtime::spawn_blocking(move || {
-        gif::decode::decode_gif_stream_path(&path, |event| {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        gif::decode::decode_gif_stream_path(&path, &cancelled, |event| {
             on_event.send(event).ok();
         })
     })
     .await
-    .map_err(|e| format!("Failed to join decode task: {e}"))?
+    .map_err(|e| format!("Failed to join decode task: {e}"))?;
+    {
+        let mut map = state.decode_cancels.lock().unwrap();
+        map.remove(&decode_id);
+    }
+    result
+}
+
+#[tauri::command]
+fn cancel_gif_decode(decode_id: u64, state: tauri::State<'_, AppState>) {
+    if let Some(flag) = state.decode_cancels.lock().unwrap().get(&decode_id) {
+        flag.store(true, Ordering::Relaxed);
+    }
 }
 
 #[tauri::command]
@@ -110,6 +139,9 @@ fn e2e_close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(AppState {
+            decode_cancels: Mutex::new(HashMap::new()),
+        })
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let splashscreen_url = format!("splashscreen.html?version={}", env!("CARGO_PKG_VERSION"));
@@ -129,6 +161,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             decode_gif_stream,
+            cancel_gif_decode,
             export_gif,
             suggest_export_path,
             home_dir,

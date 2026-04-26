@@ -412,6 +412,52 @@ describe("frameStore", () => {
     });
   });
 
+  describe("cancelLoad", () => {
+    it("resets store to empty-app state", () => {
+      frameStore.startLoading();
+      frameStore.addFrame(makeFrame("a"));
+
+      frameStore.cancelLoad();
+
+      expect(frameStore.hasFrames).toBe(false);
+      expect(frameStore.isLoading).toBe(false);
+      expect(frameStore.selectedFrameId).toBeNull();
+      expect(frameStore.loadingProgress).toBeNull();
+      expect(frameStore.loadingFrameCount).toBe(0);
+      expect(frameStore.loadingTotalFrames).toBeNull();
+    });
+  });
+
+  describe("loadSessionId", () => {
+    it("startLoading increments loadSessionId", () => {
+      const before = frameStore.loadSessionId;
+      frameStore.startLoading();
+
+      expect(frameStore.loadSessionId).toBeGreaterThan(before);
+    });
+
+    it("cancelLoad increments loadSessionId", () => {
+      frameStore.startLoading();
+      const duringLoad = frameStore.loadSessionId;
+
+      frameStore.cancelLoad();
+
+      expect(frameStore.loadSessionId).toBeGreaterThan(duringLoad);
+    });
+
+    it("each startLoading produces a unique session ID", () => {
+      const first = frameStore.loadSessionId;
+      frameStore.startLoading();
+      const second = frameStore.loadSessionId;
+      frameStore.finishLoading();
+      frameStore.startLoading();
+      const third = frameStore.loadSessionId;
+
+      expect(second).not.toBe(first);
+      expect(third).not.toBe(second);
+    });
+  });
+
   describe("selectedFrameIds", () => {
     it("is empty when no frames loaded", () => {
       expect(frameStore.selectedFrameIds.size).toBe(0);

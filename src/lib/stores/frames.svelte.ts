@@ -13,6 +13,7 @@ let isLoading = $state(false);
 let loadingProgress = $state<number | null>(null);
 let loadingFrameCount = $state(0);
 let loadingTotalFrames = $state<number | null>(null);
+let loadSessionId = $state(0);
 
 function scheduleNextFrame() {
   const currentFrame = frames.find((f) => f.id === selectedFrameId);
@@ -535,6 +536,10 @@ export const frameStore = {
     return loadingTotalFrames;
   },
 
+  get loadSessionId(): number {
+    return loadSessionId;
+  },
+
   startLoading() {
     frameStore.stop();
     frames = [];
@@ -545,6 +550,7 @@ export const frameStore = {
     loadingProgress = 0;
     loadingFrameCount = 0;
     loadingTotalFrames = null;
+    loadSessionId += 1;
   },
 
   finishLoading() {
@@ -552,6 +558,19 @@ export const frameStore = {
     loadingProgress = null;
     loadingFrameCount = 0;
     loadingTotalFrames = null;
+  },
+
+  cancelLoad() {
+    frameStore.stop();
+    frames = [];
+    selectedFrameId = null;
+    selectedFrameIds = new Set();
+    selectionActiveId = null;
+    isLoading = false;
+    loadingProgress = null;
+    loadingFrameCount = 0;
+    loadingTotalFrames = null;
+    loadSessionId += 1;
   },
 
   setLoadingProgress(percentage: number) {

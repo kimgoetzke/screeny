@@ -18,6 +18,8 @@
 
     let loading = $state(false);
     let statusMessage = $state("");
+    let openCallId = 0;
+    let currentDecodeId = 0;
     let isE2e = $state(false);
 
     let showFilePicker = $state(false);
@@ -144,23 +146,31 @@
                     onProgress(percentage);
                 }
             };
-            await invoke("decode_gif_stream", { path, onEvent: channel });
+            currentDecodeId = Date.now();
+            await invoke("decode_gif_stream", { path, onEvent: channel, decodeId: currentDecodeId });
         },
         export: (frames, path) => invoke("export_gif", { frames, path }),
     };
 
     async function handleOpen() {
+        const myCallId = ++openCallId;
         loading = true;
         statusMessage = "";
+        let sessionAtStart: number;
         try {
             const result = await openGifStreaming(
                 getDialog(),
                 backend,
-                (frame) => frameStore.addFrame(frame),
+                (frame) => {
+                    if (frameStore.loadSessionId === sessionAtStart) {
+                        frameStore.addFrame(frame);
+                    }
+                },
                 (progress) => frameStore.setLoadingProgress(progress),
                 {
                     beforeDecode: async () => {
                         frameStore.startLoading();
+                        sessionAtStart = frameStore.loadSessionId;
                         await waitForNextPaint();
                     },
                     onStart: (start) => {
@@ -169,20 +179,30 @@
                     onFirstFrame: async () => {
                         await onLoad?.();
                     },
+                    isCancelled: () => frameStore.loadSessionId !== sessionAtStart,
                 },
             );
+            if (myCallId !== openCallId) return;
             if (result.error) {
                 statusMessage = result.error;
             } else {
                 statusMessage = result.message ?? "";
             }
         } finally {
+            if (myCallId !== openCallId) return;
             if (frameStore.isLoading) {
                 await waitForNextPaint();
                 frameStore.finishLoading();
             }
             loading = false;
         }
+    }
+
+    function handleCancelLoad() {
+        openCallId++;
+        frameStore.cancelLoad();
+        loading = false;
+        void invoke("cancel_gif_decode", { decodeId: currentDecodeId });
     }
 
     async function handleExport() {
@@ -314,7 +334,12 @@
 
 <div class="toolbar" data-testid="toolbar">
     <div class="toolbar-primary">
-        {#if frameStore.hasFrames}
+        {#if frameStore.isLoading}
+            <button
+                onclick={handleCancelLoad}
+                data-testid="btn-cancel">Cancel</button
+            >
+        {:else if frameStore.hasFrames}
             <button
                 onclick={handleClose}
                 disabled={loading}

@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 
@@ -169,7 +169,7 @@ fn count_gif_frames_in_path(path: &Path) -> Result<usize, String> {
 ///
 /// Emits `DecodeEvent::Progress` + `DecodeEvent::Frame` after each frame, then
 /// `DecodeEvent::Complete` when all frames have been decoded.
-pub fn decode_gif_streaming<R, F>(reader: R, total_bytes: u64, mut on_event: F) -> Result<(), String>
+pub fn decode_gif_streaming<R, F>(reader: R, total_bytes: u64, cancelled: &AtomicBool, mut on_event: F) -> Result<(), String>
 where
     R: Read,
     F: FnMut(DecodeEvent),
@@ -194,6 +194,10 @@ where
         .read_next_frame()
         .map_err(|e| format!("Failed to read frame: {e}"))?
     {
+        if cancelled.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+
         if frame.dispose == gif::DisposalMethod::Previous {
             previous_canvas.copy_from_slice(&canvas);
         }
@@ -231,7 +235,7 @@ where
 /// Open a GIF at `path`, read its size, and stream events via `on_event`.
 ///
 /// This is the testable entry point used by the Tauri command.
-pub fn decode_gif_stream_path<F>(path: &Path, on_event: F) -> Result<(), String>
+pub fn decode_gif_stream_path<F>(path: &Path, cancelled: &AtomicBool, on_event: F) -> Result<(), String>
 where
     F: FnMut(DecodeEvent),
 {
@@ -246,7 +250,7 @@ where
         total_bytes,
         total_frames,
     });
-    decode_gif_streaming(file, total_bytes, on_event)
+    decode_gif_streaming(file, total_bytes, cancelled, on_event)
 }
 
 
@@ -257,8 +261,9 @@ mod tests {
     /// Decode all frames from in-memory GIF bytes using the streaming API.
     fn collect_frames(gif_data: &[u8]) -> Vec<Frame> {
         let total = gif_data.len() as u64;
+        let cancelled = AtomicBool::new(false);
         let mut frames = Vec::new();
-        decode_gif_streaming(std::io::Cursor::new(gif_data), total, |event| {
+        decode_gif_streaming(std::io::Cursor::new(gif_data), total, &cancelled, |event| {
             if let DecodeEvent::Frame(frame) = event {
                 frames.push(frame);
             }
@@ -412,8 +417,9 @@ mod tests {
         );
         let total = gif_data.len() as u64;
 
+        let not_cancelled = AtomicBool::new(false);
         let mut frames = Vec::new();
-        decode_gif_streaming(std::io::Cursor::new(gif_data), total, |event| {
+        decode_gif_streaming(std::io::Cursor::new(gif_data), total, &not_cancelled, |event| {
             if let DecodeEvent::Frame(frame) = event {
                 frames.push(frame);
             }
@@ -432,9 +438,10 @@ mod tests {
     fn test_decode_streaming_sends_progress_events() {
         let gif_data = create_test_gif(&[[255, 0, 0, 255], [0, 255, 0, 255]], 8, 8, 10);
         let total = gif_data.len() as u64;
+        let not_cancelled = AtomicBool::new(false);
 
         let mut progress_events: Vec<(u64, u64)> = Vec::new();
-        decode_gif_streaming(std::io::Cursor::new(gif_data), total, |event| {
+        decode_gif_streaming(std::io::Cursor::new(gif_data), total, &not_cancelled, |event| {
             if let DecodeEvent::Progress { bytes_read, total_bytes } = event {
                 progress_events.push((bytes_read, total_bytes));
             }
@@ -456,9 +463,10 @@ mod tests {
     fn test_decode_streaming_completes_with_frame_count() {
         let gif_data = create_test_gif(&[[255, 0, 0, 255], [0, 255, 0, 255]], 4, 4, 10);
         let total = gif_data.len() as u64;
+        let not_cancelled = AtomicBool::new(false);
 
         let mut complete_events: Vec<usize> = Vec::new();
-        decode_gif_streaming(std::io::Cursor::new(gif_data), total, |event| {
+        decode_gif_streaming(std::io::Cursor::new(gif_data), total, &not_cancelled, |event| {
             if let DecodeEvent::Complete { frame_count } = event {
                 complete_events.push(frame_count);
             }
@@ -471,9 +479,11 @@ mod tests {
 
     #[test]
     fn test_decode_streaming_errors_on_invalid_path() {
+        let not_cancelled = AtomicBool::new(false);
         let mut events = Vec::new();
         let result = decode_gif_stream_path(
             std::path::Path::new("/nonexistent/path/file.gif"),
+            &not_cancelled,
             |event| events.push(event),
         );
         assert!(result.is_err());
@@ -492,9 +502,10 @@ mod tests {
         );
         let mut file = tempfile::NamedTempFile::new().unwrap();
         file.write_all(&gif_data).unwrap();
+        let not_cancelled = AtomicBool::new(false);
 
         let mut first_event = None;
-        decode_gif_stream_path(file.path(), |event| {
+        decode_gif_stream_path(file.path(), &not_cancelled, |event| {
             if first_event.is_none() {
                 first_event = Some(event);
             }
@@ -521,11 +532,12 @@ mod tests {
 
         let (start_frames, emitted_frames, completed_frames) = tauri::async_runtime::block_on(async {
             tauri::async_runtime::spawn_blocking(move || {
+                let not_cancelled = AtomicBool::new(false);
                 let mut start_frames = None;
                 let mut emitted_frames = 0usize;
                 let mut completed_frames = None;
 
-                decode_gif_stream_path(&path, |event| match event {
+                decode_gif_stream_path(&path, &not_cancelled, |event| match event {
                     DecodeEvent::Start { total_frames, .. } => start_frames = Some(total_frames),
                     DecodeEvent::Frame(_) => emitted_frames += 1,
                     DecodeEvent::Complete { frame_count } => completed_frames = Some(frame_count),
@@ -542,5 +554,73 @@ mod tests {
         assert_eq!(start_frames, Some(2));
         assert_eq!(emitted_frames, 2);
         assert_eq!(completed_frames, Some(2));
+    }
+
+    #[test]
+    fn test_cancellation_before_decode_emits_no_frames() {
+        let gif_data = create_test_gif(
+            &[[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]],
+            4,
+            4,
+            10,
+        );
+        let total = gif_data.len() as u64;
+        let cancelled = AtomicBool::new(true);
+
+        let mut frames = Vec::new();
+        let result = decode_gif_streaming(std::io::Cursor::new(gif_data), total, &cancelled, |event| {
+            if let DecodeEvent::Frame(frame) = event {
+                frames.push(frame);
+            }
+        });
+
+        assert!(result.is_ok(), "cancellation must not produce an error");
+        assert!(frames.is_empty(), "no frames should be emitted when already cancelled");
+    }
+
+    #[test]
+    fn test_cancellation_mid_decode_stops_emission() {
+        let gif_data = create_test_gif(
+            &[[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]],
+            4,
+            4,
+            10,
+        );
+        let total = gif_data.len() as u64;
+        let cancelled = AtomicBool::new(false);
+
+        let mut frame_count = 0usize;
+        let result = decode_gif_streaming(std::io::Cursor::new(gif_data), total, &cancelled, |event| {
+            if let DecodeEvent::Frame(_) = event {
+                frame_count += 1;
+                // Cancel after first frame
+                cancelled.store(true, Ordering::Relaxed);
+            }
+        });
+
+        assert!(result.is_ok(), "mid-decode cancellation must not produce an error");
+        assert_eq!(frame_count, 1, "only the first frame should have been emitted");
+    }
+
+    #[test]
+    fn test_non_cancelled_decode_is_unaffected() {
+        let gif_data = create_test_gif(
+            &[[255, 0, 0, 255], [0, 255, 0, 255]],
+            4,
+            4,
+            10,
+        );
+        let total = gif_data.len() as u64;
+        let cancelled = AtomicBool::new(false);
+
+        let mut frames = Vec::new();
+        let result = decode_gif_streaming(std::io::Cursor::new(gif_data), total, &cancelled, |event| {
+            if let DecodeEvent::Frame(frame) = event {
+                frames.push(frame);
+            }
+        });
+
+        assert!(result.is_ok());
+        assert_eq!(frames.len(), 2, "all frames should be emitted when not cancelled");
     }
 }

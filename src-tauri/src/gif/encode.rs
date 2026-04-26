@@ -70,8 +70,9 @@ mod tests {
 
     /// Decode all frames from a file path using the streaming API.
     fn decode_all_frames(path: &std::path::Path) -> Vec<crate::gif::Frame> {
+        let not_cancelled = std::sync::atomic::AtomicBool::new(false);
         let mut frames = Vec::new();
-        decode_gif_stream_path(path, |event| {
+        decode_gif_stream_path(path, &not_cancelled, |event| {
             if let DecodeEvent::Frame(frame) = event {
                 frames.push(frame);
             }
