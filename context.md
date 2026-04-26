@@ -44,6 +44,14 @@ The action of aborting an in-progress Open. Returns the Project to the Empty sta
 
 The action of discarding the current Project and returning to the Empty state. Requires user confirmation when the Project is Active, because any unsaved edits are permanently lost.
 
+### Frame Editing
+
+The set of operations that mutate the ordered sequence of Frames in a Project: deleting, duplicating, reordering, moving, deduplicating, and setting duration. Frame Editing operations are pure — they take the current frame list and selection as inputs and return a new frame list.
+
+### Selection
+
+The user's current focus within the Timeline. Consists of an **anchor** frame (the primary selected frame, set by a direct click or navigation), an **active end** (the frame at the moving end of a keyboard range extension), and the **selected set** (all frames between anchor and active end, inclusive). Single-frame focus is the degenerate case where anchor, active end, and selected set all point to the same frame.
+
 ### Project State
 
 The four lifecycle states a Project moves through:

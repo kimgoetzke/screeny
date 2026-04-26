@@ -54,7 +54,7 @@ Status: **In progress**
 
 ##### Review refactoring opportunities
 
-Status: **Considering**
+Status: **In progress**
 
 Review this repository by spawning multiple sub-agents, with each agent responsible for a specific area or review dimension. Frontend and backend must be reviewed separately.
 
@@ -79,6 +79,10 @@ Keep recommendations concrete, low-risk, and behaviour-preserving unless a behav
 If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
 
 Please check for warnings and address them following generally accepted best practice or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+
+---
+
+Please start the next phase but read /domain-model first because I expect this skill will help you to structure any changes in a way that makes it easy for you and anyone else to work with the outcome of your changes.
 
 ---
 

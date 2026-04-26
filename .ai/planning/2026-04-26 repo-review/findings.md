@@ -66,6 +66,9 @@ Reasoning: this review spans separate frontend and backend areas, requires multi
   - Cross-cutting repo hygiene gets its own tiny phase because it touches build artefacts and entrypoints rather than frontend or backend logic.
   - Backend work stays split between decode module decomposition, decode session lifecycle, command/error surface cleanup, encode boundary hardening, dependency hygiene, and test infrastructure.
 
+- Phase 4 decision: implement. `frames.svelte.ts` extracted into `frameSelection.ts` (11 pure selection functions) and `frameEditing.ts` (13 pure frame editing functions). Store reduced from 584 to ~200 lines; public API unchanged; all 346 unit tests pass.
+- Domain interview surfaced two new terms added to `context.md`: **Selection** (anchor + active end + selected set) and **Frame Editing** (pure operations that mutate the frame sequence). Loading state and `loadSessionId` confirmed as implementation details of existing Loading Project State and Cancel terms — no new domain terms needed.
+
 ## Resources
 
 - `package.json`

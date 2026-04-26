@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 4
+Phase 5
 
 ## Phases
 
@@ -69,12 +69,12 @@ Phase 4
   - **Relevant context:** This phase pairs naturally with focused test splitting later, but it can start independently if the store API stays stable.
   - **Additional research:** Confirm which logic is already pure enough to extract immediately and which invariants need stronger tests before refactor.
   - **Relevant skills:** `research-codebase` for local invariant tracing; `tdd` before any code changes.
-- [ ] Re-read this plan and inspect store methods/tests to map natural internal boundaries
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide whether to split helper modules first or add missing focused tests first; invoke `tdd` before code changes
-- [ ] If implementing, preserve the exported store API and keep test changes behaviour-preserving; ask first in `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and inspect store methods/tests to map natural internal boundaries
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide whether to split helper modules first or add missing focused tests first; invoke `tdd` before code changes
+- [x] If implementing, preserve the exported store API and keep test changes behaviour-preserving; ask first in `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 5: Frontend GIF open/decode flow consolidation
 

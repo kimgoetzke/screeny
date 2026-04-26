@@ -52,13 +52,30 @@
   - `src/lib/components/Toolbar.test.ts` (updated — 5 source-text tests removed)
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
 
+### Phase 4: Frontend frame store decomposition
+
+- **Status:** Complete
+- Actions taken:
+  - Ran domain-model skill; added **Selection** and **Frame Editing** terms to `context.md`
+  - Confirmed no new domain term needed for loading state (covered by existing Loading Project State + Cancel)
+  - Created `src/lib/frameSelection.ts` — pure functions for all 11 selection operations
+  - Created `src/lib/frameEditing.ts` — pure functions for all 13 frame editing operations
+  - Updated `src/lib/stores/frames.svelte.ts` — now a thin reactive store (~200 lines) delegating to the two helpers; public API unchanged
+  - Confirmed 0 svelte-check errors/warnings after all changes
+- Files created/modified:
+  - `context.md` (updated — Selection and Frame Editing terms added)
+  - `src/lib/frameSelection.ts` (created)
+  - `src/lib/frameEditing.ts` (created)
+  - `src/lib/stores/frames.svelte.ts` (updated — reduced from 584 to ~200 lines)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
 | Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings | ✓ |
 | Frontend build | `pnpm build` | Production build succeeds | Passed | ✓ |
-| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 15 files / 346 tests (Phase 3) | ✓ |
+| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 15 files / 346 tests (Phase 4) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 2 spec files / 103 tests | ✓ |
