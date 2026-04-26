@@ -32,6 +32,34 @@ fn make_export_frame(
     }
 }
 
+fn write_and_verify_fixture(
+    output: PathBuf,
+    frames: Vec<screeny_lib::gif::ExportFrame>,
+    expected_durations: &[u32],
+) {
+    std::fs::create_dir_all(output.parent().unwrap()).unwrap();
+
+    screeny_lib::gif::encode::encode_gif_file(&frames, &output).unwrap();
+    println!("Wrote fixture to {}", output.display());
+
+    let not_cancelled = std::sync::atomic::AtomicBool::new(false);
+    let mut frames_decoded = Vec::new();
+    screeny_lib::gif::decode::decode_gif_stream_path(&output, &not_cancelled, |event| {
+        if let screeny_lib::gif::DecodeEvent::Frame(frame) = event {
+            frames_decoded.push(frame);
+        }
+    })
+    .unwrap();
+
+    assert_eq!(frames_decoded.len(), expected_durations.len());
+    for (index, expected_duration) in expected_durations.iter().enumerate() {
+        assert_eq!(
+            frames_decoded[index].duration, *expected_duration,
+            "frame {index} duration"
+        );
+    }
+}
+
 #[test]
 #[ignore]
 fn generate_test_gif() {
@@ -42,19 +70,18 @@ fn generate_test_gif() {
     ];
 
     let output = project_root().join("tests/fixtures/test.gif");
-    std::fs::create_dir_all(output.parent().unwrap()).unwrap();
+    write_and_verify_fixture(output, frames, &[100, 100, 100]);
+}
 
-    screeny_lib::gif::encode::encode_gif_file(&frames, &output).unwrap();
-    println!("Wrote fixture to {}", output.display());
+#[test]
+#[ignore]
+fn generate_playback_gif() {
+    let frames = vec![
+        make_export_frame([255, 0, 0, 255], 8, 8, 300),
+        make_export_frame([0, 255, 0, 255], 8, 8, 300),
+        make_export_frame([0, 0, 255, 255], 8, 8, 300),
+    ];
 
-    // Verify it round-trips
-    let not_cancelled = std::sync::atomic::AtomicBool::new(false);
-    let mut frames_decoded = Vec::new();
-    screeny_lib::gif::decode::decode_gif_stream_path(&output, &not_cancelled, |event| {
-        if let screeny_lib::gif::DecodeEvent::Frame(frame) = event {
-            frames_decoded.push(frame);
-        }
-    })
-    .unwrap();
-    assert_eq!(frames_decoded.len(), 3);
+    let output = project_root().join("tests/fixtures/playback.gif");
+    write_and_verify_fixture(output, frames, &[300, 300, 300]);
 }

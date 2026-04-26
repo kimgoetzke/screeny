@@ -191,6 +191,36 @@ async function loadFixture(fileName: string, expectedFrameCount: number) {
   await canvas.waitForExist({ timeout: 5_000 });
 }
 
+async function loadPlaybackFixture() {
+  const toolbar = await $('[data-testid="toolbar"]');
+  await toolbar.waitForExist({ timeout: 10_000 });
+  await browser.pause(500);
+  await loadFixture("playback.gif", 3);
+}
+
+async function getSelectedThumbId(): Promise<string | null> {
+  const thumbs = await $$('[data-testid^="frame-thumb-"]');
+  for (const thumb of thumbs) {
+    const className = await thumb.getAttribute("class");
+    if (className?.includes("selected")) {
+      return thumb.getAttribute("data-testid");
+    }
+  }
+  return null;
+}
+
+async function resetPlaybackState() {
+  const stopButton = await $('[data-testid="btn-stop"]');
+  if (await stopButton.isEnabled()) {
+    await jsClick('[data-testid="btn-stop"]');
+    await expect(await $('[data-testid="btn-play"]')).not.toBeDisabled();
+    await expect(stopButton).toBeDisabled();
+  }
+
+  await jsClick('[data-testid="frame-thumb-0"]');
+  expect(await getSelectedThumbId()).toBe("frame-thumb-0");
+}
+
 async function getLoadedGifFitMetrics() {
   return browser.execute(() => {
     const viewer = document.querySelector('[data-testid="frame-viewer"]');
@@ -554,7 +584,9 @@ describe("Studio — export GIF", () => {
 });
 
 describe("Studio — GIF playback", () => {
-  // 2 frames remain after the delete-frame suite; frame-thumb-1 is selected.
+  before(async () => {
+    await loadPlaybackFixture();
+  });
 
   it("should show play and stop buttons after frames are loaded", async () => {
     const playBtn = await $('[data-testid="btn-play"]');
@@ -573,27 +605,20 @@ describe("Studio — GIF playback", () => {
 
     await expect(await $('[data-testid="btn-play"]')).toBeDisabled();
     await expect(await $('[data-testid="btn-stop"]')).not.toBeDisabled();
+
+    await jsClick('[data-testid="btn-stop"]');
   });
 
   it("should advance the active frame in the timeline during playback", async () => {
-    // Playback is running from the previous test. Capture the currently selected frame.
-    const getSelectedThumbId = async (): Promise<string | null> => {
-      const thumbs = await $$('[data-testid^="frame-thumb-"]');
-      for (const thumb of thumbs) {
-        const cls = await thumb.getAttribute("class");
-        if (cls?.includes("selected")) {
-          return thumb.getAttribute("data-testid");
-        }
-      }
-      return null;
-    };
+    await resetPlaybackState();
 
     const selectedBefore = await getSelectedThumbId();
+    expect(selectedBefore).toBe("frame-thumb-0");
 
-    // Poll until the active frame changes rather than using a fixed pause.
-    // With 2 frames at ~100 ms each the cycle is ~200 ms; 3 s is a safe upper bound.
-    // Capture inside waitUntil to avoid a race where the frame cycles back before the
-    // assertion below re-queries.
+    await jsClick('[data-testid="btn-play"]');
+    await expect(await $('[data-testid="btn-play"]')).toBeDisabled();
+    await expect(await $('[data-testid="btn-stop"]')).not.toBeDisabled();
+
     let advancedTo: string | null = null;
     await browser.waitUntil(
       async () => {
@@ -604,43 +629,47 @@ describe("Studio — GIF playback", () => {
         }
         return false;
       },
-      { timeout: 3_000, timeoutMsg: "Active frame did not advance within 3 s", interval: 100 },
+      { timeout: 4_000, timeoutMsg: "Active frame did not advance within 4 s", interval: 75 },
     );
+
+    await jsClick('[data-testid="btn-stop"]');
 
     expect(advancedTo).not.toBe(selectedBefore);
   });
 
   it("clicking stop should re-enable play, disable stop, and preserve the current frame", async () => {
-    // Playback is still running. Stop it immediately — capturing the frame *before*
-    // stop is racy because the frame can advance between the read and the click.
+    await resetPlaybackState();
+
+    const selectedBefore = await getSelectedThumbId();
+    expect(selectedBefore).toBe("frame-thumb-0");
+
+    await jsClick('[data-testid="btn-play"]');
+    await expect(await $('[data-testid="btn-play"]')).toBeDisabled();
+    await expect(await $('[data-testid="btn-stop"]')).not.toBeDisabled();
+
+    await browser.waitUntil(
+      async () => {
+        const current = await getSelectedThumbId();
+        return current !== null && current !== selectedBefore;
+      },
+      { timeout: 4_000, timeoutMsg: "Active frame did not advance before stop", interval: 75 },
+    );
+
     await jsClick('[data-testid="btn-stop"]');
 
     await expect(await $('[data-testid="btn-play"]')).not.toBeDisabled();
     await expect(await $('[data-testid="btn-stop"]')).toBeDisabled();
 
-    // Read which frame is selected now that playback is stopped.
-    const getSelectedThumbId = async (): Promise<string | null> => {
-      const thumbs = await $$('[data-testid^="frame-thumb-"]');
-      for (const thumb of thumbs) {
-        const cls = await thumb.getAttribute("class");
-        if (cls?.includes("selected")) {
-          return thumb.getAttribute("data-testid");
-        }
-      }
-      return null;
-    };
-
     const frameAtStop = await getSelectedThumbId();
 
-    // Wait longer than one full playback cycle to confirm the frame no longer advances.
-    await browser.pause(500);
+    await browser.pause(700);
 
     expect(await getSelectedThumbId()).toBe(frameAtStop);
   });
 });
 
 describe("Studio — close project", () => {
-  // At this point 2 frames are loaded (post-delete suite) and playback is stopped.
+  // At this point the dedicated playback fixture is loaded (3 frames) and playback is stopped.
 
   it("should show the Close button and no Open button when frames are loaded", async () => {
     const closeBtn = await $('[data-testid="btn-close"]');
@@ -669,7 +698,7 @@ describe("Studio — close project", () => {
     await jsClick('[data-testid="btn-dialog-cancel"]');
     await expect(await $('[data-testid="dialog"]')).not.toBeExisting();
     const thumbs = await $$('[data-testid^="frame-thumb-"]');
-    expect(thumbs).toHaveLength(2);
+    expect(thumbs).toHaveLength(3);
   });
 
   it("should show the dialog again when clicking Close a second time", async () => {
