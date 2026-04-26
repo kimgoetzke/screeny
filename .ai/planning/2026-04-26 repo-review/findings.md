@@ -79,6 +79,9 @@ Reasoning: this review spans separate frontend and backend areas, requires multi
 - Phase 10 domain-model check: no new glossary term or ADR was needed. The user explicitly wanted this phase treated as implementation hygiene only, not as a domain-language change.
 - Phase 10 decision: implement. Make `tests/e2e/tsconfig.json` the single source of truth for E2E framework types, remove E2E ambient types from the root app config, and remove `@types/mocha` only if validation stays green.
 - Phase 10 implementation: removing E2E globals from the root `tsconfig.json` exposed that `.svelte-kit/tsconfig.json` still pulls `../tests/**/*.ts` into the root `svelte-check` graph. Fixed the leakage by explicitly excluding `tests/e2e/**` from the root config, then removed the per-file `/// <reference types="mocha" />` directives and the redundant `@types/mocha` dependency. `pnpm check`, `pnpm build`, `pnpm test:unit`, `pnpm tauri build`, and `pnpm test:e2e` all passed.
+- Phase 11 domain-model check: no new glossary term or ADR was needed. This phase is repo hygiene, not product language, so the domain work was to confirm that no new term belonged in `context.md`.
+- Phase 11 decision: implement. Treat `src-tauri/.svelte-kit/` as generated spillover that should not be committed, and treat the root `index.html` as stale Leptos/Trunk scaffold because the active SvelteKit shell already lives in `src/app.html`.
+- Phase 11 implementation: added `/.svelte-kit/` to `src-tauri/.gitignore`, removed the tracked files under `src-tauri/.svelte-kit/`, and deleted the stale root `index.html`. `pnpm check` and `pnpm build` both passed afterwards.
 
 ## Resources
 

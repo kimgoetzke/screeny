@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 11
+Phase 12
 
 ## Phases
 
@@ -188,12 +188,12 @@ Phase 11
   - **Relevant context:** This phase is deliberately cross-cutting because it is about repo/build hygiene rather than frontend or backend runtime logic.
   - **Additional research:** Confirm how `src-tauri/.svelte-kit/` is being generated and whether any tooling actually depends on it being committed.
   - **Relevant skills:** `research-codebase` for toolchain tracing; `tdd` only if changes affect checked-in configs or tests.
-- [ ] Re-read this plan and confirm which artefacts are stale versus intentionally required
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide whether the right change is removal, `.gitignore` adjustment, or documentation, and invoke `tdd` before any code/config changes
-- [ ] If implementing, keep the change set tiny and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and confirm which artefacts are stale versus intentionally required
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide whether the right change is removal, `.gitignore` adjustment, or documentation, and invoke `tdd` before any code/config changes
+- [x] If implementing, keep the change set tiny and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 12: Backend decode module decomposition and safety
 

@@ -229,12 +229,35 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 11: Cross-cutting repo artefact hygiene
+
+- **Status:** Complete
+- Actions taken:
+  - Ran `domain-model`; confirmed no new glossary term or ADR was needed because this phase is repo hygiene rather than product language
+  - Narrowed the phase with the user: treat `src-tauri/.svelte-kit/` as generated spillover and delete the stale root `index.html`
+  - Ran `tdd`; confirmed the observable contract is repo cleanup plus green existing tooling, with `pnpm check` and `pnpm build` as the relevant validation
+  - Updated `src-tauri/.gitignore` so `src-tauri/.svelte-kit/` is ignored going forward
+  - Deleted the tracked generated files under `src-tauri/.svelte-kit/`
+  - Deleted the stale root `index.html` Leptos/Trunk scaffold
+- Files created/modified:
+  - `src-tauri/.gitignore` (updated — ignore `/.svelte-kit/`)
+  - `index.html` (deleted — stale Leptos/Trunk scaffold)
+  - `src-tauri/.svelte-kit/ambient.d.ts` (deleted)
+  - `src-tauri/.svelte-kit/generated/client/app.js` (deleted)
+  - `src-tauri/.svelte-kit/generated/client/matchers.js` (deleted)
+  - `src-tauri/.svelte-kit/generated/client/nodes/0.js` (deleted)
+  - `src-tauri/.svelte-kit/generated/client/nodes/1.js` (deleted)
+  - `src-tauri/.svelte-kit/tsconfig.json` (deleted)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
-| Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings (Phase 10) | ✓ |
-| Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 10) | ✓ |
+| Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings (Phase 11) | ✓ |
+| Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 11) | ✓ |
 | Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 10) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 10) | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
