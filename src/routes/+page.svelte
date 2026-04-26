@@ -1,10 +1,10 @@
 <script lang="ts">
   import "$lib/theme.css";
   import { onMount, tick } from "svelte";
-  import { Channel, invoke } from "@tauri-apps/api/core";
+  import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-  import type { DecodeEvent } from "$lib/types";
-  import { waitForNextPaint } from "$lib/paint";
+  import { openProjectFromPath } from "$lib/projectOpen";
+  import { tauriGifBackend } from "$lib/tauriGifBackend";
   import { calculateInitialViewerState, type InitialViewerState } from "$lib/viewer-fit";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import FrameViewer from "$lib/components/FrameViewer.svelte";
@@ -194,41 +194,12 @@
 
   async function handleDrop(path: string) {
     dropError = "";
-    frameStore.startLoading();
-    const sessionAtStart = frameStore.loadSessionId;
-    const decodeId = Date.now();
-    await waitForNextPaint();
-    let didApplyInitialViewerState = false;
-    try {
-      const channel = new Channel<DecodeEvent>();
-      channel.onmessage = (event) => {
-        if (frameStore.loadSessionId !== sessionAtStart) return;
-        if (event.type === "start") {
-          frameStore.setLoadingTotalFrames(event.data.totalFrames);
-        } else if (event.type === "frame") {
-          frameStore.addFrame(event.data);
-          if (!didApplyInitialViewerState) {
-            didApplyInitialViewerState = true;
-            void applyInitialViewerState();
-          }
-        } else if (event.type === "progress") {
-          const percentage =
-            event.data.totalBytes === 0
-              ? 0
-              : Math.round((event.data.bytesRead / event.data.totalBytes) * 100);
-          frameStore.setLoadingProgress(percentage);
-        }
-      };
-      await invoke("decode_gif_stream", { path, onEvent: channel, decodeId });
-    } catch (error) {
-      if (frameStore.loadSessionId === sessionAtStart) {
-        dropError = `Failed to decode GIF: ${error}`;
-      }
-    } finally {
-      if (frameStore.isLoading && frameStore.loadSessionId === sessionAtStart) {
-        await waitForNextPaint();
-        frameStore.finishLoading();
-      }
+    const result = await openProjectFromPath(path, tauriGifBackend, {
+      onFirstFrame: applyInitialViewerState,
+    });
+
+    if (result.error) {
+      dropError = result.error;
     }
   }
 </script>

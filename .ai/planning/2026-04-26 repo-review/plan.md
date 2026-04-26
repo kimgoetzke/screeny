@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 5
+Phase 6
 
 ## Phases
 
@@ -85,13 +85,13 @@ Phase 5
   - **References:** `src/routes/+page.svelte`, `src/lib/components/Toolbar.svelte`, `src/lib/actions.ts`, `findings.md`
   - **Relevant context:** This is frontend-only even though it talks to backend commands, because the duplicated problem is in frontend orchestration.
   - **Additional research:** Confirm whether drag-drop and toolbar-open have any intentional behaviour differences that should remain separate.
-  - **Relevant skills:** `research-codebase` if the decode lifecycle still feels unclear; `tdd` before any code changes.
-- [ ] Re-read this plan and trace both decode/open entry points end-to-end
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide the shared helper/service boundary and invoke `tdd` before implementation
-- [ ] If implementing, keep backend IPC contracts unchanged and ask first via `questions.md` if any existing test must be removed or materially rewritten
-- [ ] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- **Relevant skills:** `research-codebase` if the decode lifecycle still feels unclear; `tdd` before any code changes.
+- [x] Re-read this plan and trace both decode/open entry points end-to-end
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide the shared helper/service boundary and invoke `tdd` before implementation
+- [x] If implementing, keep backend IPC contracts unchanged and ask first via `questions.md` if any existing test must be removed or materially rewritten
+- [x] Run the smallest relevant validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 6: Frontend interaction plumbing cleanup
 

@@ -4,10 +4,6 @@ import { frameStore } from "$lib/stores/frames.svelte";
 import type { DialogProvider, GifBackend } from "$lib/actions";
 import type { Frame } from "$lib/types";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(() => Promise.resolve()),
-}));
-
 vi.mock("$lib/paint", () => ({
   waitForNextPaint: vi.fn(() => Promise.resolve()),
 }));
@@ -45,14 +41,19 @@ describe("projectLifecycle", () => {
   });
 
   function makeCycle(dialog: DialogProvider, backend: GifBackend, onLoad?: () => void) {
-    return createProjectLifecycle({
-      getDialog: () => dialog,
-      backend,
-      onLoad,
-      onLoadingChange: (v: boolean) => loadingValues.push(v),
-      onStatusChange: (v: string) => statusValues.push(v),
-      getDecodeId: () => 0,
-    });
+    const cancelDecode = vi.fn(() => Promise.resolve());
+
+    return {
+      cancelDecode,
+      ...createProjectLifecycle({
+        getDialog: () => dialog,
+        backend,
+        onLoad,
+        onLoadingChange: (v: boolean) => loadingValues.push(v),
+        onStatusChange: (v: string) => statusValues.push(v),
+        cancelDecode,
+      }),
+    };
   }
 
   describe("handleOpen", () => {
@@ -101,8 +102,8 @@ describe("projectLifecycle", () => {
 
       const { handleOpen, handleCancelLoad } = makeCycle(makeDialog("/tmp/test.gif"), backend);
       void handleOpen();
-      // Flush all pending microtasks so dialog.openFile, beforeDecode, and
-      // decodeStreaming have all started before we cancel.
+      // Flush all pending microtasks so dialog.openFile and decodeStreaming
+      // have both started before we cancel.
       await new Promise<void>((r) => setTimeout(r, 0));
 
       expect(capturedOnFrame).toBeDefined();
@@ -116,20 +117,22 @@ describe("projectLifecycle", () => {
   });
 
   describe("handleCancelLoad", () => {
-    it("calls frameStore.cancelLoad and invokes cancel_gif_decode", async () => {
-      const { invoke } = await import("@tauri-apps/api/core");
+    it("calls frameStore.cancelLoad and requests backend cancellation", async () => {
       const backend: GifBackend = {
         decodeStreaming: vi.fn(async (): Promise<void> => { await new Promise(() => {}); }),
         export: vi.fn(() => Promise.resolve()),
       };
 
-      const { handleOpen, handleCancelLoad } = makeCycle(makeDialog("/tmp/test.gif"), backend);
+      const { handleOpen, handleCancelLoad, cancelDecode } = makeCycle(
+        makeDialog("/tmp/test.gif"),
+        backend,
+      );
       void handleOpen();
       await new Promise<void>((r) => setTimeout(r, 0)); // let decode start
       handleCancelLoad();
 
       expect(frameStore.isLoading).toBe(false);
-      expect(invoke).toHaveBeenCalledWith("cancel_gif_decode", expect.objectContaining({ decodeId: expect.any(Number) }));
+      expect(cancelDecode).toHaveBeenCalledOnce();
     });
   });
 

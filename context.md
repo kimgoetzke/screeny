@@ -60,3 +60,7 @@ The four lifecycle states a Project moves through:
 - **Loading** — frames are streaming in from the Rust decoder; the user sees progress feedback and a Cancel control.
 - **Active** — one or more frames are loaded and ready to edit; the full editing surface is available.
 - **Exporting** — frames are being encoded and written to disk by the Rust encoder; controls are temporarily locked.
+
+## Flagged ambiguities
+
+- "drag-drop import" was used as if it were distinct from **Open** — resolved: it is the same **Open** action initiated via a different path source.

@@ -68,6 +68,7 @@ Reasoning: this review spans separate frontend and backend areas, requires multi
 
 - Phase 4 decision: implement. `frames.svelte.ts` extracted into `frameSelection.ts` (11 pure selection functions) and `frameEditing.ts` (13 pure frame editing functions). Store reduced from 584 to ~200 lines; public API unchanged; all 346 unit tests pass.
 - Domain interview surfaced two new terms added to `context.md`: **Selection** (anchor + active end + selected set) and **Frame Editing** (pure operations that mutate the frame sequence). Loading state and `loadSessionId` confirmed as implementation details of existing Loading Project State and Cancel terms — no new domain terms needed.
+- Phase 5 decision: implement. Domain interview resolved drag-drop import as the same **Open** action as toolbar Open, with current feedback surfaces preserved. Implemented shared `openProjectFromPath()` and shared `tauriGifBackend` so toolbar-open and drag-drop now share decode lifecycle and cancellation ownership. Replaced brittle `handleDrop` source-text checks with `projectOpen.test.ts` behaviour tests; `pnpm check`, `pnpm build`, and `pnpm test:unit` all passed.
 
 ## Resources
 

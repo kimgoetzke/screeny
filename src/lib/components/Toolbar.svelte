@@ -1,17 +1,17 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { getVersion } from "@tauri-apps/api/app";
-    import { Channel, invoke } from "@tauri-apps/api/core";
+    import { invoke } from "@tauri-apps/api/core";
     import { openUrl } from "@tauri-apps/plugin-opener";
     import HelpMenu from "$lib/components/HelpMenu.svelte";
     import WindowControls from "$lib/components/WindowControls.svelte";
     import { frameStore } from "$lib/stores/frames.svelte";
     import { createProjectLifecycle } from "$lib/projectLifecycle";
-    import type { DialogProvider, GifBackend } from "$lib/actions";
-    import type { DecodeEvent } from "$lib/types";
+    import type { DialogProvider } from "$lib/actions";
     import { helpKeyBindings } from "$lib/help-keybindings";
     import FilePicker from "$lib/components/FilePicker.svelte";
     import NotificationDialog from "$lib/components/NotificationDialog.svelte";
+    import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/tauriGifBackend";
 
     let { onLoad }: { onLoad?: () => Promise<void> | void } = $props();
 
@@ -123,41 +123,13 @@
         return "Loading...";
     });
 
-    let currentDecodeId = 0;
-
-    const backend: GifBackend = {
-        decodeStreaming: async (path, onStart, onFrame, onProgress) => {
-            const channel = new Channel<DecodeEvent>();
-            channel.onmessage = (event) => {
-                if (event.type === "start") {
-                    onStart(event.data);
-                } else if (event.type === "frame") {
-                    onFrame(event.data);
-                } else if (event.type === "progress") {
-                    const percentage =
-                        event.data.totalBytes === 0
-                            ? 0
-                            : Math.round(
-                                  (event.data.bytesRead /
-                                      event.data.totalBytes) *
-                                      100,
-                              );
-                    onProgress(percentage);
-                }
-            };
-            currentDecodeId = Date.now();
-            await invoke("decode_gif_stream", { path, onEvent: channel, decodeId: currentDecodeId });
-        },
-        export: (frames, path) => invoke("export_gif", { frames, path }),
-    };
-
     const { handleOpen, handleCancelLoad, handleExport } = createProjectLifecycle({
         getDialog,
-        backend,
+        backend: tauriGifBackend,
         onLoad: async () => { await onLoad?.(); },
         onLoadingChange: (v) => { loading = v; },
         onStatusChange: (v) => { statusMessage = v; },
-        getDecodeId: () => currentDecodeId,
+        cancelDecode: cancelCurrentGifDecode,
     });
 
     function confirmSave() {

@@ -27,22 +27,13 @@ export interface OpenGifStreamingOptions {
   isCancelled?: () => boolean;
 }
 
-export async function openGifStreaming(
-  dialog: DialogProvider,
+export async function decodeGifPathStreaming(
+  path: string,
   backend: GifBackend,
   onFrame: (frame: Frame) => void,
   onProgress: (progress: number) => void,
   options: OpenGifStreamingOptions = {},
 ): Promise<ActionResult> {
-  let path: string | null;
-  try {
-    path = await dialog.openFile();
-  } catch (error) {
-    return { error: `Failed to open file dialog: ${error}` };
-  }
-
-  if (!path) return {};
-
   let frameCount = 0;
   try {
     await options.beforeDecode?.();
@@ -64,8 +55,28 @@ export async function openGifStreaming(
     if (options.isCancelled?.()) return {};
     return { message: `Loaded ${frameCount} frames` };
   } catch (error) {
+    if (options.isCancelled?.()) return {};
     return { error: `Failed to decode GIF: ${error}` };
   }
+}
+
+export async function openGifStreaming(
+  dialog: DialogProvider,
+  backend: GifBackend,
+  onFrame: (frame: Frame) => void,
+  onProgress: (progress: number) => void,
+  options: OpenGifStreamingOptions = {},
+): Promise<ActionResult> {
+  let path: string | null;
+  try {
+    path = await dialog.openFile();
+  } catch (error) {
+    return { error: `Failed to open file dialog: ${error}` };
+  }
+
+  if (!path) return {};
+
+  return decodeGifPathStreaming(path, backend, onFrame, onProgress, options);
 }
 
 export async function exportGif(

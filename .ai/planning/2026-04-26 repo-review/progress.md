@@ -69,13 +69,39 @@
   - `src/lib/stores/frames.svelte.ts` (updated — reduced from 584 to ~200 lines)
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
 
+### Phase 5: Frontend GIF open/decode flow consolidation
+
+- **Status:** Complete
+- Actions taken:
+  - Ran `domain-model`; resolved drag-drop import as the same **Open** action as toolbar Open, while preserving the existing feedback surfaces
+  - Updated `context.md` to record the resolved ambiguity around **Open**
+  - Ran `tdd`; introduced `src/lib/projectOpen.ts` as the shared Open-from-path lifecycle and `src/lib/tauriGifBackend.ts` as the shared Tauri decode/export backend
+  - Updated `src/lib/projectLifecycle.ts` and `Toolbar.svelte` so toolbar Open/Cancel use the shared backend cancellation state instead of a toolbar-local `decodeId`
+  - Updated `src/routes/+page.svelte` so drag-drop now uses the same shared Open lifecycle while keeping inline drop errors
+  - Replaced brittle `handleDrop` source-text checks in `src/routes/page.test.ts` with behaviour tests in `src/lib/projectOpen.test.ts`
+  - Confirmed 0 svelte-check errors/warnings after all changes
+- Files created/modified:
+  - `context.md` (updated — Open ambiguity resolved)
+  - `src/lib/actions.ts` (updated — shared `decodeGifPathStreaming`)
+  - `src/lib/projectOpen.ts` (created)
+  - `src/lib/projectOpen.test.ts` (created)
+  - `src/lib/tauriGifBackend.ts` (created)
+  - `src/lib/projectLifecycle.ts` (updated)
+  - `src/lib/projectLifecycle.test.ts` (updated)
+  - `src/lib/components/Toolbar.svelte` (updated)
+  - `src/routes/+page.svelte` (updated)
+  - `src/routes/page.test.ts` (updated — shared-flow wiring checks replace brittle decode regex checks)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
 | ---- | ----- | -------- | ------ | ------ |
 | Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings | ✓ |
 | Frontend build | `pnpm build` | Production build succeeds | Passed | ✓ |
-| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 15 files / 346 tests (Phase 4) | ✓ |
+| Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 16 files / 346 tests (Phase 5) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed | ✓ |
 | Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 2 spec files / 103 tests | ✓ |

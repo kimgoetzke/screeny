@@ -32,37 +32,11 @@ describe("+page.svelte", () => {
       expect(pageSource).toMatch(/centreOffsetX=\{resetViewerPanX\}/);
     });
 
-    it("applies the computed initial viewer state when the first streamed frame arrives", () => {
-      expect(pageSource).toMatch(/async\s+function\s+applyInitialViewerState\b/);
+    it("routes drag-drop through the shared Open flow while keeping inline drop errors", () => {
       expect(pageSource).toMatch(
-        /event\.type === "frame"[\s\S]{0,260}applyInitialViewerState\(\)/,
+        /openProjectFromPath\(\s*path,\s*tauriGifBackend,\s*\{[\s\S]{0,120}onFirstFrame:\s*applyInitialViewerState/,
       );
-    });
-
-    it("adds each streamed frame directly to the store without batching", () => {
-      expect(pageSource).not.toContain("createFrameBatcher");
-      expect(pageSource).toMatch(/frameStore\.addFrame\(event\.data\)/);
-    });
-
-    it("does not reapply the computed initial viewer state after loading completes", () => {
-      const handleDropMatch = pageSource.match(/async\s+function\s+handleDrop\b[\s\S]*?\n  }\n<\/script>/);
-      expect(handleDropMatch?.[0]).toBeDefined();
-      expect(handleDropMatch?.[0]).not.toMatch(/finally\s*\{[\s\S]{0,220}applyInitialViewerState\(\)/);
-    });
-
-    it("records total frames from the start event before frame updates begin", () => {
-      expect(pageSource).toMatch(
-        /event\.type === "start"[\s\S]{0,120}frameStore\.setLoadingTotalFrames\(event\.data\.totalFrames\)/,
-      );
-    });
-
-    it("waits for a paint boundary before decode starts and before loading clears", () => {
-      expect(pageSource).toMatch(
-        /async\s+function\s+handleDrop\b[\s\S]{0,400}frameStore\.startLoading\(\)[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,900}invoke\("decode_gif_stream"/,
-      );
-      expect(pageSource).toMatch(
-        /async\s+function\s+handleDrop\b[\s\S]{0,2000}finally\s*\{[\s\S]{0,240}await\s+waitForNextPaint\(\)[\s\S]{0,200}frameStore\.finishLoading\(\)/,
-      );
+      expect(pageSource).toMatch(/if\s*\(result\.error\)\s*\{[\s\S]{0,40}dropError\s*=\s*result\.error/);
     });
 
     it("Toolbar receives onLoad prop pointing to the initial-fit loader", () => {
@@ -119,9 +93,8 @@ describe("+page.svelte", () => {
   });
 
   describe("cancellation", () => {
-    it("handleDrop guards addFrame with a session token before adding frames", () => {
-      expect(pageSource).toMatch(/loadSessionId/);
-      expect(pageSource).toMatch(/handleDrop[\s\S]{0,2000}frameStore\.addFrame/);
+    it("delegates cancellation ownership away from the page-level drop handler", () => {
+      expect(pageSource).not.toContain('invoke("cancel_gif_decode"');
     });
   });
 
