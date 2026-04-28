@@ -8,7 +8,7 @@ A cross-platform GIF recording and editing application built with Tauri, SvelteK
 ## IMPORTANT
 
 > [!IMPORTANT]
-> Unlike all of my other repositories, this is an AI-first experiment where I will try to stay as far as away from the code as I can. The goal is improve my agent-based workflows and learn more about AI-first software engineering.
+> Unlike all of my other repositories, this is an AI-first experiment where I will try to stay as far as away from the code as I can. The goal is improve my agent-based workflows and learn more about AI-first software engineering. I have been building and using [github.com/kimgoetzke/coding-agent-configs](https://github.com/kimgoetzke/coding-agent-configs) partially for this reason.
 
 ## Features
 
