@@ -82,6 +82,8 @@ Reasoning: this review spans separate frontend and backend areas, requires multi
 - Phase 11 domain-model check: no new glossary term or ADR was needed. This phase is repo hygiene, not product language, so the domain work was to confirm that no new term belonged in `context.md`.
 - Phase 11 decision: implement. Treat `src-tauri/.svelte-kit/` as generated spillover that should not be committed, and treat the root `index.html` as stale Leptos/Trunk scaffold because the active SvelteKit shell already lives in `src/app.html`.
 - Phase 11 implementation: added `/.svelte-kit/` to `src-tauri/.gitignore`, removed the tracked files under `src-tauri/.svelte-kit/`, and deleted the stale root `index.html`. `pnpm check` and `pnpm build` both passed afterwards.
+- Phase 12 decision: implement. Module decomposition and bounds safety are both worth doing; `count_gif_frames_in_path` prepass is still required for `Start { total_frames }` UX reporting so it is kept, not removed.
+- Phase 12 implementation: added `canvas_height` parameter and `Result<(), String>` return type to `composite_frame` and `clear_frame_area`, with explicit bounds checks before any pixel access. Propagated errors via `?` in `decode_gif_streaming`. Converted `decode.rs` (626 lines) to a `decode/` directory module: `composite.rs` owns the compositing helpers and bounds-safety tests; `frame_count.rs` owns the hand-rolled GIF frame-count prepass; `progress.rs` owns `ProgressReader`; `mod.rs` owns the decode pipeline and public-API tests. All 32 Rust tests pass.
 
 ## Resources
 

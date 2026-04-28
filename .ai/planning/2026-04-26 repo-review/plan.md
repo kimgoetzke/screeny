@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 12
+Phase 13
 
 ## Phases
 
@@ -205,12 +205,12 @@ Phase 12
   - **Relevant context:** Existing Rust decode tests are green and give a safety net, but the module shape still makes safe iteration harder than it should be.
   - **Additional research:** Confirm whether the duplicate frame-count prepass is still required for UX/progress reporting and whether bounds errors should abort the decode or skip invalid frames.
   - **Relevant skills:** `tdd` before Rust changes; `research-codebase` if decode invariants need more tracing.
-- [ ] Re-read this plan and inspect the decode pipeline plus its tests to confirm the exact decomposition plan
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide whether to start with module split, bounds checks, or frame-count-path isolation; invoke `tdd` before implementation
-- [ ] If implementing, keep public decode APIs stable and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and inspect the decode pipeline plus its tests to confirm the exact decomposition plan
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide whether to start with module split, bounds checks, or frame-count-path isolation; invoke `tdd` before implementation
+- [x] If implementing, keep public decode APIs stable and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 13: Backend decode session lifecycle hardening
 

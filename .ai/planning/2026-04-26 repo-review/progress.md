@@ -252,6 +252,29 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 12: Backend decode module decomposition and safety
+
+- **Status:** Complete
+- Actions taken:
+  - Ran `tdd` skill to establish RED→GREEN cycle before any code changes
+  - Inspected `decode.rs`, `mod.rs`, and `lib.rs` to confirm decomposition plan and verify `count_gif_frames_in_path` prepass is still required for `Start { total_frames }` UX reporting
+  - Decision: bounds safety first (while in single file), then module split (refactor under green)
+  - Changed `composite_frame` and `clear_frame_area`: added `canvas_height: u32` parameter, changed return type to `Result<(), String>`, added explicit bounds check before any pixel access; propagated errors via `?` in `decode_gif_streaming`
+  - Added 4 bounds-safety RED→GREEN tests directly against the compositing helpers
+  - All 21 decode tests passed after the bounds-safety changes
+  - Created `src-tauri/src/gif/decode/` directory module: extracted `composite.rs` (compositing helpers + 4 bounds tests), `frame_count.rs` (hand-rolled frame-count prepass + helpers), `progress.rs` (`ProgressReader` + 1 test); decode pipeline and 16 public-API tests remain in `mod.rs`
+  - Deleted old `src-tauri/src/gif/decode.rs`
+  - All 32 Rust tests pass after the module split
+- Files created/modified:
+  - `src-tauri/src/gif/decode/composite.rs` (created)
+  - `src-tauri/src/gif/decode/frame_count.rs` (created)
+  - `src-tauri/src/gif/decode/progress.rs` (created)
+  - `src-tauri/src/gif/decode/mod.rs` (created)
+  - `src-tauri/src/gif/decode.rs` (deleted)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -260,7 +283,7 @@
 | Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 11) | ✓ |
 | Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 10) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 10) | ✓ |
-| Rust tests | `cd src-tauri && cargo test` | All Rust tests pass | Passed, 28 tests; 2 ignored | ✓ |
+| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 32 tests; 2 ignored (Phase 12) | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 10) | ✓ |
 
 ---
