@@ -41,7 +41,10 @@ async fn decode_gif_stream(
 ) -> Result<(), String> {
     let cancelled = Arc::new(AtomicBool::new(false));
     {
-        let mut map = state.decode_cancels.lock().unwrap();
+        let mut map = state
+            .decode_cancels
+            .lock()
+            .map_err(|e| format!("State lock poisoned: {e}"))?;
         register_decode_session(&mut map, decode_id, cancelled.clone())?;
     }
     let path = PathBuf::from(path);
@@ -54,7 +57,10 @@ async fn decode_gif_stream(
     })
     .await;
     {
-        let mut map = state.decode_cancels.lock().unwrap();
+        let mut map = state
+            .decode_cancels
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         map.remove(&decode_id);
     }
     result.map_err(|e| format!("Failed to join decode task: {e}"))?
@@ -62,7 +68,12 @@ async fn decode_gif_stream(
 
 #[tauri::command]
 fn cancel_gif_decode(decode_id: u64, state: tauri::State<'_, AppState>) {
-    if let Some(flag) = state.decode_cancels.lock().unwrap().get(&decode_id) {
+    if let Some(flag) = state
+        .decode_cancels
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&decode_id)
+    {
         flag.store(true, Ordering::Relaxed);
     }
 }
@@ -251,5 +262,14 @@ mod tests {
             result.unwrap_err().contains("42"),
             "error should mention the duplicate decode_id"
         );
+    }
+
+    #[test]
+    fn register_decode_session_allows_id_reuse_after_cleanup() {
+        let mut map = HashMap::new();
+        register_decode_session(&mut map, 7, Arc::new(AtomicBool::new(false))).unwrap();
+        map.remove(&7);
+        let result = register_decode_session(&mut map, 7, Arc::new(AtomicBool::new(false)));
+        assert!(result.is_ok(), "same decode_id should be accepted after the prior session is cleaned up");
     }
 }
