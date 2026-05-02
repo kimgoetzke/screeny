@@ -275,6 +275,23 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 13: Backend decode session lifecycle hardening
+
+- **Status:** Complete
+- Actions taken:
+  - Traced `decode_gif_stream` ownership: confirmed 3 issues — stale cancel entry on join failure, no duplicate-id rejection, and ignored send errors
+  - Confirmed no frontend path assumes duplicate decode IDs are tolerated (`tauriGifBackend.ts` increments a monotone session counter)
+  - Ran `tdd`; extracted `register_decode_session(map, decode_id, cancelled) -> Result<(), String>` so duplicate-rejection logic is isolated and testable
+  - RED: 2 new tests (`register_decode_session_succeeds_for_new_id`, `register_decode_session_rejects_duplicate_id`) — both failed on `todo!()`
+  - GREEN: implemented `register_decode_session` with `contains_key` check and `map.insert`
+  - Updated `decode_gif_stream`: use `register_decode_session` (fix 2), moved `map.remove` before join-result propagation (fix 1), set `cancelled = true` on `on_event.send` failure (fix 3)
+  - All 34 Rust tests pass; Tauri command signature unchanged
+- Files created/modified:
+  - `src-tauri/src/lib.rs` (updated — `register_decode_session` extracted; `decode_gif_stream` hardened)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -283,7 +300,7 @@
 | Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 11) | ✓ |
 | Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 10) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 10) | ✓ |
-| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 32 tests; 2 ignored (Phase 12) | ✓ |
+| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 34 tests; 2 ignored (Phase 13) | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 10) | ✓ |
 
 ---

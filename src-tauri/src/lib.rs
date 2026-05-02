@@ -1,16 +1,27 @@
 mod e2e;
 pub mod gif;
 
+use gif::ExportFrame;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-
-use gif::ExportFrame;
 use tauri::{ipc::Channel, window::Color, Manager};
 
 struct AppState {
     decode_cancels: Mutex<HashMap<u64, Arc<AtomicBool>>>,
+}
+
+fn register_decode_session(
+    map: &mut HashMap<u64, Arc<AtomicBool>>,
+    decode_id: u64,
+    cancelled: Arc<AtomicBool>,
+) -> Result<(), String> {
+    if map.contains_key(&decode_id) {
+        return Err(format!("Decode session {decode_id} already in progress"));
+    }
+    map.insert(decode_id, cancelled);
+    Ok(())
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -31,21 +42,22 @@ async fn decode_gif_stream(
     let cancelled = Arc::new(AtomicBool::new(false));
     {
         let mut map = state.decode_cancels.lock().unwrap();
-        map.insert(decode_id, cancelled.clone());
+        register_decode_session(&mut map, decode_id, cancelled.clone())?;
     }
     let path = PathBuf::from(path);
     let result = tauri::async_runtime::spawn_blocking(move || {
         gif::decode::decode_gif_stream_path(&path, &cancelled, |event| {
-            on_event.send(event).ok();
+            if on_event.send(event).is_err() {
+                cancelled.store(true, Ordering::Relaxed);
+            }
         })
     })
-    .await
-    .map_err(|e| format!("Failed to join decode task: {e}"))?;
+    .await;
     {
         let mut map = state.decode_cancels.lock().unwrap();
         map.remove(&decode_id);
     }
-    result
+    result.map_err(|e| format!("Failed to join decode task: {e}"))?
 }
 
 #[tauri::command]
@@ -73,8 +85,8 @@ fn home_dir() -> String {
 
 #[tauri::command]
 fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
-    let read_dir = std::fs::read_dir(&path)
-        .map_err(|e| format!("Failed to read directory '{path}': {e}"))?;
+    let read_dir =
+        std::fs::read_dir(&path).map_err(|e| format!("Failed to read directory '{path}': {e}"))?;
 
     let mut entries: Vec<DirEntry> = read_dir
         .filter_map(|entry| entry.ok())
@@ -144,7 +156,8 @@ pub fn run() {
         })
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let splashscreen_url = format!("splashscreen.html?version={}", env!("CARGO_PKG_VERSION"));
+            let splashscreen_url =
+                format!("splashscreen.html?version={}", env!("CARGO_PKG_VERSION"));
             tauri::WebviewWindowBuilder::new(
                 app,
                 "splashscreen",
@@ -217,4 +230,26 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn register_decode_session_succeeds_for_new_id() {
+        let mut map = HashMap::new();
+        let flag = Arc::new(AtomicBool::new(false));
+        let result = register_decode_session(&mut map, 1, flag);
+        assert!(result.is_ok());
+        assert!(map.contains_key(&1));
+    }
+
+    #[test]
+    fn register_decode_session_rejects_duplicate_id() {
+        let mut map = HashMap::new();
+        let flag1 = Arc::new(AtomicBool::new(false));
+        let flag2 = Arc::new(AtomicBool::new(false));
+        register_decode_session(&mut map, 42, flag1).unwrap();
+        let result = register_decode_session(&mut map, 42, flag2);
+        assert!(result.is_err());
+        assert!(
+            result.unwrap_err().contains("42"),
+            "error should mention the duplicate decode_id"
+        );
+    }
 }

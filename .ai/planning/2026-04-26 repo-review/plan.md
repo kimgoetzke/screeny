@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 13
+Phase 14
 
 ## Phases
 
@@ -215,19 +215,19 @@ Phase 13
 ### Phase 13: Backend decode session lifecycle hardening
 
 - **Background**
-  - **What:** `decode_gif_stream` can leave stale cancel entries on join failure, trusts duplicate caller-supplied `decode_id` values, and ignores frontend channel-send failures.
+  - **What:** `decode_gif_stream` can leave stale cancel entries on join failure, trusts duplicate caller-supplied `0` values, and ignores frontend channel-send failures.
   - **Why it matters:** Decode-session ownership becomes ambiguous and backend work can continue after the frontend receiver has gone away.
   - **Suggested fix:** Always clean up cancel entries, reject duplicate decode IDs, and treat send failure as a terminal condition.
   - **References:** `src-tauri/src/lib.rs`, `findings.md`
   - **Relevant context:** This phase is logically separate from decode module splitting because it focuses on command/session ownership rather than parsing/compositing internals.
-  - **Additional research:** Confirm whether any frontend path currently assumes duplicate decode IDs are tolerated and whether send-failure cleanup should cancel or return an explicit error.
+  - **Additional research:** Use `research-codebase` to confirm whether any frontend path currently assumes duplicate decode IDs are tolerated and whether send-failure cleanup should cancel or return an explicit error.
   - **Relevant skills:** `tdd` before Rust changes; `research-codebase` if IPC flow is unclear.
-- [ ] Re-read this plan and trace decode-session ownership from command entry to cancellation cleanup
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide the smallest safe session-lifecycle hardening changes and invoke `tdd` before implementation
-- [ ] If implementing, keep IPC shape stable where possible and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and trace decode-session ownership from command entry to cancellation cleanup
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide the smallest safe session-lifecycle hardening changes and invoke `tdd` before implementation
+- [x] If implementing, keep IPC shape stable where possible and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 14: Backend command surface and error-path cleanup
 

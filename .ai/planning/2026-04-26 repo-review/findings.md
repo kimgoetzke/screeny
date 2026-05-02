@@ -84,6 +84,8 @@ Reasoning: this review spans separate frontend and backend areas, requires multi
 - Phase 11 implementation: added `/.svelte-kit/` to `src-tauri/.gitignore`, removed the tracked files under `src-tauri/.svelte-kit/`, and deleted the stale root `index.html`. `pnpm check` and `pnpm build` both passed afterwards.
 - Phase 12 decision: implement. Module decomposition and bounds safety are both worth doing; `count_gif_frames_in_path` prepass is still required for `Start { total_frames }` UX reporting so it is kept, not removed.
 - Phase 12 implementation: added `canvas_height` parameter and `Result<(), String>` return type to `composite_frame` and `clear_frame_area`, with explicit bounds checks before any pixel access. Propagated errors via `?` in `decode_gif_streaming`. Converted `decode.rs` (626 lines) to a `decode/` directory module: `composite.rs` owns the compositing helpers and bounds-safety tests; `frame_count.rs` owns the hand-rolled GIF frame-count prepass; `progress.rs` owns `ProgressReader`; `mod.rs` owns the decode pipeline and public-API tests. All 32 Rust tests pass.
+- Phase 13 decision: implement all three lifecycle issues. No frontend path assumes duplicate decode IDs are tolerated (confirmed by checking `tauriGifBackend.ts` — it always increments a session counter). Send-failure cleanup is non-breaking since the cancelled flag is only used to abort the current decode.
+- Phase 13 implementation: extracted `register_decode_session` helper (duplicate-rejection logic, tested in isolation); updated `decode_gif_stream` to use it (fix 2), moved `map.remove` before the join-result propagation (fix 1), and set `cancelled = true` on `on_event.send` failure (fix 3). Tauri command signature unchanged. All 34 Rust tests pass.
 
 ## Resources
 
