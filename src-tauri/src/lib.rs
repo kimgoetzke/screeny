@@ -1,5 +1,7 @@
 mod e2e;
 pub mod gif;
+#[cfg(test)]
+mod testing;
 
 use gif::ExportFrame;
 use std::collections::HashMap;

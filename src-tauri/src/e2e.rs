@@ -77,27 +77,28 @@ pub fn e2e_save_path() -> Result<Option<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::{ENV_LOCK, EnvGuard};
 
     #[test]
     fn test_e2e_check_off_by_default() {
-        // Ensure SCREENY_E2E is not set (it shouldn't be in normal test runs)
-        env::remove_var("SCREENY_E2E");
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::remove("SCREENY_E2E");
         assert!(!is_e2e_mode());
     }
 
     #[test]
     fn test_fixture_path_override() {
-        env::set_var("SCREENY_E2E_FIXTURE", "/tmp/custom.gif");
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::set("SCREENY_E2E_FIXTURE", "/tmp/custom.gif");
         let result = fixture_path().unwrap();
         assert_eq!(result, "/tmp/custom.gif");
-        env::remove_var("SCREENY_E2E_FIXTURE");
     }
 
     #[test]
     fn test_export_path_override() {
-        env::set_var("SCREENY_E2E_EXPORT", "/tmp/custom-export.gif");
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::set("SCREENY_E2E_EXPORT", "/tmp/custom-export.gif");
         let result = export_path().unwrap();
         assert_eq!(result, "/tmp/custom-export.gif");
-        env::remove_var("SCREENY_E2E_EXPORT");
     }
 }

@@ -10,6 +10,13 @@ fn project_root() -> PathBuf {
         .to_path_buf()
 }
 
+/// Create an ExportFrame from a solid RGBA colour using raw RGBA base64.
+///
+/// DUPLICATE: identical logic exists in `src/gif/encode.rs` (test module) `make_export_frame`.
+/// Duplication is intentional: as an integration-test crate, this file cannot access
+/// `#[cfg(test)]` items from the lib without a feature flag.
+/// Any change to this function, its signature, or its location must be mirrored there,
+/// and both copies of this comment must be updated to reflect the new locations or names.
 fn make_export_frame(
     colour: [u8; 4],
     width: u32,

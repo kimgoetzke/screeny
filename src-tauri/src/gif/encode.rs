@@ -1,7 +1,6 @@
+use base64::{engine::general_purpose::STANDARD, Engine};
 use std::fs::File;
 use std::path::Path;
-
-use base64::{Engine, engine::general_purpose::STANDARD};
 
 use super::ExportFrame;
 
@@ -37,12 +36,13 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
         repeat: gifski::Repeat::Infinite,
     };
 
-    let (collector, writer) = gifski::new(settings).map_err(|e| format!("Failed to init gifski: {e}"))?;
+    let (collector, writer) =
+        gifski::new(settings).map_err(|e| format!("Failed to init gifski: {e}"))?;
 
     let output_path = output_path.to_owned();
     let write_thread = std::thread::spawn(move || -> Result<(), String> {
-        let file = File::create(&output_path)
-            .map_err(|e| format!("Failed to create output file: {e}"))?;
+        let file =
+            File::create(&output_path).map_err(|e| format!("Failed to create output file: {e}"))?;
         writer
             .write(file, &mut gifski::progress::NoProgress {})
             .map_err(|e| format!("Failed to write GIF: {e}"))
@@ -100,8 +100,8 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gif::DecodeEvent;
     use crate::gif::decode::decode_gif_stream_path;
+    use crate::gif::DecodeEvent;
     use tempfile::NamedTempFile;
 
     /// Decode all frames from a file path using the streaming API.
@@ -118,6 +118,12 @@ mod tests {
     }
 
     /// Create an ExportFrame from a solid RGBA colour using raw RGBA base64.
+    ///
+    /// DUPLICATE: identical logic exists in `tests/generate_fixture.rs::make_export_frame`.
+    /// Duplication is intentional: `generate_fixture.rs` compiles as a separate integration-test
+    /// crate and cannot access `#[cfg(test)]` items from the lib without a feature flag.
+    /// Any change to this function, its signature, or its location must be mirrored there,
+    /// and both copies of this comment must be updated to reflect the new locations or names.
     fn make_export_frame(colour: [u8; 4], width: u32, height: u32, duration: u32) -> ExportFrame {
         let pixel_count = (width * height) as usize;
         let mut pixels = Vec::with_capacity(pixel_count * 4);
@@ -178,7 +184,10 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.contains("width"), "expected error about width, got: {err}");
+        assert!(
+            err.contains("width"),
+            "expected error about width, got: {err}"
+        );
     }
 
     #[test]
@@ -191,7 +200,10 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.contains("height"), "expected error about height, got: {err}");
+        assert!(
+            err.contains("height"),
+            "expected error about height, got: {err}"
+        );
     }
 
     #[test]

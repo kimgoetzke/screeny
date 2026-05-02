@@ -339,6 +339,25 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 17: Backend test infrastructure cleanup
+
+- **Status:** Complete
+- Actions taken:
+  - Inspected `e2e.rs`, `decode/mod.rs`, `encode.rs`, and `generate_fixture.rs` to map the three findings
+  - Implemented env isolation; deferred fixture-builder duplication (lib/integration boundary requires feature flag) and fixture-path helper (two different fixture directories, can't share one helper)
+  - Created `src/testing.rs` with crate-wide `ENV_LOCK` and `EnvGuard` (save/restore on drop)
+  - Registered the module in `lib.rs` under `#[cfg(test)]`
+  - Updated `e2e.rs` tests to use `crate::testing::{ENV_LOCK, EnvGuard}` — manual `set_var`/`remove_var` removed
+  - Reviewed by external reviewer; revised to use full save/restore semantics (`EnvGuard`) and crate-wide lock (`src/testing.rs`) instead of module-local `Mutex` with manual cleanup
+  - All 38 Rust tests pass; `pnpm tauri build` and `pnpm test:e2e` (103 tests) both pass
+- Files created/modified:
+  - `src-tauri/src/testing.rs` (created — ENV_LOCK + EnvGuard)
+  - `src-tauri/src/lib.rs` (updated — `#[cfg(test)] mod testing` registered)
+  - `src-tauri/src/e2e.rs` (updated — uses EnvGuard and ENV_LOCK from crate::testing)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -347,7 +366,9 @@
 | Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 11) | ✓ |
 | Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 10) | ✓ |
 | Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 14) | ✓ |
-| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 38 tests; 2 ignored (Phase 15) | ✓ |
+| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 38 tests; 2 ignored (Phase 17) | ✓ |
+| Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 17) | ✓ |
+| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 17) | ✓ |
 | E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 14) | ✓ |
 
 ---

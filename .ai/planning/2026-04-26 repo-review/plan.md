@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 17
+Complete
 
 ## Phases
 
@@ -290,12 +290,12 @@ Phase 17
   - **Relevant context:** Existing Rust tests are green, so this phase is maintainability-focused rather than failure-driven.
   - **Additional research:** Confirm the smallest shared location for test helpers and whether fixture generators should remain ignored or be documented more clearly.
   - **Relevant skills:** `tdd` before Rust test changes; `research-codebase` for local test-helper discovery.
-- [ ] Re-read this plan and inspect current backend test helper patterns and env usage
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide the narrowest safe helper extraction/isolation plan and invoke `tdd` before implementation
-- [ ] If implementing, keep test intent stable and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and inspect current backend test helper patterns and env usage
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide the narrowest safe helper extraction/isolation plan and invoke `tdd` before implementation
+- [x] If implementing, keep test intent stable and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ## Decisions Made
 
