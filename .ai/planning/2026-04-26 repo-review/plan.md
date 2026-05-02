@@ -10,7 +10,7 @@ Restructure the existing review plan so the work already completed is merged int
 
 ## Current Phase
 
-Phase 14
+Phase 17
 
 ## Phases
 
@@ -239,12 +239,12 @@ Phase 14
   - **Relevant context:** This phase is about command boundaries and error semantics, not decode internals or encode validation.
   - **Additional research:** Confirm whether `list_dir` should fail hard or return structured skip information, and whether command-module extraction should happen before or after error mapping.
   - **Relevant skills:** `tdd` before Rust changes; `research-codebase` for command-registration tracing.
-- [ ] Re-read this plan and inspect command wiring plus current error paths
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide the order of module extraction versus error handling changes and invoke `tdd` before implementation
-- [ ] If implementing, keep command names stable and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and inspect command wiring plus current error paths
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide the order of module extraction versus error handling changes and invoke `tdd` before implementation
+- [x] If implementing, keep command names stable and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 15: Backend encode boundary hardening
 
@@ -256,12 +256,12 @@ Phase 14
   - **Relevant context:** This phase is separate from decode work and should stay focused on export-path correctness.
   - **Additional research:** Confirm whether bad frame input should fail fast before any output file is touched and whether current tests fully cover partial-failure cleanup.
   - **Relevant skills:** `tdd` before Rust changes; `research-codebase` if the export path needs deeper tracing.
-- [ ] Re-read this plan and inspect encode-path validation and cleanup behaviour
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Decide whether to lead with validation, thread cleanup, or extra tests, and invoke `tdd` before implementation
-- [ ] If implementing, keep exported command semantics stable and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and inspect encode-path validation and cleanup behaviour
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Decide whether to lead with validation, thread cleanup, or extra tests, and invoke `tdd` before implementation
+- [x] If implementing, keep exported command semantics stable and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run focused Rust tests plus any affected broader validation, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 16: Backend dependency hygiene
 
@@ -273,12 +273,12 @@ Phase 14
   - **Relevant context:** This is a small, low-risk backend hygiene phase if the dependency findings hold under direct confirmation.
   - **Additional research:** Confirm there is no build-script or generated-code path depending on `image` before removing it.
   - **Relevant skills:** `tdd` before dependency changes; `research-codebase` if any indirect dependency usage is unclear.
-- [ ] Re-read this plan and directly confirm crate usage before changing `Cargo.toml`
-- [ ] Decide fix vs reject/defer and record the rationale in `findings.md`
-- [ ] Invoke `tdd` before implementation if dependency cleanup proceeds
-- [ ] If implementing, keep the change set narrow and ask first via `questions.md` if any existing test would need removal or major rewrite
-- [ ] Run the smallest relevant Rust validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Re-read this plan and directly confirm crate usage before changing `Cargo.toml`
+- [x] Decide fix vs reject/defer and record the rationale in `findings.md`
+- [x] Invoke `tdd` before implementation if dependency cleanup proceeds
+- [x] If implementing, keep the change set narrow and ask first via `questions.md` if any existing test would need removal or major rewrite
+- [x] Run the smallest relevant Rust validation commands, then update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ### Phase 17: Backend test infrastructure cleanup
 

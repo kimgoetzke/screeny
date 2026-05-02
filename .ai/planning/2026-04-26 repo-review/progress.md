@@ -292,6 +292,53 @@
   - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
   - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
 
+### Phase 14: Backend command surface and error-path cleanup
+
+- **Status:** Complete
+- Actions taken:
+  - Inspected all three `Mutex::lock().unwrap()` sites and confirmed `list_dir` entry-skipping semantics
+  - Decision: implement lock hardening; defer `list_dir` entry-skipping (correct file-picker behavior); defer `lib.rs` module split (file now ~270 lines, split overhead not worth it)
+  - Ran `tdd`; added specification test `register_decode_session_allows_id_reuse_after_cleanup` to document the map-cleanup contract
+  - Hardened pre-spawn lock in `decode_gif_stream` to `map_err(...)` (returns `Err` on poisoning)
+  - Hardened cleanup lock in `decode_gif_stream` to `unwrap_or_else(|e| e.into_inner())` (cleanup always runs)
+  - Hardened `cancel_gif_decode` lock to `unwrap_or_else(|e| e.into_inner())` (void command, no IPC shape change)
+  - All 35 Rust tests pass
+- Files created/modified:
+  - `src-tauri/src/lib.rs` (updated — 3 lock sites hardened, 1 specification test added)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
+### Phase 15: Backend encode boundary hardening
+
+- **Status:** Complete
+- Actions taken:
+  - Inspected `encode.rs` and `mod.rs` to confirm the three issues: no dimension consistency check, no RGBA length check, write thread detached on mid-loop failure
+  - Confirmed RED→GREEN cycle via `tdd` skill: wrote 3 failing tests first, then implemented GREEN
+  - Added upfront dimension-consistency loop (rejects mismatched width or height before spawning the write thread)
+  - Added `expected_bytes` check after base64 decode to reject frames with wrong data length (prevents imgref out-of-bounds panic in gifski internal thread)
+  - Restructured loop to use `encode_error: Option<String>` and `break` instead of `?`, so `drop(collector)` and `write_thread.join()` are always reached
+  - All 38 Rust tests pass
+- Files created/modified:
+  - `src-tauri/src/gif/encode.rs` (updated — dimension check, RGBA length check, thread cleanup restructure, 3 new tests)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
+### Phase 16: Backend dependency hygiene
+
+- **Status:** Complete
+- Actions taken:
+  - Grepped entire `src/` tree for `image::` and `serde_json` — confirmed `image` is completely unused and `serde_json` is used only inside `#[cfg(test)]`
+  - Removed `image` from `[dependencies]` (no runtime usage anywhere)
+  - Moved `serde_json` from `[dependencies]` to `[dev-dependencies]`
+  - All 38 Rust tests pass after recompile
+- Files created/modified:
+  - `src-tauri/Cargo.toml` (updated — `image` removed, `serde_json` moved to dev-dependencies)
+  - `.ai/planning/2026-04-26 repo-review/findings.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/plan.md` (updated)
+  - `.ai/planning/2026-04-26 repo-review/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -299,9 +346,9 @@
 | Frontend checks | `pnpm check` | Pass without diagnostics | Passed, 0 errors and 0 warnings (Phase 11) | ✓ |
 | Frontend build | `pnpm build` | Production build succeeds | Passed (Phase 11) | ✓ |
 | Unit tests | `pnpm test:unit` | All unit tests pass | Passed, 28 files / 358 tests (Phase 10) | ✓ |
-| Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 10) | ✓ |
-| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 34 tests; 2 ignored (Phase 13) | ✓ |
-| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 10) | ✓ |
+| Tauri build | `pnpm tauri build` | Built app for E2E and packaging succeeds | Passed (Phase 14) | ✓ |
+| Rust tests | `cargo test` (in src-tauri) | All Rust tests pass | Passed, 38 tests; 2 ignored (Phase 15) | ✓ |
+| E2E tests | `pnpm test:e2e` | All E2E specs pass | Passed, 8 spec files / 103 tests (Phase 14) | ✓ |
 
 ---
 
