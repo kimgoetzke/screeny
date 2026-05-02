@@ -14,6 +14,21 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
     let width = frames[0].width;
     let height = frames[0].height;
 
+    for (i, frame) in frames.iter().enumerate().skip(1) {
+        if frame.width != width {
+            return Err(format!(
+                "Frame {i} width {} does not match frame 0 width {width}",
+                frame.width
+            ));
+        }
+        if frame.height != height {
+            return Err(format!(
+                "Frame {i} height {} does not match frame 0 height {height}",
+                frame.height
+            ));
+        }
+    }
+
     let settings = gifski::Settings {
         width: Some(width),
         height: Some(height),
@@ -33,11 +48,25 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
             .map_err(|e| format!("Failed to write GIF: {e}"))
     });
 
+    let expected_bytes = width as usize * height as usize * 4;
     let mut timestamp = 0.0;
+    let mut encode_error: Option<String> = None;
     for (i, frame) in frames.iter().enumerate() {
-        let raw = STANDARD
-            .decode(&frame.image_data)
-            .map_err(|e| format!("Failed to decode frame {i}: {e}"))?;
+        let raw = match STANDARD.decode(&frame.image_data) {
+            Ok(r) => r,
+            Err(e) => {
+                encode_error = Some(format!("Failed to decode frame {i}: {e}"));
+                break;
+            }
+        };
+
+        if raw.len() != expected_bytes {
+            encode_error = Some(format!(
+                "Frame {i} has wrong data length: got {} bytes, expected {expected_bytes}",
+                raw.len()
+            ));
+            break;
+        }
 
         let pixels: Vec<rgb::RGBA8> = raw
             .chunks_exact(4)
@@ -46,19 +75,26 @@ pub fn encode_gif_file(frames: &[ExportFrame], output_path: &Path) -> Result<(),
 
         let img = imgref::ImgVec::new(pixels, frame.width as usize, frame.height as usize);
 
-        collector
-            .add_frame_rgba(i, img, timestamp)
-            .map_err(|e| format!("Failed to add frame {i}: {e}"))?;
+        if let Err(e) = collector.add_frame_rgba(i, img, timestamp) {
+            encode_error = Some(format!("Failed to add frame {i}: {e}"));
+            break;
+        }
 
         timestamp += frame.duration as f64 / 1000.0;
     }
 
-    // Signal no more frames
+    // Signal no more frames before joining so the write thread can finish
     drop(collector);
 
-    write_thread
+    let write_result = write_thread
         .join()
-        .map_err(|_| "Writer thread panicked".to_string())?
+        .map_err(|_| "Writer thread panicked".to_string())?;
+
+    if let Some(e) = encode_error {
+        return Err(e);
+    }
+
+    write_result
 }
 
 #[cfg(test)]
@@ -130,5 +166,48 @@ mod tests {
         let result = encode_gif_file(&[], output.path());
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "No frames to export");
+    }
+
+    #[test]
+    fn encode_gif_file_rejects_mismatched_width() {
+        let frame1 = make_export_frame([255, 0, 0, 255], 4, 4, 100);
+        let frame2 = make_export_frame([0, 255, 0, 255], 8, 4, 100);
+        let output = NamedTempFile::new().unwrap();
+
+        let result = encode_gif_file(&[frame1, frame2], output.path());
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("width"), "expected error about width, got: {err}");
+    }
+
+    #[test]
+    fn encode_gif_file_rejects_mismatched_height() {
+        let frame1 = make_export_frame([255, 0, 0, 255], 4, 4, 100);
+        let frame2 = make_export_frame([0, 255, 0, 255], 4, 8, 100);
+        let output = NamedTempFile::new().unwrap();
+
+        let result = encode_gif_file(&[frame1, frame2], output.path());
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("height"), "expected error about height, got: {err}");
+    }
+
+    #[test]
+    fn encode_gif_file_rejects_wrong_rgba_length() {
+        let mut frame = make_export_frame([255, 0, 0, 255], 4, 4, 100);
+        // 4×4 frame needs 64 bytes; supply only 32
+        frame.image_data = STANDARD.encode(vec![0u8; 32]);
+        let output = NamedTempFile::new().unwrap();
+
+        let result = encode_gif_file(&[frame], output.path());
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("data length") || err.contains("bytes"),
+            "expected error about data length, got: {err}"
+        );
     }
 }
