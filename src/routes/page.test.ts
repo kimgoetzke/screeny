@@ -32,15 +32,28 @@ describe("+page.svelte", () => {
       expect(pageSource).toMatch(/centreOffsetX=\{resetCanvasPanX\}/);
     });
 
-    it("routes drag-drop through the shared Open flow while keeping inline drop errors", () => {
+    it("creates the lifecycle seam in +page with dialog, backend, cancelDecode, and onFirstFrame adapters", () => {
       expect(pageSource).toMatch(
-        /openProjectFromPath\(\s*path,\s*tauriGifBackend,\s*\{[\s\S]{0,120}onFirstFrame:\s*applyInitialCanvasState/,
+        /createProjectLifecycle\(\s*\{[\s\S]{0,220}dialog,[\s\S]{0,160}backend:\s*tauriGifBackend,[\s\S]{0,160}cancelDecode:\s*cancelCurrentGifDecode,[\s\S]{0,160}onFirstFrame:\s*applyInitialCanvasState/,
       );
-      expect(pageSource).toMatch(/if\s*\(result\.error\)\s*\{[\s\S]{0,40}dropError\s*=\s*result\.error/);
     });
 
-    it("Toolbar receives onLoad prop pointing to the initial-fit loader", () => {
-      expect(pageSource).toMatch(/<Toolbar[\s\S]{0,100}onLoad\s*=\s*\{?\s*applyInitialCanvasState\s*\}?/);
+    it("routes drag-drop through lifecycle.openFromPath(path) while keeping inline drop errors", () => {
+      expect(pageSource).toMatch(/const\s+result\s*=\s*await\s+lifecycle\.openFromPath\(path\)/);
+      expect(pageSource).toMatch(/if\s*\(result\.error\)\s*\{[\s\S]{0,40}dropError\s*=\s*result\.error/);
+      expect(pageSource).not.toContain("openProjectFromPath");
+    });
+
+    it("passes the lifecycle instance into Toolbar", () => {
+      expect(pageSource).toMatch(/<Toolbar[\s\S]{0,80}lifecycle=\{lifecycle\}/);
+    });
+
+    it("renders page-owned file picker, save input, and close-confirm UI", () => {
+      expect(pageSource).toMatch(/\{#if\s+showFilePicker\s*\}[\s\S]{0,120}<FilePicker/);
+      expect(pageSource).toMatch(/\{#if\s+showSaveInput\s*\}[\s\S]{0,220}data-testid="save-input-row"/);
+      expect(pageSource).toMatch(
+        /\{#if\s+lifecycle\.closeRequested\s*\}[\s\S]{0,160}<NotificationDialog[\s\S]{0,220}onConfirm=\{\(\)\s*=>\s*lifecycle\.confirmClose\(\)\}[\s\S]{0,220}onCancel=\{\(\)\s*=>\s*lifecycle\.dismissClose\(\)\}/,
+      );
     });
 
     it("tracks inspector visibility from frameStore.hasFrames", () => {
@@ -93,8 +106,9 @@ describe("+page.svelte", () => {
   });
 
   describe("cancellation", () => {
-    it("delegates cancellation ownership away from the page-level drop handler", () => {
+    it("delegates backend cancellation through the lifecycle seam instead of calling the Tauri command directly", () => {
       expect(pageSource).not.toContain('invoke("cancel_gif_decode"');
+      expect(pageSource).toContain("cancelCurrentGifDecode");
     });
   });
 

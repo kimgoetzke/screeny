@@ -1,3 +1,8 @@
+/**
+ * @deprecated New callers should use `createProjectLifecycle(...).openFromPath(path)`.
+ * Retained temporarily as a low-level compatibility helper while older tests and any
+ * out-of-tree callers migrate.
+ */
 import type { ActionResult, GifBackend } from "$lib/actions";
 import { decodeGifPathStreaming } from "$lib/actions";
 import { waitForNextPaint } from "$lib/paint";

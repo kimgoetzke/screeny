@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createProjectLifecycle } from "./projectLifecycle";
+import { createProjectLifecycle } from "./projectLifecycle.svelte";
 import { frameStore } from "$lib/stores/frames.svelte";
 import type { DialogProvider, GifBackend } from "$lib/actions";
 import type { Frame } from "$lib/types";
@@ -10,6 +10,16 @@ vi.mock("$lib/paint", () => ({
 
 function makeFrame(id: string): Frame {
   return { id, imageData: `data:image/png;base64,${id}`, duration: 100, width: 10, height: 10 };
+}
+
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
 }
 
 function makeDialog(openPath: string | null, savePath: string | null = "/tmp/out.gif"): DialogProvider {
@@ -29,130 +39,215 @@ function makeBackend(frames: Frame[] = [makeFrame("a"), makeFrame("b")]): GifBac
   };
 }
 
-describe("projectLifecycle", () => {
-  let loadingValues: boolean[];
-  let statusValues: string[];
+function makeLifecycle(options: {
+  dialog?: DialogProvider;
+  backend?: GifBackend;
+  onFirstFrame?: () => Promise<void> | void;
+}) {
+  const cancelDecode = vi.fn(() => Promise.resolve());
 
+  return {
+    cancelDecode,
+    lifecycle: createProjectLifecycle({
+      dialog: options.dialog ?? makeDialog("/tmp/test.gif"),
+      backend: options.backend ?? makeBackend(),
+      onFirstFrame: options.onFirstFrame,
+      cancelDecode,
+    }),
+  };
+}
+
+describe("projectLifecycle", () => {
   beforeEach(() => {
     frameStore.clear();
-    loadingValues = [];
-    statusValues = [];
     vi.clearAllMocks();
   });
 
-  function makeCycle(dialog: DialogProvider, backend: GifBackend, onLoad?: () => void) {
-    const cancelDecode = vi.fn(() => Promise.resolve());
+  it("starts empty with explicit Project State and derived capabilities", () => {
+    const { lifecycle } = makeLifecycle({});
 
-    return {
-      cancelDecode,
-      ...createProjectLifecycle({
-        getDialog: () => dialog,
-        backend,
-        onLoad,
-        onLoadingChange: (v: boolean) => loadingValues.push(v),
-        onStatusChange: (v: string) => statusValues.push(v),
-        cancelDecode,
+    expect(lifecycle.projectState).toBe("Empty");
+    expect(lifecycle.hasProject).toBe(false);
+    expect(lifecycle.closeRequested).toBe(false);
+    expect(lifecycle.toolbarFeedback).toEqual({ kind: "none" });
+    expect(lifecycle.canOpen).toBe(true);
+    expect(lifecycle.canCancel).toBe(false);
+    expect(lifecycle.canClose).toBe(false);
+    expect(lifecycle.canExport).toBe(false);
+  });
+
+  it("openFromPath(path) enters Loading, derives progress feedback, and settles in Active", async () => {
+    const streamGate = deferred<void>();
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (_path, onStart, onFrame, onProgress) => {
+        onStart({ totalBytes: 100, totalFrames: 2 });
+        onProgress(25);
+        onFrame(makeFrame("a"));
+        await streamGate.promise;
+        onFrame(makeFrame("b"));
       }),
+      export: vi.fn(() => Promise.resolve()),
     };
-  }
 
-  describe("handleOpen", () => {
-    it("does nothing when the dialog is cancelled", async () => {
-      const { handleOpen } = makeCycle(makeDialog(null), makeBackend());
-      await handleOpen();
-      expect(frameStore.frames).toHaveLength(0);
-      expect(frameStore.isLoading).toBe(false);
+    const onFirstFrame = vi.fn();
+    const { lifecycle } = makeLifecycle({ backend, onFirstFrame });
+    const openPromise = lifecycle.openFromPath("/tmp/test.gif");
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(lifecycle.projectState).toBe("Loading");
+    expect(lifecycle.canCancel).toBe(true);
+    expect(lifecycle.toolbarFeedback).toEqual({
+      kind: "loading",
+      label: "Loading frame 1 of 2",
+      percent: 50,
     });
 
-    it("streams each frame individually into the store", async () => {
-      const { handleOpen } = makeCycle(makeDialog("/tmp/test.gif"), makeBackend());
-      await handleOpen();
-      expect(frameStore.frames).toHaveLength(2);
-    });
+    streamGate.resolve();
+    const result = await openPromise;
 
-    it("calls onLoad on the first streamed frame, not on decode completion", async () => {
-      const onLoad = vi.fn();
-      const backend = makeBackend([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
-      const { handleOpen } = makeCycle(makeDialog("/tmp/test.gif"), backend, onLoad);
-      await handleOpen();
-      expect(onLoad).toHaveBeenCalledOnce();
-    });
+    expect(result).toEqual({ message: "Loaded 2 frames" });
+    expect(lifecycle.projectState).toBe("Active");
+    expect(lifecycle.hasProject).toBe(true);
+    expect(lifecycle.closeRequested).toBe(false);
+    expect(lifecycle.toolbarFeedback).toEqual({ kind: "none" });
+    expect(onFirstFrame).toHaveBeenCalledOnce();
+  });
 
-    it("sets loading to false in the finally block even when decode throws", async () => {
-      const backend: GifBackend = {
-        decodeStreaming: vi.fn(() => Promise.reject(new Error("decode failed"))),
-        export: vi.fn(() => Promise.resolve()),
-      };
-      const { handleOpen } = makeCycle(makeDialog("/tmp/test.gif"), backend);
-      await handleOpen();
-      expect(loadingValues.at(-1)).toBe(false);
-    });
+  it("open() uses the dialog and records completion feedback for toolbar callers", async () => {
+    const dialog = makeDialog("/tmp/from-dialog.gif");
+    const { lifecycle } = makeLifecycle({ dialog, backend: makeBackend([makeFrame("dialog")]) });
 
-    it("ignores late-arriving frames after the session is cancelled", async () => {
-      let capturedOnFrame: ((f: Frame) => void) | undefined;
-      let releaseStream: (() => void) | undefined;
-      const backend: GifBackend = {
-        decodeStreaming: vi.fn(async (_path, onStart, onFrame) => {
+    await lifecycle.open();
+
+    expect(dialog.openFile).toHaveBeenCalledOnce();
+    expect(lifecycle.projectState).toBe("Active");
+    expect(lifecycle.toolbarFeedback).toEqual({
+      kind: "status",
+      message: "Loaded 1 frames",
+    });
+  });
+
+  it("cancel() clears the Project, requests decode cancellation, and ignores stale frames", async () => {
+    let capturedOnFrame: ((frame: Frame) => void) | undefined;
+    const streamGate = deferred<void>();
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(
+        async (_path, onStart, onFrame) => {
           onStart({ totalBytes: 100, totalFrames: 1 });
           capturedOnFrame = onFrame;
-          await new Promise<void>((r) => { releaseStream = r; });
-        }),
-        export: vi.fn(() => Promise.resolve()),
-      };
+          await streamGate.promise;
+        },
+      ),
+      export: vi.fn(() => Promise.resolve()),
+    };
 
-      const { handleOpen, handleCancelLoad } = makeCycle(makeDialog("/tmp/test.gif"), backend);
-      void handleOpen();
-      // Flush all pending microtasks so dialog.openFile and decodeStreaming
-      // have both started before we cancel.
-      await new Promise<void>((r) => setTimeout(r, 0));
+    const { lifecycle, cancelDecode } = makeLifecycle({ backend });
+    const openPromise = lifecycle.openFromPath("/tmp/test.gif");
 
-      expect(capturedOnFrame).toBeDefined();
-      handleCancelLoad(); // bumps loadSessionId, making isCancelled() return true
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await lifecycle.cancel();
 
-      capturedOnFrame!(makeFrame("stale")); // fires after cancel — must be ignored
-      expect(frameStore.frames).toHaveLength(0);
+    expect(lifecycle.projectState).toBe("Empty");
+    expect(lifecycle.hasProject).toBe(false);
+    expect(lifecycle.toolbarFeedback).toEqual({ kind: "none" });
+    expect(cancelDecode).toHaveBeenCalledOnce();
 
-      releaseStream!(); // clean up the pending promise
-    });
+    capturedOnFrame?.(makeFrame("stale"));
+    streamGate.reject(new Error("decode cancelled"));
+
+    await expect(openPromise).resolves.toEqual({});
+    expect(frameStore.frames).toHaveLength(0);
   });
 
-  describe("handleCancelLoad", () => {
-    it("calls frameStore.cancelLoad and requests backend cancellation", async () => {
-      const backend: GifBackend = {
-        decodeStreaming: vi.fn(async (): Promise<void> => { await new Promise(() => {}); }),
-        export: vi.fn(() => Promise.resolve()),
-      };
+  it("ignores superseded opens so only the latest Open can activate the Project", async () => {
+    const firstStreamGate = deferred<void>();
+    let firstOnFrame: ((frame: Frame) => void) | undefined;
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (_path, onStart, onFrame) => {
+        onStart({ totalBytes: 100, totalFrames: 1 });
+        if (!firstOnFrame) {
+          firstOnFrame = onFrame;
+          await firstStreamGate.promise;
+          return;
+        }
+        onFrame(makeFrame("fresh"));
+      }),
+      export: vi.fn(() => Promise.resolve()),
+    };
 
-      const { handleOpen, handleCancelLoad, cancelDecode } = makeCycle(
-        makeDialog("/tmp/test.gif"),
-        backend,
-      );
-      void handleOpen();
-      await new Promise<void>((r) => setTimeout(r, 0)); // let decode start
-      handleCancelLoad();
+    const { lifecycle } = makeLifecycle({ backend });
 
-      expect(frameStore.isLoading).toBe(false);
-      expect(cancelDecode).toHaveBeenCalledOnce();
-    });
+    const firstOpen = lifecycle.openFromPath("/tmp/first.gif");
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    const secondOpen = lifecycle.openFromPath("/tmp/second.gif");
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    firstOnFrame?.(makeFrame("stale"));
+    firstStreamGate.resolve();
+
+    await expect(firstOpen).resolves.toEqual({});
+    await expect(secondOpen).resolves.toEqual({ message: "Loaded 1 frames" });
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["fresh"]);
+    expect(lifecycle.projectState).toBe("Active");
   });
 
-  describe("handleExport", () => {
-    it("exports frames to the path chosen by the dialog", async () => {
-      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-      const backend = makeBackend();
-      const { handleExport } = makeCycle(makeDialog(null, "/tmp/out.gif"), backend);
-      await handleExport();
-      expect(backend.export).toHaveBeenCalledWith(
-        expect.arrayContaining([expect.objectContaining({ imageData: expect.any(String) })]),
-        "/tmp/out.gif",
-      );
+  it("requestClose(), dismissClose(), and confirmClose() manage close confirmation inside the seam", async () => {
+    const { lifecycle } = makeLifecycle({ backend: makeBackend([makeFrame("a")]) });
+    await lifecycle.openFromPath("/tmp/test.gif");
+
+    lifecycle.requestClose();
+    expect(lifecycle.closeRequested).toBe(true);
+
+    lifecycle.dismissClose();
+    expect(lifecycle.closeRequested).toBe(false);
+
+    lifecycle.requestClose();
+    lifecycle.confirmClose();
+
+    expect(lifecycle.projectState).toBe("Empty");
+    expect(lifecycle.hasProject).toBe(false);
+    expect(lifecycle.closeRequested).toBe(false);
+    expect(frameStore.frames).toHaveLength(0);
+  });
+
+  it("export() moves through Exporting and returns to Active with status feedback", async () => {
+    const exportGate = deferred<void>();
+    const dialog = makeDialog("/tmp/test.gif", "/tmp/out.gif");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (_path, onStart, onFrame) => {
+        onStart({ totalBytes: 100, totalFrames: 1 });
+        onFrame(makeFrame("a"));
+      }),
+      export: vi.fn(async () => {
+        await exportGate.promise;
+      }),
+    };
+
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+    await lifecycle.openFromPath("/tmp/test.gif");
+
+    const exportPromise = lifecycle.export();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(lifecycle.projectState).toBe("Exporting");
+    expect(lifecycle.toolbarFeedback).toEqual({
+      kind: "status",
+      message: "Exporting…",
     });
 
-    it("sets loading to false in the finally block after export", async () => {
-      frameStore.setFrames([makeFrame("a")]);
-      const { handleExport } = makeCycle(makeDialog(null, "/tmp/out.gif"), makeBackend());
-      await handleExport();
-      expect(loadingValues.at(-1)).toBe(false);
+    exportGate.resolve();
+    await exportPromise;
+
+    expect(backend.export).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ imageData: expect.any(String) })]),
+      "/tmp/out.gif",
+    );
+    expect(lifecycle.projectState).toBe("Active");
+    expect(lifecycle.toolbarFeedback).toEqual({
+      kind: "status",
+      message: "Exported successfully",
     });
   });
 });

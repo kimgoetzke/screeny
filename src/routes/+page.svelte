@@ -4,9 +4,12 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import Canvas from "$lib/components/Canvas.svelte";
+  import FilePicker from "$lib/components/FilePicker.svelte";
+  import NotificationDialog from "$lib/components/NotificationDialog.svelte";
   import { calculateInitialCanvasState, type InitialCanvasState } from "$lib/canvas-fit";
-  import { openProjectFromPath } from "$lib/projectOpen";
-  import { tauriGifBackend } from "$lib/tauriGifBackend";
+  import type { DialogProvider } from "$lib/actions";
+  import { createProjectLifecycle } from "$lib/projectLifecycle.svelte";
+  import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/tauriGifBackend";
   import { getVisibleCanvasWidth } from "$lib/inspectorLayout";
   import { isContextualKeyboardBinding } from "$lib/keyboardPolicy";
   import Toolbar from "$lib/components/Toolbar.svelte";
@@ -18,6 +21,14 @@
   let dragging = $state(false);
   let dropError = $state("");
   let canvasArea: HTMLDivElement | undefined = $state();
+  let isE2e = $state(false);
+
+  let showFilePicker = $state(false);
+  let filePickerResolve: ((path: string | null) => void) | null = null;
+
+  let showSaveInput = $state(false);
+  let savePath = $state("");
+  let saveResolve: ((path: string | null) => void) | null = null;
 
   const EXPANDED_ZOOM_RIGHT_OFFSET = 268;
   const MINIMISED_ZOOM_RIGHT_OFFSET = 60;
@@ -42,6 +53,37 @@
     inspectorMinimised ? MINIMISED_DROP_OVERLAY_RIGHT_MARGIN : EXPANDED_DROP_OVERLAY_RIGHT_MARGIN,
   );
   let visibleDropOverlayRightMargin = $derived(inspectorVisible ? dropOverlayRightMargin : 10);
+
+  invoke<boolean>("e2e_check").then((result) => {
+    isE2e = result;
+  });
+
+  const dialog: DialogProvider = {
+    openFile: () =>
+      new Promise((resolve) => {
+        filePickerResolve = resolve;
+        showFilePicker = true;
+      }),
+    saveFile: async () => {
+      if (isE2e) {
+        return invoke("e2e_save_path");
+      }
+
+      const suggested: string = await invoke("suggest_export_path");
+      savePath = suggested;
+      showSaveInput = true;
+      return new Promise((resolve) => {
+        saveResolve = resolve;
+      });
+    },
+  };
+
+  const lifecycle = createProjectLifecycle({
+    dialog,
+    backend: tauriGifBackend,
+    cancelDecode: cancelCurrentGifDecode,
+    onFirstFrame: applyInitialCanvasState,
+  });
 
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (!inspectorVisible) return;
@@ -154,6 +196,30 @@
     setCurrentCanvasState(canvasState);
   }
 
+  function handleFilePickerConfirm(path: string) {
+    showFilePicker = false;
+    filePickerResolve?.(path);
+    filePickerResolve = null;
+  }
+
+  function handleFilePickerCancel() {
+    showFilePicker = false;
+    filePickerResolve?.(null);
+    filePickerResolve = null;
+  }
+
+  function confirmSave() {
+    showSaveInput = false;
+    saveResolve?.(savePath || null);
+    saveResolve = null;
+  }
+
+  function cancelSave() {
+    showSaveInput = false;
+    saveResolve?.(null);
+    saveResolve = null;
+  }
+
   $effect(() => {
     inspectorVisible;
     inspectorMinimised;
@@ -193,9 +259,7 @@
 
   async function handleDrop(path: string) {
     dropError = "";
-    const result = await openProjectFromPath(path, tauriGifBackend, {
-      onFirstFrame: applyInitialCanvasState,
-    });
+    const result = await lifecycle.openFromPath(path);
 
     if (result.error) {
       dropError = result.error;
@@ -203,8 +267,45 @@
   }
 </script>
 
+{#if showFilePicker}
+  <FilePicker
+    onConfirm={handleFilePickerConfirm}
+    onCancel={handleFilePickerCancel}
+  />
+{/if}
+
+{#if lifecycle.closeRequested}
+  <NotificationDialog
+    message={"Any unsaved changes will be lost.\nDo you want to continue?"}
+    confirmLabel="Continue"
+    cancelLabel="Cancel"
+    onConfirm={() => lifecycle.confirmClose()}
+    onCancel={() => lifecycle.dismissClose()}
+  />
+{/if}
+
 <div class="app" data-testid="app">
-  <Toolbar onLoad={applyInitialCanvasState} />
+  <Toolbar lifecycle={lifecycle} />
+
+  {#if showSaveInput}
+    <div class="toolbar-save-overlay">
+      <div class="save-input-row" data-testid="save-input-row">
+        <input
+          type="text"
+          bind:value={savePath}
+          placeholder="~/export.gif"
+          data-testid="save-path-input"
+          onkeydown={(event) => {
+            if (event.key === "Enter") confirmSave();
+            if (event.key === "Escape") cancelSave();
+          }}
+        />
+        <button onclick={confirmSave} data-testid="btn-save-confirm">Save</button>
+        <button onclick={cancelSave} data-testid="btn-save-cancel">Cancel</button>
+      </div>
+    </div>
+  {/if}
+
   <div class="canvas-area" bind:this={canvasArea}>
     <Canvas
       showEmptyState={!dragging}
@@ -253,9 +354,61 @@
   }
 
   .app {
+    position: relative;
     display: flex;
     flex-direction: column;
     height: 100vh;
+  }
+
+  .toolbar-save-overlay {
+    position: absolute;
+    top: 10px;
+    right: 144px;
+    z-index: 40;
+    width: min(520px, calc(100vw - 320px));
+  }
+
+  .save-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-elevated);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .save-input-row input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text-brightest);
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  .save-input-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-text-muted);
+  }
+
+  .save-input-row button {
+    padding: 6px 14px;
+    font-size: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text-brightest);
+    cursor: pointer;
+  }
+
+  .save-input-row button:hover {
+    background: var(--color-border);
+    border-color: var(--color-text-muted);
   }
 
   .canvas-area {

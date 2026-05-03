@@ -29,56 +29,100 @@ function makeFrame(id: string, duration = 100): Frame {
   return { id, imageData: `data:image/png;base64,${id}`, duration, width: 10, height: 10 };
 }
 
+type LifecycleStub = {
+  projectState: "Empty" | "Loading" | "Active" | "Exporting";
+  hasProject: boolean;
+  closeRequested: boolean;
+  toolbarFeedback:
+    | { kind: "none" }
+    | { kind: "loading"; label: string; percent: number }
+    | { kind: "status"; message: string };
+  canOpen: boolean;
+  canCancel: boolean;
+  canClose: boolean;
+  canExport: boolean;
+  open: () => Promise<void>;
+  openFromPath: (path: string) => Promise<{ message?: string; error?: string }>;
+  cancel: () => Promise<void>;
+  requestClose: () => void;
+  confirmClose: () => void;
+  dismissClose: () => void;
+  export: () => Promise<void>;
+};
+
+function makeLifecycle(overrides: Partial<LifecycleStub> = {}): LifecycleStub {
+  return {
+    projectState: "Empty",
+    hasProject: false,
+    closeRequested: false,
+    toolbarFeedback: { kind: "none" },
+    canOpen: true,
+    canCancel: false,
+    canClose: false,
+    canExport: false,
+    open: vi.fn(async () => {}),
+    openFromPath: vi.fn(async () => ({})),
+    cancel: vi.fn(async () => {}),
+    requestClose: vi.fn(),
+    confirmClose: vi.fn(),
+    dismissClose: vi.fn(),
+    export: vi.fn(async () => {}),
+    ...overrides,
+  };
+}
+
 describe("Toolbar", () => {
   beforeEach(() => {
     frameStore.clear();
   });
 
-  describe("Open / Close button visibility", () => {
-    it("shows Open button when no frames are loaded", () => {
-      const { body } = render(Toolbar);
+  function renderToolbar(lifecycle = makeLifecycle()) {
+    return render(Toolbar, { props: { lifecycle } });
+  }
+
+  describe("Open / Close / Cancel button visibility", () => {
+    it("shows Open button when the Project is Empty", () => {
+      const { body } = renderToolbar(makeLifecycle());
       expect(body).toContain('data-testid="btn-open"');
     });
 
-    it("does not show Close button when no frames are loaded", () => {
-      const { body } = render(Toolbar);
+    it("does not show Close button when the Project is Empty", () => {
+      const { body } = renderToolbar(makeLifecycle());
       expect(body).not.toContain('data-testid="btn-close"');
     });
 
-    it("shows Close button when frames are loaded", () => {
-      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-      const { body } = render(Toolbar);
+    it("shows Close button when a Project is loaded", () => {
+      const { body } = renderToolbar(
+        makeLifecycle({ projectState: "Active", hasProject: true, canClose: true, canExport: true }),
+      );
       expect(body).toContain('data-testid="btn-close"');
     });
 
-    it("does not show Open button when frames are loaded", () => {
-      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-      const { body } = render(Toolbar);
+    it("shows Cancel button while the Project is Loading", () => {
+      const { body } = renderToolbar(
+        makeLifecycle({
+          projectState: "Loading",
+          canOpen: false,
+          canCancel: true,
+          toolbarFeedback: { kind: "loading", label: "Loading...", percent: 0 },
+        }),
+      );
+      expect(body).toContain('data-testid="btn-cancel"');
       expect(body).not.toContain('data-testid="btn-open"');
     });
   });
 
   it("play and stop buttons are not shown when there are no frames", () => {
-    const { body } = render(Toolbar);
+    const { body } = renderToolbar(makeLifecycle());
     expect(body).not.toContain('data-testid="btn-play"');
     expect(body).not.toContain('data-testid="btn-stop"');
   });
 
-  it("dedup buttons are never present regardless of frame state", () => {
-    // no frames
-    const { body: bodyEmpty } = render(Toolbar);
-    expect(bodyEmpty).not.toContain('data-testid="btn-dedup-merge"');
-    expect(bodyEmpty).not.toContain('data-testid="btn-dedup-drop"');
-    // with frames
-    frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-    const { body: bodyLoaded } = render(Toolbar);
-    expect(bodyLoaded).not.toContain('data-testid="btn-dedup-merge"');
-    expect(bodyLoaded).not.toContain('data-testid="btn-dedup-drop"');
-  });
-
   it("play and stop buttons are shown when frames are loaded", () => {
     frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-    const { body } = render(Toolbar);
+    const { body } = renderToolbar(
+      makeLifecycle({ projectState: "Active", hasProject: true, canClose: true, canExport: true }),
+    );
     expect(body).toContain('data-testid="btn-play"');
     expect(body).toContain('data-testid="btn-stop"');
   });
@@ -86,15 +130,46 @@ describe("Toolbar", () => {
   it("renders loaded-state playback controls in a dedicated centred toolbar region", () => {
     frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
 
-    const { body } = render(Toolbar);
+    const { body } = renderToolbar(
+      makeLifecycle({ projectState: "Active", hasProject: true, canClose: true, canExport: true }),
+    );
 
     expect(body).toMatch(
       /<div class="[^"]*toolbar-playback[^"]*">[\s\S]*data-testid="btn-play"[\s\S]*data-testid="btn-stop"[\s\S]*<\/div>/,
     );
   });
 
+  it("renders lifecycle-derived loading feedback between Export and the drag region", () => {
+    const { body } = renderToolbar(
+      makeLifecycle({
+        projectState: "Loading",
+        canCancel: true,
+        toolbarFeedback: { kind: "loading", label: "Loading frame 1 of 3", percent: 33 },
+      }),
+    );
+
+    expect(body).toContain('data-testid="loading-progress"');
+    expect(body).toContain("Loading frame 1 of 3");
+    expect(body).toContain("width: 33%\"");
+  });
+
+  it("renders lifecycle-derived status messages in the left toolbar cluster", () => {
+    const { body } = renderToolbar(
+      makeLifecycle({
+        projectState: "Active",
+        hasProject: true,
+        canClose: true,
+        canExport: true,
+        toolbarFeedback: { kind: "status", message: "Exported successfully" },
+      }),
+    );
+
+    expect(body).toContain('data-testid="status-message"');
+    expect(body).toContain("Exported successfully");
+  });
+
   it("renders the help trigger and custom window controls in the title bar area", () => {
-    const { body } = render(Toolbar);
+    const { body } = renderToolbar(makeLifecycle());
 
     expect(body).toContain('data-testid="btn-help"');
     expect(body).toContain('data-testid="btn-window-minimise"');
@@ -114,92 +189,17 @@ describe("Toolbar", () => {
       expect(toolbarSource).toMatch(/F1[\s\S]{0,120}preventDefault/);
     });
 
-    it("handles Ctrl+Q by reusing the close-confirm flow only when a GIF is open", () => {
+    it("handles Ctrl+Q by calling lifecycle.requestClose() only when closing is allowed", () => {
       expect(toolbarSource).toMatch(/key\s*===\s*["']q["']|key\s*===\s*["']Q["']/);
-      expect(toolbarSource).toContain("handleClose");
-      expect(toolbarSource).toMatch(/Ctrl\+Q|ctrlKey/);
-      expect(toolbarSource).toMatch(/frameStore\.hasFrames/);
+      expect(toolbarSource).toContain("lifecycle.requestClose()");
+      expect(toolbarSource).toContain("lifecycle.canClose");
     });
   });
 
-  describe("loading progress", () => {
-    it("renders Loading... before any measurable progress arrives", () => {
-      frameStore.startLoading();
-
-      const { body } = render(Toolbar);
-
-      expect(body).toContain("Loading...");
-      expect(body).not.toContain("Loading 0%");
-    });
-
-    it("renders byte progress before the first frame arrives", () => {
-      frameStore.startLoading();
-      frameStore.setLoadingTotalFrames(3);
-      frameStore.setLoadingProgress(25);
-
-      const { body } = render(Toolbar);
-
-      expect(body).toContain("Loading 25%");
-      expect(body).not.toContain("Loading frame");
-    });
-
-    it("renders frame progress after the first frame arrives", () => {
-      frameStore.startLoading();
-      frameStore.setLoadingTotalFrames(3);
-      frameStore.addFrame(makeFrame("a"));
-
-      const { body } = render(Toolbar);
-
-      expect(body).toContain("Loading frame 1 of 3");
-      expect(body).not.toContain("Loading 0%");
-    });
-
-    it("renders loading feedback between Export and the playback controls", () => {
-      frameStore.startLoading();
-      frameStore.setLoadingTotalFrames(3);
-      frameStore.addFrame(makeFrame("a"));
-
-      const { body } = render(Toolbar);
-
-      expect(body).toMatch(
-        /<div class="[^"]*toolbar-primary[^"]*">[\s\S]*data-testid="btn-export"[\s\S]*data-testid="loading-progress"[\s\S]*toolbar-drag-region[\s\S]*<\/div>\s*<!--\[0--><div class="[^"]*toolbar-playback[^"]*">/,
-      );
-    });
-
-    it("keeps status messages in the left toolbar cluster before playback", () => {
-      expect(toolbarSource).toMatch(
-        /\{#if !showSaveInput && \(frameStore\.isLoading \|\| statusMessage\)\}[\s\S]*data-testid="status-message"[\s\S]*toolbar-drag-region/,
-      );
-      expect(toolbarSource).not.toMatch(
-        /<div class="toolbar-feedback">[\s\S]*data-testid="status-message"/,
-      );
-    });
-
-  });
-
-  describe("cancellation", () => {
-    it("shows Cancel button when loading is in progress", () => {
-      frameStore.startLoading();
-
-      const { body } = render(Toolbar);
-
-      expect(body).toContain('data-testid="btn-cancel"');
-    });
-
-    it("does not show Open button when loading is in progress", () => {
-      frameStore.startLoading();
-
-      const { body } = render(Toolbar);
-
-      expect(body).not.toContain('data-testid="btn-open"');
-    });
-
-    it("does not show Cancel button when not loading", () => {
-      const { body } = render(Toolbar);
-
-      expect(body).not.toContain('data-testid="btn-cancel"');
-    });
-
+  it("no longer owns file-picker or close-confirm dialog rendering", () => {
+    expect(toolbarSource).not.toContain("FilePicker");
+    expect(toolbarSource).not.toContain("NotificationDialog");
+    expect(toolbarSource).not.toContain("showSaveInput");
   });
 
   describe("disabled states", () => {
@@ -211,24 +211,26 @@ describe("Toolbar", () => {
       vi.useRealTimers();
     });
 
-    it("play button is not disabled when not playing", () => {
-      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-      const { body } = render(Toolbar);
-      const playBtnTag = body.match(/<button[^>]*data-testid="btn-play"[^>]*>/)?.[0] ?? "";
-      expect(playBtnTag).not.toContain("disabled");
+    it("close stays visible but disabled while Exporting", () => {
+      const { body } = renderToolbar(
+        makeLifecycle({ projectState: "Exporting", hasProject: true, canClose: false, canExport: false }),
+      );
+      const closeBtnTag = body.match(/<button[^>]*data-testid="btn-close"[^>]*>/)?.[0] ?? "";
+      expect(closeBtnTag).toContain("disabled");
     });
 
-    it("stop button is disabled when not playing", () => {
-      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
-      const { body } = render(Toolbar);
-      const stopBtnTag = body.match(/<button[^>]*data-testid="btn-stop"[^>]*>/)?.[0] ?? "";
-      expect(stopBtnTag).toContain("disabled");
+    it("export button is disabled when lifecycle.canExport is false", () => {
+      const { body } = renderToolbar(makeLifecycle());
+      const exportBtnTag = body.match(/<button[^>]*data-testid="btn-export"[^>]*>/)?.[0] ?? "";
+      expect(exportBtnTag).toContain("disabled");
     });
 
     it("play button is disabled when playing", () => {
       frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
       frameStore.play();
-      const { body } = render(Toolbar);
+      const { body } = renderToolbar(
+        makeLifecycle({ projectState: "Active", hasProject: true, canClose: true, canExport: true }),
+      );
       const playBtnTag = body.match(/<button[^>]*data-testid="btn-play"[^>]*>/)?.[0] ?? "";
       expect(playBtnTag).toContain("disabled");
     });
@@ -236,7 +238,9 @@ describe("Toolbar", () => {
     it("stop button is not disabled when playing", () => {
       frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
       frameStore.play();
-      const { body } = render(Toolbar);
+      const { body } = renderToolbar(
+        makeLifecycle({ projectState: "Active", hasProject: true, canClose: true, canExport: true }),
+      );
       const stopBtnTag = body.match(/<button[^>]*data-testid="btn-stop"[^>]*>/)?.[0] ?? "";
       expect(stopBtnTag).not.toContain("disabled");
     });

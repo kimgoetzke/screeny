@@ -1,153 +1,26 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { getVersion } from "@tauri-apps/api/app";
-    import { invoke } from "@tauri-apps/api/core";
     import { openUrl } from "@tauri-apps/plugin-opener";
     import HelpMenu from "$lib/components/HelpMenu.svelte";
     import WindowControls from "$lib/components/WindowControls.svelte";
     import { frameStore } from "$lib/stores/frames.svelte";
-    import { createProjectLifecycle } from "$lib/projectLifecycle";
-    import type { DialogProvider } from "$lib/actions";
+    import type { ProjectLifecycle } from "$lib/projectLifecycle.svelte";
     import { helpKeyBindings } from "$lib/help-keybindings";
-    import FilePicker from "$lib/components/FilePicker.svelte";
-    import NotificationDialog from "$lib/components/NotificationDialog.svelte";
     import { isContextualKeyboardBinding } from "$lib/keyboardPolicy";
-    import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/tauriGifBackend";
 
-    let { onLoad }: { onLoad?: () => Promise<void> | void } = $props();
+    let { lifecycle }: { lifecycle: ProjectLifecycle } = $props();
 
-    let loading = $state(false);
-    let statusMessage = $state("");
-    let isE2e = $state(false);
-
-    let showFilePicker = $state(false);
-    let filePickerResolve: ((path: string | null) => void) | null = null;
-    let filePickerReject: ((error: unknown) => void) | null = null;
-
-    let showCloseConfirm = $state(false);
-
-    let showSaveInput = $state(false);
-    let savePath = $state("");
-    let saveResolve: ((path: string | null) => void) | null = null;
     let showHelpMenu = $state(false);
     let appVersion = $state("Loading…");
 
-    invoke<boolean>("e2e_check").then((result) => {
-        isE2e = result;
-    });
+    const toolbarFeedback = $derived(lifecycle.toolbarFeedback);
 
     onMount(() => {
         getVersion().then((version) => {
             appVersion = version;
         });
     });
-
-    const nativeDialog: DialogProvider = {
-        openFile: () =>
-            new Promise((resolve, reject) => {
-                filePickerResolve = resolve;
-                filePickerReject = reject;
-                showFilePicker = true;
-            }),
-
-        saveFile: async () => {
-            const suggested: string = await invoke("suggest_export_path");
-            savePath = suggested;
-            showSaveInput = true;
-            return new Promise((resolve) => {
-                saveResolve = resolve;
-            });
-        },
-    };
-
-    function handleFilePickerConfirm(path: string) {
-        showFilePicker = false;
-        filePickerResolve?.(path);
-        filePickerResolve = null;
-        filePickerReject = null;
-    }
-
-    function handleFilePickerCancel() {
-        showFilePicker = false;
-        filePickerResolve?.(null);
-        filePickerResolve = null;
-        filePickerReject = null;
-    }
-
-    // E2E: open uses the native file picker path; only save is bypassed
-    function getDialog(): DialogProvider {
-        return {
-            openFile: nativeDialog.openFile,
-            saveFile: isE2e
-                ? () => invoke("e2e_save_path")
-                : nativeDialog.saveFile,
-        };
-    }
-
-    const loadingProgressPercent = $derived.by(() => {
-        const totalFrames = frameStore.loadingTotalFrames;
-        if (
-            totalFrames !== null &&
-            totalFrames > 0 &&
-            frameStore.loadingFrameCount > 0
-        ) {
-            return Math.round(
-                (Math.min(frameStore.loadingFrameCount, totalFrames) /
-                    totalFrames) *
-                    100,
-            );
-        }
-
-        return frameStore.loadingProgress ?? 0;
-    });
-
-    const loadingLabel = $derived.by(() => {
-        const totalFrames = frameStore.loadingTotalFrames;
-        if (
-            totalFrames !== null &&
-            totalFrames > 0 &&
-            frameStore.loadingFrameCount > 0
-        ) {
-            return `Loading frame ${Math.min(
-                frameStore.loadingFrameCount,
-                totalFrames,
-            )} of ${totalFrames}`;
-        }
-
-        if (
-            frameStore.loadingProgress !== null &&
-            frameStore.loadingProgress > 0
-        ) {
-            return `Loading ${frameStore.loadingProgress}%`;
-        }
-
-        return "Loading...";
-    });
-
-    const { handleOpen, handleCancelLoad, handleExport } = createProjectLifecycle({
-        getDialog,
-        backend: tauriGifBackend,
-        onLoad: async () => { await onLoad?.(); },
-        onLoadingChange: (v) => { loading = v; },
-        onStatusChange: (v) => { statusMessage = v; },
-        cancelDecode: cancelCurrentGifDecode,
-    });
-
-    function confirmSave() {
-        showSaveInput = false;
-        saveResolve?.(savePath || null);
-        saveResolve = null;
-    }
-
-    function cancelSave() {
-        showSaveInput = false;
-        saveResolve?.(null);
-        saveResolve = null;
-    }
-
-    function handleClose() {
-        showCloseConfirm = true;
-    }
 
     function toggleHelpMenu() {
         showHelpMenu = !showHelpMenu;
@@ -175,19 +48,10 @@
             !event.metaKey &&
             (event.key === "q" || event.key === "Q")
         ) {
-            if (!frameStore.hasFrames) return;
+            if (!lifecycle.canClose) return;
             event.preventDefault();
-            handleClose();
+            lifecycle.requestClose();
         }
-    }
-
-    function confirmClose() {
-        frameStore.clear();
-        showCloseConfirm = false;
-    }
-
-    function cancelClose() {
-        showCloseConfirm = false;
     }
 
     async function handleOpenGitHub() {
@@ -203,23 +67,6 @@
     });
 </script>
 
-{#if showFilePicker}
-    <FilePicker
-        onConfirm={handleFilePickerConfirm}
-        onCancel={handleFilePickerCancel}
-    />
-{/if}
-
-{#if showCloseConfirm}
-    <NotificationDialog
-        message={"Any unsaved changes will be lost.\nDo you want to continue?"}
-        confirmLabel="Continue"
-        cancelLabel="Cancel"
-        onConfirm={confirmClose}
-        onCancel={cancelClose}
-    />
-{/if}
-
 {#if showHelpMenu}
     <HelpMenu
         version={appVersion}
@@ -231,46 +78,52 @@
 
 <div class="toolbar" data-testid="toolbar">
     <div class="toolbar-primary">
-        {#if frameStore.isLoading}
+        {#if lifecycle.projectState === "Loading"}
             <button
-                onclick={handleCancelLoad}
+                onclick={() => {
+                    void lifecycle.cancel();
+                }}
                 data-testid="btn-cancel">Cancel</button
             >
-        {:else if frameStore.hasFrames}
+        {:else if lifecycle.hasProject}
             <button
-                onclick={handleClose}
-                disabled={loading}
+                onclick={() => lifecycle.requestClose()}
+                disabled={!lifecycle.canClose}
                 data-testid="btn-close">Close</button
             >
         {:else}
             <button
-                onclick={handleOpen}
-                disabled={loading}
+                onclick={() => {
+                    void lifecycle.open();
+                }}
+                disabled={!lifecycle.canOpen}
                 data-testid="btn-open">Open</button
             >
         {/if}
         <button
-            onclick={handleExport}
-            disabled={loading || !frameStore.hasFrames}
+            onclick={() => {
+                void lifecycle.export();
+            }}
+            disabled={!lifecycle.canExport}
             data-testid="btn-export"
         >
             Export
         </button>
-        {#if !showSaveInput && (frameStore.isLoading || statusMessage)}
+        {#if toolbarFeedback.kind !== "none"}
             <div class="toolbar-inline-feedback">
-                {#if frameStore.isLoading}
+                {#if toolbarFeedback.kind === "loading"}
                     <div class="loading-progress" data-testid="loading-progress">
                         <div class="progress-track">
                             <div
                                 class="progress-fill"
-                                style="width: {loadingProgressPercent}%"
+                                style="width: {toolbarFeedback.percent}%"
                             ></div>
                         </div>
-                        <span class="progress-label">{loadingLabel}</span>
+                        <span class="progress-label">{toolbarFeedback.label}</span>
                     </div>
-                {:else if statusMessage}
+                {:else if toolbarFeedback.kind === "status"}
                     <span class="status" data-testid="status-message"
-                        >{statusMessage}</span
+                        >{toolbarFeedback.message}</span
                     >
                 {/if}
             </div>
@@ -322,27 +175,6 @@
     {/if}
 
     <div class="toolbar-feedback">
-        {#if showSaveInput}
-            <div class="save-input-row" data-testid="save-input-row">
-                <input
-                    type="text"
-                    bind:value={savePath}
-                    placeholder="~/export.gif"
-                    data-testid="save-path-input"
-                    onkeydown={(e) => {
-                        if (e.key === "Enter") confirmSave();
-                        if (e.key === "Escape") cancelSave();
-                    }}
-                />
-                <button onclick={confirmSave} data-testid="btn-save-confirm"
-                    >Save</button
-                >
-                <button onclick={cancelSave} data-testid="btn-save-cancel"
-                    >Cancel</button
-                >
-            </div>
-        {/if}
-
         <div class="toolbar-titlebar-actions">
             <button
                 class="icon-btn titlebar-btn"
@@ -415,6 +247,10 @@
     .toolbar-drag-region {
         min-width: 0;
         flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        user-select: none;
     }
 
     .toolbar-inline-feedback {
@@ -423,13 +259,6 @@
         min-width: 0;
         max-width: 420px;
         flex: 0 1 420px;
-    }
-
-    .toolbar-drag-region {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        user-select: none;
     }
 
     .toolbar-titlebar-actions {
@@ -478,35 +307,6 @@
         padding: 4px 8px;
         min-width: 0;
         white-space: nowrap;
-    }
-
-    .save-input-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        max-width: 520px;
-    }
-
-    .save-input-row input[type="text"] {
-        flex: 1;
-        padding: 6px 10px;
-        border: 1px solid var(--color-border);
-        border-radius: 4px;
-        background: var(--color-surface);
-        color: var(--color-text-brightest);
-        font-size: 14px;
-        min-width: 0;
-    }
-
-    .save-input-row input[type="text"]:focus {
-        outline: none;
-        border-color: var(--color-text-muted);
-    }
-
-    .save-input-row button {
-        padding: 6px 14px;
-        font-size: 14px;
     }
 
     .loading-progress {
