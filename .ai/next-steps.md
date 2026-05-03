@@ -48,49 +48,7 @@ Status: **In progress**
 - [x] Replace splash screen placeholders
 - [x] Improve GIF loading speed
 - [x] Fix bug where closing while loading breaks things
-- [ ] Review refactoring opportunities
-
-### Prompt planning
-
-##### Review refactoring opportunities
-
-Status: **In progress**
-
-Review this repository by spawning multiple sub-agents, with each agent responsible for a specific area or review dimension. Frontend and backend must be reviewed separately.
-
-The objective is to find junior dev mistakes, code smells, refactoring opportunities, unused or redundant dependencies, and any other issues that make the codebase harder to scale, maintain, or modify safely.
-
-Focus on improvements that:
-
-1.  increase scalability
-2.  improve maintainability
-3.  reduce the risk of regressions
-
-Also review file size and structure. Files over 500 lines should be examined for possible decomposition into smaller, well-organised modules.
-
-For every issue you report, include:
-
-- the problem
-- the reason it matters
-- the recommended fix
-
-Keep recommendations concrete, low-risk, and behaviour-preserving unless a behavioural change is explicitly warranted.
-
-If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
-
-Please check for warnings and address them following generally accepted best practice or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
-
----
-
-Please start the next phase but read /domain-model first because I expect this skill will help you to structure any changes in a way that makes it easy for you and anyone else to work with the outcome of your changes. Also note that the previous phases may have changed the project to a degree that this phase may not be redundant.
-
----
-
-Also, please write an E2E test for this feature.
-
-If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
-
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+- [x] Review refactoring opportunities
 
 ### Studio V0.2
 
@@ -101,6 +59,20 @@ Status: **Not started**
 - [ ] Add basic text overlays
 - [ ] Import frames from other GIFs
 - [ ] Configure export (algorithm, colours, more...)
+
+### Prompt planning
+
+#### Research how to get app into Nix packages
+
+
+
+---
+
+Also, please write an E2E test for this feature.
+
+If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
+
+You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ## Goals
 
