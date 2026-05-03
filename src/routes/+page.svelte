@@ -6,12 +6,12 @@
   import Canvas from "$lib/components/Canvas.svelte";
   import FilePicker from "$lib/components/FilePicker.svelte";
   import NotificationDialog from "$lib/components/NotificationDialog.svelte";
-  import { calculateInitialCanvasState, type InitialCanvasState } from "$lib/canvas-fit";
+  import { calculateInitialCanvasState, type InitialCanvasState } from "$lib/canvas/canvas-fit";
   import type { DialogProvider } from "$lib/actions";
-  import { createProjectLifecycle } from "$lib/projectLifecycle.svelte";
-  import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/tauriGifBackend";
-  import { getVisibleCanvasWidth } from "$lib/inspectorLayout";
-  import { isContextualKeyboardBinding } from "$lib/keyboardPolicy";
+  import { createProjectLifecycle } from "$lib/project-lifecycle/projectLifecycle.svelte";
+  import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/app-shell/tauriGifBackend";
+  import { getVisibleCanvasWidth } from "$lib/canvas/inspectorLayout";
+  import { isContextualKeyboardBinding } from "$lib/app-shell/keyboardPolicy";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import ZoomIndicator from "$lib/components/ZoomIndicator.svelte";
   import Timeline from "$lib/components/Timeline.svelte";

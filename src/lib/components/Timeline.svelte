@@ -1,7 +1,7 @@
 <script lang="ts">
   import { frameStore } from "$lib/stores/frames.svelte";
-  import { shouldHandleTimelineKeyboardBinding } from "$lib/keyboardPolicy";
-  import { renderFrameToCanvas } from "$lib/frameRenderer";
+  import { shouldHandleTimelineKeyboardBinding } from "$lib/app-shell/keyboardPolicy";
+  import { renderFrameToCanvas } from "$lib/canvas/frameRenderer";
   import type { Frame } from "$lib/types";
 
   function renderRgba(canvas: HTMLCanvasElement, frame: Frame) {

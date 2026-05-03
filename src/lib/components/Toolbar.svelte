@@ -5,9 +5,9 @@
     import HelpMenu from "$lib/components/HelpMenu.svelte";
     import WindowControls from "$lib/components/WindowControls.svelte";
     import { frameStore } from "$lib/stores/frames.svelte";
-    import type { ProjectLifecycle } from "$lib/projectLifecycle.svelte";
-    import { helpKeyBindings } from "$lib/help-keybindings";
-    import { isContextualKeyboardBinding } from "$lib/keyboardPolicy";
+    import type { ProjectLifecycle } from "$lib/project-lifecycle/projectLifecycle.svelte";
+    import { helpKeyBindings } from "$lib/app-shell/help-keybindings";
+    import { isContextualKeyboardBinding } from "$lib/app-shell/keyboardPolicy";
 
     let { lifecycle }: { lifecycle: ProjectLifecycle } = $props();
 

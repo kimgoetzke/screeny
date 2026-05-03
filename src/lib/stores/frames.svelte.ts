@@ -1,7 +1,7 @@
 import type { Frame } from "$lib/types";
-import * as sel from "$lib/frameSelection";
-import type { SelectionState } from "$lib/frameSelection";
-import * as edit from "$lib/frameEditing";
+import * as sel from "$lib/timeline/frameSelection";
+import type { SelectionState } from "$lib/timeline/frameSelection";
+import * as edit from "$lib/timeline/frameEditing";
 
 let frames = $state<Frame[]>([]);
 let selectedFrameId = $state<string | null>(null);

@@ -1,5 +1,5 @@
 import type { Frame } from "$lib/types";
-import type { SelectionState } from "$lib/frameSelection";
+import type { SelectionState } from "$lib/timeline/frameSelection";
 
 export interface FrameEditResult {
   frames: Frame[];

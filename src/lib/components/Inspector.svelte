@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { INSPECTOR_LAYOUT } from "$lib/inspectorLayout";
+  import { INSPECTOR_LAYOUT } from "$lib/canvas/inspectorLayout";
   import { frameStore } from "$lib/stores/frames.svelte";
 
   let { minimised = $bindable(false) }: { minimised?: boolean } = $props();

@@ -38,7 +38,7 @@ A documented keyboard command that is app-wide by default; text-editing controls
 
 ### Project Lifecycle
 
-The orchestration layer that wires together the DialogProvider, GifBackend, frameStore, and rendering synchronisation to execute the Open, Close, Cancel, and Export actions. Lives in `src/lib/projectLifecycle.svelte.ts`, separate from the Toolbar component so it can be tested independently.
+The orchestration layer that wires together the DialogProvider, GifBackend, frameStore, and rendering synchronisation to execute the Open, Close, Cancel, and Export actions. Lives in `src/lib/project-lifecycle/projectLifecycle.svelte.ts`, separate from the Toolbar component so it can be tested independently.
 
 ### Window Controls
 

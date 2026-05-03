@@ -5,7 +5,7 @@
  */
 import type { ActionResult, GifBackend } from "$lib/actions";
 import { decodeGifPathStreaming } from "$lib/actions";
-import { waitForNextPaint } from "$lib/paint";
+import { waitForNextPaint } from "$lib/canvas/paint";
 import { frameStore } from "$lib/stores/frames.svelte";
 
 export interface OpenProjectFromPathOptions {

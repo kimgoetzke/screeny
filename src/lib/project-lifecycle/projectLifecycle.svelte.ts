@@ -1,6 +1,6 @@
 import { decodeGifPathStreaming, exportGif } from "$lib/actions";
 import type { ActionResult, DialogProvider, GifBackend } from "$lib/actions";
-import { waitForNextPaint } from "$lib/paint";
+import { waitForNextPaint } from "$lib/canvas/paint";
 import { frameStore } from "$lib/stores/frames.svelte";
 
 export type ProjectState = "Empty" | "Loading" | "Active" | "Exporting";

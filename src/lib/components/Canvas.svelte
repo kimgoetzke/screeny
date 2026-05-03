@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { frameStore } from "$lib/stores/frames.svelte";
-  import { renderFrameToCanvas } from "$lib/frameRenderer";
+  import { renderFrameToCanvas } from "$lib/canvas/frameRenderer";
 
   let {
     showEmptyState = true,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { HelpKeyBinding } from "$lib/help-keybindings";
+  import type { HelpKeyBinding } from "$lib/app-shell/help-keybindings";
 
   interface Props {
     version: string;

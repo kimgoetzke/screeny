@@ -4,7 +4,7 @@ import { frameStore } from "$lib/stores/frames.svelte";
 import type { DialogProvider, GifBackend } from "$lib/actions";
 import type { Frame } from "$lib/types";
 
-vi.mock("$lib/paint", () => ({
+vi.mock("$lib/canvas/paint", () => ({
   waitForNextPaint: vi.fn(() => Promise.resolve()),
 }));
 

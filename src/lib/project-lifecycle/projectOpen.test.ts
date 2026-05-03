@@ -4,7 +4,7 @@ import { openProjectFromPath } from "./projectOpen";
 import { frameStore } from "$lib/stores/frames.svelte";
 import type { Frame } from "$lib/types";
 
-vi.mock("$lib/paint", () => ({
+vi.mock("$lib/canvas/paint", () => ({
   waitForNextPaint: vi.fn(() => Promise.resolve()),
 }));
 
@@ -61,7 +61,7 @@ describe("openProjectFromPath", () => {
   });
 
   it("waits for a paint boundary before decode starts and before loading clears", async () => {
-    const { waitForNextPaint } = await import("$lib/paint");
+    const { waitForNextPaint } = await import("$lib/canvas/paint");
     const paintCalls: string[] = [];
     vi.mocked(waitForNextPaint).mockImplementation(async () => {
       paintCalls.push("paint");

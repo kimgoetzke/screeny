@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import HelpMenu from "./HelpMenu.svelte";
 import helpMenuSource from "./HelpMenu.svelte?raw";
-import { helpKeyBindings } from "$lib/help-keybindings";
+import { helpKeyBindings } from "$lib/app-shell/help-keybindings";
 
 describe("HelpMenu", () => {
   it("renders the version, GitHub action, and key bindings table", () => {
