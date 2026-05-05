@@ -1,0 +1,9 @@
+{
+  version: 1,
+  block: [],
+  confirm: [],
+  downgrade: {
+    confirm: ["pnpm add *"],
+    allow: ["pnpm remove *"],
+  },
+}
