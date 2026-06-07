@@ -17,7 +17,7 @@ Status: **Completed**
 
 ## Studio V0.1
 
-Status: **In progress**
+Status: **Completed**
 
 - [x] Introduce a generic, re-usable notification dialog
 - [x] Change Open button to Close button while a GIF is opened
@@ -52,17 +52,17 @@ Status: **In progress**
 
 ### Studio V0.2
 
-Status: **Not started**
+Status: **In progress**
 
-- [ ] Consider adding CI pipeline that creates binary
-- [ ] Research how to get app into Nix packages
-- [ ] Add basic text overlays
+- [x] Add CI pipeline that creates binary
 - [ ] Import frames from other GIFs
 - [ ] Configure export (algorithm, colours, more...)
+- [ ] Optional: Research how to get app into Nix packages
+- [ ] Optional: Add basic text overlays
 
 ### Prompt planning
 
-#### Research how to get app into Nix packages
+#### Configure export
 
 
 

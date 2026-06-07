@@ -45,7 +45,7 @@ In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
 - [x] Update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
 - **Status:** Complete
 
-### Phase 4: Add draft release mode
+### Phase 4: Optional: Add draft release mode
 
 - [ ] Read the relevant skills for this phase before editing any file: `tdd`
 - [ ] Add a minimal `workflow_dispatch` input for release mode, defaulting to the current published behaviour while allowing an explicit draft path
@@ -55,7 +55,7 @@ In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
 - [ ] Update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
 - **Status:** Pending
 
-### Phase 5: Add release notes generation
+### Phase 5: Optional: Add release notes generation
 
 - [ ] Read the relevant skills for this phase before editing any file: `tdd`
 - [ ] Update `.github/workflows/linux-portable.yml` so each release uses GitHub-generated notes via `gh release create --generate-notes`, while preserving a short automation preface if still useful
