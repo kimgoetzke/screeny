@@ -1,0 +1,119 @@
+name: Build Linux AppImage Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-linux-appimage:
+    name: Build and publish AppImage
+    runs-on: ubuntu-22.04
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            xdg-utils
+
+      - name: Resolve release version
+        id: version
+        run: |
+          package_version=$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")
+          tauri_version=$(node -p "JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')).version")
+          product_name=$(node -p "JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')).productName")
+
+          if [ "$package_version" != "$tauri_version" ]; then
+            echo "Version mismatch: package.json=$package_version src-tauri/tauri.conf.json=$tauri_version" >&2
+            exit 1
+          fi
+
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$package_version" >> "$GITHUB_OUTPUT"
+          echo "name=$product_name v$package_version" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if release tag already exists
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          remote_tags=$(git ls-remote --tags origin | awk '{print $2}')
+          if printf '%s\n' "$remote_tags" | grep -Fx "refs/tags/$RELEASE_TAG" >/dev/null || \
+             printf '%s\n' "$remote_tags" | grep -Fx "refs/tags/$RELEASE_TAG^{}" >/dev/null; then
+            echo "Release tag $RELEASE_TAG already exists on origin" >&2
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "GitHub Release $RELEASE_TAG already exists" >&2
+            exit 1
+          fi
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build AppImage bundle
+        run: pnpm tauri build --bundles appimage
+
+      - name: Locate AppImage asset
+        id: asset
+        run: |
+          shopt -s nullglob
+          assets=(src-tauri/target/release/bundle/appimage/*.AppImage)
+
+          if [ "${#assets[@]}" -ne 1 ]; then
+            echo "Expected exactly one AppImage, found ${#assets[@]}" >&2
+            printf '%s\n' "${assets[@]}" >&2
+            exit 1
+          fi
+
+          echo "path=${assets[0]}" >> "$GITHUB_OUTPUT"
+          echo "filename=$(basename "${assets[0]}")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_NAME: ${{ steps.version.outputs.name }}
+          ASSET_PATH: ${{ steps.asset.outputs.path }}
+        run: |
+          gh release create "$RELEASE_TAG" "$ASSET_PATH" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_NAME" \
+            --notes "Automated Ubuntu 22.04 AppImage release for $RELEASE_NAME."

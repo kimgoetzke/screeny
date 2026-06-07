@@ -8,7 +8,7 @@ A cross-platform GIF recording and editing application built with Tauri, SvelteK
 ## IMPORTANT
 
 > [!IMPORTANT]
-> Unlike all of my other repositories, this is an agent-first experiment where I will try to stay as far as away from the code as I can. The goal is improve my agent-based workflows and learn more about agent-first software engineering. I have been building and using [github.com/kimgoetzke/coding-agent-configs](https://github.com/kimgoetzke/coding-agent-configs) partially for this reason.
+> Unlike all of my other repositories, this is an agent-first experiment where I will try to stay as far as away from the code as I can. The goal is test and improve my agent-based workflows and get a practical understanding of the many limitations of agent-first software development. Check out my agent configs at [github.com/kimgoetzke/coding-agent-configs](https://github.com/kimgoetzke/coding-agent-configs).
 
 ## Features
 
@@ -150,3 +150,13 @@ Environment variable overrides:
   `browser.execute(el => el.click(), element)`) because WebKitWebDriver rejects standard WebDriver clicks on certain
   toolbar buttons despite them being visible and enabled.
 - **wdio v9 / `@wdio/tauri-service`**: the official Tauri wdio service requires wdio v8 and is incompatible with v9. The harness manages `tauri-driver` lifecycle manually via `beforeSession`/`afterSession` hooks.
+
+## How to release
+
+### Generate portable Linux binary
+
+1. Bump `version` in `package.json` and `src-tauri/tauri.conf.json`.
+2. Push to GitHub.
+3. GitHub → **Actions** → **Build Linux AppImage Release** → **Run workflow**.
+   - If the version tag already exists, the workflow fails instead of overwriting the existing release. 
+4. Download the `.AppImage` from the new GitHub Release.
