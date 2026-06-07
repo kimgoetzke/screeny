@@ -54,6 +54,28 @@
   - `.ai/planning/2026-06-07 ubuntu22-action/progress.md` (updated)
   - `README.md` (updated again with a concise trigger section)
 
+### Phase 6: Publish AppImage, `.deb`, and `.rpm` in one release
+
+- **Status:** Complete
+- **Started:** 2026-06-07 12:27 BST
+- Actions taken:
+  - Recovered after terminal/agent interruption by reviewing `git status`, `git diff`, the workflow, README, and planning docs.
+  - Read the `tdd` skill before continuing implementation validation.
+  - Updated `.github/workflows/linux-portable.yml` from AppImage-only to multi-asset Linux release bundles.
+  - Kept `workflow_dispatch` only, repo-derived version/tag logic, and fail-if-release/tag-exists behaviour unchanged.
+  - Changed the build command to `pnpm tauri build --bundles appimage,deb,rpm`.
+  - Added Ubuntu `rpm` package installation for RPM tooling.
+  - Added strict asset discovery for exactly one `.AppImage`, one `.deb`, and one `.rpm` before upload and again after download.
+  - Updated `gh release create` to attach all three assets to the same versioned GitHub Release.
+  - Updated `README.md` to point to **Build Linux Release Bundles** and document downloading `.AppImage`, `.deb`, or `.rpm`.
+  - Repaired `plan.md` after a failed non-unique edit attempt left the plan partly updated.
+- Files created/modified:
+  - `.github/workflows/linux-portable.yml` (updated)
+  - `README.md` (updated)
+  - `.ai/planning/2026-06-07 ubuntu22-action/plan.md` (repaired and updated)
+  - `.ai/planning/2026-06-07 ubuntu22-action/findings.md` (updated)
+  - `.ai/planning/2026-06-07 ubuntu22-action/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -69,6 +91,12 @@
 | Frontend unit tests | `pnpm test:unit` | Existing tests still pass | `28` files, `353` tests passed | ✓ |
 | README concise trigger section | `rg -n 'Generate portable Linux binary|Build Linux AppImage Release|Download the `\.AppImage`' README.md` | New concise instructions are present | Confirmed | ✓ |
 | Frontend unit tests (post-doc update) | `pnpm test:unit` | Existing tests still pass after README change | `28` files, `353` tests passed | ✓ |
+| Tauri bundle CLI check | `pnpm tauri build --help \| rg -n -- '--bundles\|appimage\|deb\|rpm'` | CLI supports the planned bundle values | `possible values: deb, rpm, appimage` | ✓ |
+| YAML validation after multi-asset update | `pnpm dlx yaml valid .github/workflows/linux-portable.yml` | Workflow YAML parses successfully | `YAML_VALID` | ✓ |
+| Multi-asset workflow content check | `rg` assertions against `.github/workflows/linux-portable.yml` and `README.md` | Manual trigger, Ubuntu 22.04, multi-bundle build, all three asset patterns, release creation, and README instructions are present | Confirmed | ✓ |
+| Version derivation check after version bump | Node version extraction + compare `package.json` vs `src-tauri/tauri.conf.json` | Matching version source for release tag | `VERSION_MATCH:0.1.1` | ✓ |
+| Actionlint availability | `command -v actionlint` | Use `actionlint` if available | `ACTIONLINT_UNAVAILABLE` | ⚠ |
+| Frontend unit tests after multi-asset update | `pnpm test:unit` | Existing tests still pass | `28` files, `353` tests passed | ✓ |
 
 ---
 

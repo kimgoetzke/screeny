@@ -2,15 +2,15 @@
 
 ## Goal
 
-Add a manually triggered GitHub Actions workflow that builds an AppImage for this Tauri app on Ubuntu 22.04 and publishes it as a versioned GitHub Release asset.
+Add a manually triggered GitHub Actions workflow that builds Linux release bundles for this Tauri app on Ubuntu 22.04 and publishes them as versioned GitHub Release assets.
 
 ## User Prompt
 
-Propose a GitHub Action using Ubuntu 22.04 for this Tauri project, but avoid a workflow that runs blindly on pushes to `main`. The user has since clarified that the workflow should be manually triggered and should create/publish a GitHub Release showing the version number with a downloadable AppImage asset. I assume AppImage remains the primary artefact because the user asked for cross-distro portability.
+Propose a GitHub Action using Ubuntu 22.04 for this Tauri project, but avoid a workflow that runs blindly on pushes to `main`. The user clarified that the workflow should be manually triggered and should create/publish a GitHub Release showing the version number with a downloadable AppImage asset. The user later asked to skip draft mode and generated release notes for now and implement only the multi-asset release phase, so the workflow now targets AppImage plus `.deb` and `.rpm` in one release.
 
 ## Status
 
-In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
+In progress — Phases 1–3 and 6 complete; Phases 4–5 deferred by user
 
 ## Work
 
@@ -53,7 +53,7 @@ In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
 - [ ] Update `README.md` to explain how to choose draft mode and how a maintainer publishes the draft afterwards
 - [ ] Run relevant tests/verification for the draft-release behaviour and record any GitHub-hosted-only limits
 - [ ] Update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- **Status:** Deferred by user
 
 ### Phase 5: Optional: Add release notes generation
 
@@ -63,18 +63,18 @@ In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
 - [ ] Update `README.md` to explain that GitHub now generates the notes and where maintainers can review/edit them
 - [ ] Run relevant tests/verification for release-note generation and record any GitHub-hosted-only limits
 - [ ] Update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- **Status:** Deferred by user
 
 ### Phase 6: Publish AppImage, `.deb`, and `.rpm` in one release
 
-- [ ] Read the relevant skills for this phase before editing any file: `tdd`
-- [ ] Extend the workflow build step to `pnpm tauri build --bundles appimage,deb,rpm`
-- [ ] Update `.github/workflows/linux-portable.yml` so asset discovery and release publication attach exactly one AppImage, one `.deb`, and one `.rpm` to the same versioned GitHub Release
-- [ ] Keep the existing fail-if-release-exists behaviour and version-derivation logic unchanged while broadening the uploaded asset set
-- [ ] Update `README.md` to explain the full multi-asset release output and any packaging caveats
-- [ ] Run relevant tests/verification for the multi-asset release flow and record any GitHub-hosted-only limits
-- [ ] Update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
-- **Status:** Pending
+- [x] Read the relevant skills for this phase before editing/continuing implementation files: `tdd`
+- [x] Extend the workflow build step to `pnpm tauri build --bundles appimage,deb,rpm`
+- [x] Update `.github/workflows/linux-portable.yml` so asset discovery and release publication attach exactly one AppImage, one `.deb`, and one `.rpm` to the same versioned GitHub Release
+- [x] Keep the existing fail-if-release-exists behaviour and version-derivation logic unchanged while broadening the uploaded asset set
+- [x] Update `README.md` to explain the full multi-asset release output and any packaging caveats
+- [x] Run relevant tests/verification for the multi-asset release flow and record any GitHub-hosted-only limits
+- [x] Update `plan.md`, `findings.md`, and `progress.md` in line with the `planning` skill
+- **Status:** Complete
 
 ## Decisions Made
 
@@ -91,10 +91,13 @@ In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
 | Publish a GitHub Release rather than only a workflow-run artefact | Matches the user's clarified desired outcome |
 | Derive the release tag/name from the repo version | Matches user preference and keeps release metadata aligned with source-controlled versioning |
 | Fail if the target release/tag already exists | Prevents silent overwrites of an existing published release |
-| Attach `src-tauri/target/release/bundle/appimage/*.AppImage` to the GitHub Release | Direct output path for the portable Linux bundle |
-| Add draft mode as a manual workflow input rather than a separate workflow | Keeps one release path while adding an explicit draft option |
-| Use GitHub-generated release notes for the next enhancement phase | Reuses native release-note generation instead of inventing a custom templating layer |
+| Attach `src-tauri/target/release/bundle/appimage/*.AppImage` to the GitHub Release | Direct output path for the first portable Linux bundle |
+| Add draft mode as a manual workflow input rather than a separate workflow | Keeps one release path while adding an explicit draft option; deferred by user |
+| Use GitHub-generated release notes for the next enhancement phase | Reuses native release-note generation instead of inventing a custom templating layer; deferred by user |
 | Build `appimage`, `deb`, and `rpm` together for the final enhancement phase | Tauri already supports these bundle targets, so one release can carry all three Linux artefacts |
+| Implement Phase 6 ahead of Phases 4–5 | Matches the user's request to skip draft mode and generated release notes for now |
+| Install Ubuntu package `rpm` in CI | Provides RPM tooling for the new `.rpm` bundle path on Ubuntu 22.04 |
+| Upload and release all three Linux bundles as one workflow artefact group first | Keeps the two-job build/release split while publishing exactly one AppImage, one `.deb`, and one `.rpm` |
 
 ## Errors Encountered
 
@@ -104,6 +107,8 @@ In progress — Phase 3/6 complete; next: Phase 4: Add draft release mode
 | 2026-06-07 10:54 | `python3` command blocked by policy in this environment | 1 | Switched YAML validation to `pnpm dlx yaml valid` instead of Python-based parsing |
 | 2026-06-07 11:11 | `gh release create --help` blocked by command policy | 1 | Use a different `gh` help path rather than repeating the blocked command |
 | 2026-06-07 11:13 | Shell interpreted backticks in an `rg` verification command and tried to execute `.AppImage` | 1 | Re-run verification with single-quoted pattern instead of backticks |
+| 2026-06-07 12:35 | `plan.md` update failed because an edit block matched multiple identical `- **Status:** Pending` lines | 1 | Reviewed diff after crash recovery and rewrote `plan.md` with Phase 6 status repaired |
+| 2026-06-07 12:55 | `actionlint` was not installed locally | 1 | Used YAML validation, content assertions, CLI help checks, and unit tests instead |
 
 ## Notes
 

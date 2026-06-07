@@ -1,4 +1,4 @@
-name: Build Linux AppImage Release
+name: Build Linux Release Bundles
 
 on:
   workflow_dispatch:
@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 jobs:
-  build-linux-appimage:
-    name: Build AppImage
+  build-linux-bundles:
+    name: Build Linux bundles
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -56,7 +56,8 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            xdg-utils
+            xdg-utils \
+            rpm
 
       - name: Resolve release version
         id: version
@@ -76,64 +77,97 @@ jobs:
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build AppImage bundle
-        run: pnpm tauri build --bundles appimage
+      - name: Build Linux release bundles
+        run: pnpm tauri build --bundles appimage,deb,rpm
 
-      - name: Locate AppImage asset
-        id: asset
+      - name: Collect release assets
         run: |
           shopt -s nullglob
-          assets=(src-tauri/target/release/bundle/appimage/*.AppImage)
+          appimages=(src-tauri/target/release/bundle/appimage/*.AppImage)
+          debs=(src-tauri/target/release/bundle/deb/*.deb)
+          rpms=(src-tauri/target/release/bundle/rpm/*.rpm)
 
-          if [ "${#assets[@]}" -ne 1 ]; then
-            echo "Expected exactly one AppImage, found ${#assets[@]}" >&2
-            printf '%s\n' "${assets[@]}" >&2
+          if [ "${#appimages[@]}" -ne 1 ]; then
+            echo "Expected exactly one AppImage, found ${#appimages[@]}" >&2
+            printf '%s\n' "${appimages[@]}" >&2
             exit 1
           fi
 
-          echo "path=${assets[0]}" >> "$GITHUB_OUTPUT"
-          echo "filename=$(basename "${assets[0]}")" >> "$GITHUB_OUTPUT"
+          if [ "${#debs[@]}" -ne 1 ]; then
+            echo "Expected exactly one .deb, found ${#debs[@]}" >&2
+            printf '%s\n' "${debs[@]}" >&2
+            exit 1
+          fi
 
-      - name: Upload AppImage artifact
+          if [ "${#rpms[@]}" -ne 1 ]; then
+            echo "Expected exactly one .rpm, found ${#rpms[@]}" >&2
+            printf '%s\n' "${rpms[@]}" >&2
+            exit 1
+          fi
+
+          mkdir -p dist
+          cp "${appimages[0]}" dist/
+          cp "${debs[0]}" dist/
+          cp "${rpms[0]}" dist/
+
+      - name: Upload Linux release assets
         uses: actions/upload-artifact@v7
         with:
-          name: linux-appimage
-          path: ${{ steps.asset.outputs.path }}
+          name: linux-release-bundles
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
           if-no-files-found: error
 
-  release-linux-appimage:
+  release-linux-bundles:
     name: Publish GitHub Release
     runs-on: ubuntu-22.04
-    needs: build-linux-appimage
+    needs: build-linux-bundles
     permissions:
       contents: write
 
     steps:
-      - name: Download AppImage artifact
+      - name: Download Linux release assets
         uses: actions/download-artifact@v8
         with:
-          name: linux-appimage
+          name: linux-release-bundles
           path: dist
 
-      - name: Resolve downloaded AppImage
-        id: asset
+      - name: Resolve downloaded release assets
+        id: assets
         run: |
           shopt -s nullglob
-          assets=(dist/*.AppImage)
+          appimages=(dist/*.AppImage)
+          debs=(dist/*.deb)
+          rpms=(dist/*.rpm)
 
-          if [ "${#assets[@]}" -ne 1 ]; then
-            echo "Expected exactly one AppImage, found ${#assets[@]}" >&2
-            printf '%s\n' "${assets[@]}" >&2
+          if [ "${#appimages[@]}" -ne 1 ]; then
+            echo "Expected exactly one AppImage, found ${#appimages[@]}" >&2
+            printf '%s\n' "${appimages[@]}" >&2
             exit 1
           fi
 
-          echo "path=${assets[0]}" >> "$GITHUB_OUTPUT"
-          echo "filename=$(basename "${assets[0]}")" >> "$GITHUB_OUTPUT"
+          if [ "${#debs[@]}" -ne 1 ]; then
+            echo "Expected exactly one .deb, found ${#debs[@]}" >&2
+            printf '%s\n' "${debs[@]}" >&2
+            exit 1
+          fi
+
+          if [ "${#rpms[@]}" -ne 1 ]; then
+            echo "Expected exactly one .rpm, found ${#rpms[@]}" >&2
+            printf '%s\n' "${rpms[@]}" >&2
+            exit 1
+          fi
+
+          echo "appimage_path=${appimages[0]}" >> "$GITHUB_OUTPUT"
+          echo "deb_path=${debs[0]}" >> "$GITHUB_OUTPUT"
+          echo "rpm_path=${rpms[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Fail if release tag already exists
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.build-linux-appimage.outputs.tag }}
+          RELEASE_TAG: ${{ needs.build-linux-bundles.outputs.tag }}
         run: |
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release tag $RELEASE_TAG already exists on origin" >&2
@@ -148,12 +182,17 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.build-linux-appimage.outputs.tag }}
-          RELEASE_NAME: ${{ needs.build-linux-appimage.outputs.name }}
-          ASSET_PATH: ${{ steps.asset.outputs.path }}
+          RELEASE_TAG: ${{ needs.build-linux-bundles.outputs.tag }}
+          RELEASE_NAME: ${{ needs.build-linux-bundles.outputs.name }}
+          APPIMAGE_PATH: ${{ steps.assets.outputs.appimage_path }}
+          DEB_PATH: ${{ steps.assets.outputs.deb_path }}
+          RPM_PATH: ${{ steps.assets.outputs.rpm_path }}
         run: |
-          gh release create "$RELEASE_TAG" "$ASSET_PATH" \
+          gh release create "$RELEASE_TAG" \
+            "$APPIMAGE_PATH" \
+            "$DEB_PATH" \
+            "$RPM_PATH" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "$RELEASE_NAME" \
-            --notes "Automated Ubuntu 22.04 AppImage release for $RELEASE_NAME."
+            --notes "(Automated Linux release - .AppImage, .deb, .rpm - for $RELEASE_NAME.)"

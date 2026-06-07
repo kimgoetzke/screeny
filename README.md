@@ -153,10 +153,10 @@ Environment variable overrides:
 
 ## How to release
 
-### Generate portable Linux binary
+### Generate Linux release bundles
 
 1. Bump `version` in `package.json` and `src-tauri/tauri.conf.json`.
 2. Push to GitHub.
-3. GitHub → **Actions** → **Build Linux AppImage Release** → **Run workflow**.
-   - If the version tag already exists, the workflow fails instead of overwriting the existing release. 
-4. Download the `.AppImage` from the new GitHub Release.
+3. GitHub → **Actions** → **Build Linux Release Bundles** → **Run workflow**.
+   - If the version tag already exists, the workflow fails instead of overwriting the existing release.
+4. Download the `.AppImage`, `.deb`, or `.rpm` from the new GitHub Release.

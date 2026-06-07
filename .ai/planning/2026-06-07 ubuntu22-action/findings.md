@@ -18,6 +18,7 @@ Reasoning: likely implementation touches at least a new GitHub workflow file and
 - Extend the plan with a separate phase for draft release mode.
 - Extend the plan with a separate phase for release notes generation.
 - Extend the plan with a separate phase for publishing AppImage plus `.deb` and `.rpm` in the same release.
+- User asked to skip Phase 4 draft mode and Phase 5 generated release notes for now, and implement only Phase 6.
 
 ## Research Findings
 
@@ -53,6 +54,18 @@ Reasoning: likely implementation touches at least a new GitHub workflow file and
 - `gh help release create` confirmed the specific flags needed for the plan extensions: `--draft` for draft releases and `--generate-notes` for GitHub-generated release notes.
 - Reading `.github/workflows/linux-portable.yml` confirmed the current implementation already has a single release-publication step, so draft mode, generated release notes, and multi-asset upload can all be layered onto that step rather than split across separate workflows.
 - The extended plan now makes three concrete follow-on choices: add draft mode as a manual workflow input, use GitHub-generated release notes, and expand the build/upload step to include AppImage plus `.deb` and `.rpm` in one release.
+- Phase 6 implementation updated `.github/workflows/linux-portable.yml` to build `appimage,deb,rpm` together and publish exactly one `.AppImage`, one `.deb`, and one `.rpm` to the same versioned GitHub Release.
+- The workflow name is now `Build Linux Release Bundles`; job IDs changed from AppImage-specific names to Linux-bundle names.
+- The build job now installs the Ubuntu `rpm` package in addition to the previous Tauri Linux dependencies, so RPM tooling is available on `ubuntu-22.04`.
+- Asset validation now runs twice: once before upload from the build job and once after download in the release job. Both checks require exactly one file per extension.
+- Release publication still derives tag/title from matching versions in `package.json` and `src-tauri/tauri.conf.json`, and still fails if the release tag or GitHub Release already exists.
+- README release instructions now point to **Build Linux Release Bundles** and tell maintainers to download `.AppImage`, `.deb`, or `.rpm` from the release.
+- `pnpm tauri build --help` confirmed the CLI accepts `deb`, `rpm`, and `appimage` bundle values.
+- `pnpm dlx yaml valid .github/workflows/linux-portable.yml` passed after the multi-asset update.
+- `pnpm test:unit` passed after the multi-asset update: 28 files, 353 tests.
+- `actionlint` was unavailable locally, so workflow validation used YAML parsing, targeted content assertions, CLI help checks, and unit tests.
+- End-to-end proof of the GitHub Release asset upload remains GitHub-hosted-only because it requires a workflow run with repository write permissions.
+- During crash recovery, `git diff` showed workflow and README edits were present, while `plan.md` had only a partial accidental change from a failed non-unique edit. `plan.md` was rewritten to repair status and Phase 6 completion.
 
 ## Resources
 
@@ -67,6 +80,7 @@ Reasoning: likely implementation touches at least a new GitHub workflow file and
 - `.github/` (no workflow files present)
 - Tauri AppImage docs: https://v2.tauri.app/distribute/appimage/
 - Tauri prerequisites docs: https://v2.tauri.app/start/prerequisites/
+- Tauri RPM docs: https://v2.tauri.app/distribute/rpm/
 - GitHub issue re `/usr/bin/xdg-open` on NixOS: https://github.com/tauri-apps/tauri/issues/15430
 
 ## Visual/Browser Findings
@@ -74,6 +88,7 @@ Reasoning: likely implementation touches at least a new GitHub workflow file and
 - Tauri docs indicate AppImage is the portable Linux distribution format.
 - Tauri docs indicate building on Ubuntu 22.04 or Debian 12 improves Linux compatibility because of glibc/WebKitGTK baselines.
 - Tauri prerequisites docs list Ubuntu/Debian packages including `libwebkit2gtk-4.1-dev`.
+- Tauri RPM docs confirm RPM packages are built into `src-tauri/target/release/bundle/rpm` and recommend Ubuntu 22.04 or Debian 12 as old-enough Linux baselines.
 
 ---
 
