@@ -121,6 +121,63 @@ describe("Studio — export GIF", () => {
     await loadFixture("test.gif", 3);
   });
 
+  it("opens the export save input centred in the application window", async () => {
+    await browser.execute(() => {
+      window.localStorage.setItem("screeny.e2e.showSaveInput", "1");
+    });
+
+    try {
+      await jsClick('[data-testid="btn-export"]');
+
+      const dialog = await $('[data-testid="save-input-dialog"]');
+      await dialog.waitForExist({ timeout: 5_000 });
+
+      const result = await browser.execute(() => {
+        const app = document.querySelector('[data-testid="app"]');
+        const toolbar = document.querySelector('[data-testid="toolbar"]');
+        const saveInput = document.querySelector('[data-testid="save-input-dialog"]');
+
+        if (
+          !(app instanceof HTMLElement) ||
+          !(toolbar instanceof HTMLElement) ||
+          !(saveInput instanceof HTMLElement)
+        ) {
+          return null;
+        }
+
+        const appRect = app.getBoundingClientRect();
+        const toolbarRect = toolbar.getBoundingClientRect();
+        const saveInputRect = saveInput.getBoundingClientRect();
+        const appCentreX = appRect.left + appRect.width / 2;
+        const appCentreY = appRect.top + appRect.height / 2;
+        const saveInputCentreX = saveInputRect.left + saveInputRect.width / 2;
+        const saveInputCentreY = saveInputRect.top + saveInputRect.height / 2;
+
+        return {
+          deltaX: saveInputCentreX - appCentreX,
+          deltaY: saveInputCentreY - appCentreY,
+          saveInputTop: saveInputRect.top,
+          toolbarBottom: toolbarRect.bottom,
+        };
+      });
+
+      expect(result).not.toBeNull();
+      if (!result) return;
+
+      expect(Math.abs(result.deltaX)).toBeLessThanOrEqual(1);
+      expect(Math.abs(result.deltaY)).toBeLessThanOrEqual(1);
+      expect(result.saveInputTop).toBeGreaterThanOrEqual(result.toolbarBottom);
+    } finally {
+      const cancel = await $('[data-testid="btn-save-cancel"]');
+      if (await cancel.isExisting()) {
+        await jsClick('[data-testid="btn-save-cancel"]');
+      }
+      await browser.execute(() => {
+        window.localStorage.removeItem("screeny.e2e.showSaveInput");
+      });
+    }
+  });
+
   it("should export successfully", async () => {
     await jsClick('[data-testid="btn-export"]');
 

@@ -37,6 +37,7 @@
   const EXPANDED_DROP_OVERLAY_RIGHT_MARGIN = 265;
   const MINIMISED_DROP_OVERLAY_RIGHT_MARGIN = 55;
   const VIEWER_STATE_EPSILON = 0.0001;
+  const E2E_SHOW_SAVE_INPUT_KEY = "screeny.e2e.showSaveInput";
   const DEFAULT_CANVAS_STATE: InitialCanvasState = {
     baseScale: 1,
     panX: 0,
@@ -68,7 +69,8 @@
         showFilePicker = true;
       }),
     saveFile: async () => {
-      if (isE2e) {
+      const showSaveInputInE2e = window.localStorage.getItem(E2E_SHOW_SAVE_INPUT_KEY) === "1";
+      if (isE2e && !showSaveInputInE2e) {
         return invoke("e2e_save_path");
       }
 
@@ -318,7 +320,13 @@
   <Toolbar lifecycle={lifecycle} />
 
   {#if showSaveInput}
-    <div class="toolbar-save-overlay">
+    <div
+      class="save-input-dialog"
+      data-testid="save-input-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Export GIF"
+    >
       <div class="save-input-row" data-testid="save-input-row">
         <input
           type="text"
@@ -334,6 +342,12 @@
         <button onclick={cancelSave} data-testid="btn-save-cancel">Cancel</button>
       </div>
     </div>
+    <div
+      class="save-input-backdrop"
+      role="presentation"
+      onpointerdown={cancelSave}
+      data-testid="save-input-backdrop"
+    ></div>
   {/if}
 
   <div class="canvas-area" bind:this={canvasArea}>
@@ -390,12 +404,20 @@
     height: 100vh;
   }
 
-  .toolbar-save-overlay {
-    position: absolute;
-    top: 10px;
-    right: 144px;
-    z-index: 40;
-    width: min(520px, calc(100vw - 320px));
+  .save-input-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+  }
+
+  .save-input-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    width: min(560px, 90vw);
   }
 
   .save-input-row {
@@ -403,7 +425,7 @@
     align-items: center;
     gap: 8px;
     width: 100%;
-    padding: 6px;
+    padding: 10px 12px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     background: var(--color-bg-elevated);
