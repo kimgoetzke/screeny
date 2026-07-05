@@ -26,7 +26,7 @@ The action of encoding the current Project's Frames to a GIF file on disk. Does 
 
 ### Import
 
-The action of adding frames from a GIF or static image into the current Active Project. Imported frames are inserted after the current Selection, centred into the current Project dimensions, and keep the existing Project bounds as the export/crop boundary.
+The action of adding frames from a GIF or static image into the current Active Project. Imported frames are inserted after the current Selection, centred into the current Project dimensions, and keep the existing Project bounds as the export/crop boundary. Transitions the Project through Importing and back to Active.
 
 ### Playback
 
@@ -50,7 +50,7 @@ The OS-level window management buttons (Minimise, Maximise, Close window). Disti
 
 ### Cancel
 
-The action of aborting an in-progress Open. Returns the Project to the Empty state without loading any frames. Only available while the Project is in the Loading state.
+The action of aborting an in-progress Open or Import. Cancelling Open returns the Project to the Empty state without loading any frames. Cancelling Import preserves the Active Project and discards buffered imported frames. Only available while the Project is in the Loading or Importing state.
 
 ### Close
 
@@ -66,11 +66,12 @@ The user's current focus within the Timeline. Consists of an **anchor** frame (t
 
 ### Project State
 
-The four lifecycle states a Project moves through:
+The five lifecycle states a Project moves through:
 
 - **Empty** — no frames loaded; the user sees an Open button and nothing else to act on.
-- **Loading** — frames are streaming in from the Rust decoder; the user sees progress feedback and a Cancel control.
+- **Loading** — frames are streaming in from the Rust decoder for Open; the user sees progress feedback and a Cancel control.
 - **Active** — one or more frames are loaded and ready to edit; the full editing surface is available.
+- **Importing** — frames are decoding into a buffer for Import; the Active Project remains visible and unchanged until Import commits, and the user sees progress feedback and a Cancel control.
 - **Exporting** — frames are being encoded and written to disk by the Rust encoder; controls are temporarily locked.
 
 ## Flagged ambiguities
