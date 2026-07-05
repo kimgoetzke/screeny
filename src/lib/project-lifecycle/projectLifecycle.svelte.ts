@@ -1,16 +1,18 @@
 import { exportGif } from "$lib/actions";
 import type { ActionResult, DialogProvider, GifBackend } from "$lib/actions";
 import { waitForNextPaint } from "$lib/canvas/paint";
+import { createDecodeFeedback } from "$lib/project-lifecycle/decodeFeedback";
+import type {
+  DecodeFeedback,
+  DecodeFeedbackVerb,
+  ToolbarFeedback,
+} from "$lib/project-lifecycle/decodeFeedback";
 import { decodeWithLifecycle } from "$lib/project-lifecycle/decodeLifecycle";
-import { aspectRatiosDiffer, normaliseFrameToDimensions } from "$lib/import/importFrames";
+export type { ToolbarFeedback } from "$lib/project-lifecycle/decodeFeedback";
+import { createImportTransaction } from "$lib/project-lifecycle/importTransaction";
 import { frameStore } from "$lib/stores/frames.svelte";
 
 export type ProjectState = "Empty" | "Loading" | "Importing" | "Active" | "Exporting";
-
-export type ToolbarFeedback =
-  | { kind: "none" }
-  | { kind: "loading"; label: string; percent: number }
-  | { kind: "status"; message: string };
 
 export interface ProjectLifecycleOptions {
   dialog: DialogProvider;
@@ -48,42 +50,6 @@ export interface ProjectLifecycle {
   export(): Promise<void>;
 }
 
-interface DecodeFeedbackState {
-  verb: "Loading" | "Importing";
-  progress: number | null;
-  frameCount: number;
-  totalFrames: number | null;
-}
-
-function loadingPlaceholder(verb: DecodeFeedbackState["verb"]): string {
-  return verb === "Importing" ? "Importing…" : "Loading...";
-}
-
-function decodeToolbarFeedback(feedback: DecodeFeedbackState): ToolbarFeedback {
-  if (feedback.totalFrames !== null && feedback.totalFrames > 0 && feedback.frameCount > 0) {
-    const clampedLoadedFrames = Math.min(feedback.frameCount, feedback.totalFrames);
-    return {
-      kind: "loading",
-      label: `${feedback.verb} frame ${clampedLoadedFrames} of ${feedback.totalFrames}`,
-      percent: Math.round((clampedLoadedFrames / feedback.totalFrames) * 100),
-    };
-  }
-
-  if (feedback.progress !== null && feedback.progress > 0) {
-    return {
-      kind: "loading",
-      label: `${feedback.verb} ${feedback.progress}%`,
-      percent: feedback.progress,
-    };
-  }
-
-  return {
-    kind: "loading",
-    label: loadingPlaceholder(feedback.verb),
-    percent: feedback.progress ?? 0,
-  };
-}
-
 function resultToStatus(result: ActionResult): string {
   return result.error ?? result.message ?? "";
 }
@@ -97,7 +63,7 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
   let closeRequested = $state(false);
   let statusMessage = $state("");
   let aspectRatioWarning = $state<string | null>(null);
-  let decodeFeedback = $state<DecodeFeedbackState | null>(null);
+  let decodeFeedback = $state<DecodeFeedback | null>(null);
   let decodeRequestId = 0;
 
   function setStatus(message: string) {
@@ -124,8 +90,8 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
     projectState = frameStore.hasFrames ? "Active" : "Empty";
   }
 
-  function startDecodeFeedback(verb: DecodeFeedbackState["verb"]): void {
-    decodeFeedback = { verb, progress: 0, frameCount: 0, totalFrames: null };
+  function startDecodeFeedback(verb: DecodeFeedbackVerb): void {
+    decodeFeedback = createDecodeFeedback(verb);
   }
 
   function clearDecodeFeedback(): void {
@@ -134,22 +100,24 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
 
   function setDecodeTotalFrames(totalFrames: number): void {
     if (!decodeFeedback) return;
-    decodeFeedback.totalFrames = totalFrames;
-    decodeFeedback.frameCount = 0;
+    decodeFeedback = decodeFeedback.started({ totalBytes: 0, totalFrames });
   }
 
   function incrementDecodeFrameCount(): void {
     if (!decodeFeedback) return;
-    decodeFeedback.frameCount += 1;
+    decodeFeedback = decodeFeedback.frameDecoded();
   }
 
   function setDecodeProgress(progress: number): void {
     if (!decodeFeedback) return;
-    decodeFeedback.progress = progress;
+    decodeFeedback = decodeFeedback.progressed(progress);
   }
 
   function isCurrentDecode(decodeId: number, loadSessionId?: number): boolean {
-    return decodeRequestId === decodeId && (loadSessionId === undefined || frameStore.loadSessionId === loadSessionId);
+    return (
+      decodeRequestId === decodeId &&
+      (loadSessionId === undefined || frameStore.loadSessionId === loadSessionId)
+    );
   }
 
   async function openFromPath(path: string): Promise<ProjectLifecycleOpenResult> {
@@ -270,11 +238,7 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
 
     clearCloseRequest();
     clearAspectRatioWarning();
-    const insertionFrameId = frameStore.selectedFrame.id;
-    const targetDimensions = {
-      width: frameStore.selectedFrame.width,
-      height: frameStore.selectedFrame.height,
-    };
+    const importTransaction = createImportTransaction(frameStore.selectedFrame);
 
     let path: string | null;
     try {
@@ -294,7 +258,6 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
     }
 
     const decodeId = ++decodeRequestId;
-    const importedFrames: typeof frameStore.frames = [];
     clearStatus();
     projectState = "Importing";
     startDecodeFeedback("Importing");
@@ -309,7 +272,7 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
           setDecodeTotalFrames(start.totalFrames);
         },
         onFrame: (frame) => {
-          importedFrames.push(frame);
+          importTransaction.addFrame(frame);
           incrementDecodeFrameCount();
         },
         onProgress: setDecodeProgress,
@@ -325,15 +288,12 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
         return;
       }
 
-      if (importedFrames.some((frame) => aspectRatiosDiffer(frame, targetDimensions))) {
-        aspectRatioWarning = "Imported file has a different aspect ratio and was centred within the current project bounds.";
+      const importResult = importTransaction.commit();
+      if (importResult.hasAspectRatioMismatch) {
+        aspectRatioWarning =
+          "Imported file has a different aspect ratio and was centred within the current project bounds.";
       }
-
-      const normalisedFrames = importedFrames.map((frame) =>
-        normaliseFrameToDimensions(frame, targetDimensions),
-      );
-      frameStore.insertFramesAfterFrameId(insertionFrameId, normalisedFrames);
-      setStatus(importedFrameStatus(normalisedFrames.length));
+      setStatus(importedFrameStatus(importResult.importedFrameCount));
     } finally {
       if (isCurrentDecode(decodeId)) {
         clearDecodeFeedback();
@@ -378,7 +338,7 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
 
     get toolbarFeedback(): ToolbarFeedback {
       if (decodeFeedback) {
-        return decodeToolbarFeedback(decodeFeedback);
+        return decodeFeedback.toToolbarFeedback();
       }
 
       if (statusMessage) {
