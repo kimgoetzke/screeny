@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 /// Returns true when the app was launched with `SCREENY_E2E=1`.
 pub fn is_e2e_mode() -> bool {
-    env::var("SCREENY_E2E").map_or(false, |v| v == "1")
+    env::var("SCREENY_E2E").is_ok_and(|v| v == "1")
 }
 
 /// Return the absolute path to the E2E fixture GIF.
@@ -42,8 +42,7 @@ fn export_path() -> Result<String, String> {
     }
 
     let dir = env::temp_dir().join("screeny-e2e");
-    std::fs::create_dir_all(&dir)
-        .map_err(|e| format!("Failed to create E2E export dir: {e}"))?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create E2E export dir: {e}"))?;
     Ok(dir.join("export.gif").to_string_lossy().to_string())
 }
 
@@ -77,7 +76,7 @@ pub fn e2e_save_path() -> Result<Option<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{ENV_LOCK, EnvGuard};
+    use crate::testing::{EnvGuard, ENV_LOCK};
 
     #[test]
     fn test_e2e_check_off_by_default() {

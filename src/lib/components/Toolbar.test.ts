@@ -37,16 +37,20 @@ type LifecycleStub = {
     | { kind: "none" }
     | { kind: "loading"; label: string; percent: number }
     | { kind: "status"; message: string };
+  aspectRatioWarning: string | null;
   canOpen: boolean;
   canCancel: boolean;
   canClose: boolean;
   canExport: boolean;
+  canImport: boolean;
   open: () => Promise<void>;
   openFromPath: (path: string) => Promise<{ message?: string; error?: string }>;
   cancel: () => Promise<void>;
   requestClose: () => void;
   confirmClose: () => void;
   dismissClose: () => void;
+  dismissAspectRatioWarning: () => void;
+  importFrames: () => Promise<void>;
   export: () => Promise<void>;
 };
 
@@ -56,16 +60,20 @@ function makeLifecycle(overrides: Partial<LifecycleStub> = {}): LifecycleStub {
     hasProject: false,
     closeRequested: false,
     toolbarFeedback: { kind: "none" },
+    aspectRatioWarning: null,
     canOpen: true,
     canCancel: false,
     canClose: false,
     canExport: false,
+    canImport: false,
     open: vi.fn(async () => {}),
     openFromPath: vi.fn(async () => ({})),
     cancel: vi.fn(async () => {}),
     requestClose: vi.fn(),
     confirmClose: vi.fn(),
     dismissClose: vi.fn(),
+    dismissAspectRatioWarning: vi.fn(),
+    importFrames: vi.fn(async () => {}),
     export: vi.fn(async () => {}),
     ...overrides,
   };
@@ -110,6 +118,30 @@ describe("Toolbar", () => {
       expect(body).toContain('data-testid="btn-cancel"');
       expect(body).not.toContain('data-testid="btn-open"');
     });
+  });
+
+  it("shows Import immediately left of Export only when a Project is Active", () => {
+    const active = renderToolbar(
+      makeLifecycle({
+        projectState: "Active",
+        hasProject: true,
+        canClose: true,
+        canImport: true,
+        canExport: true,
+      }),
+    ).body;
+    const empty = renderToolbar(makeLifecycle()).body;
+    const loading = renderToolbar(
+      makeLifecycle({
+        projectState: "Loading",
+        canCancel: true,
+        toolbarFeedback: { kind: "loading", label: "Loading...", percent: 0 },
+      }),
+    ).body;
+
+    expect(active).toMatch(/data-testid="btn-import"[\s\S]*data-testid="btn-export"/);
+    expect(empty).not.toContain('data-testid="btn-import"');
+    expect(loading).not.toContain('data-testid="btn-import"');
   });
 
   it("play and stop buttons are not shown when there are no frames", () => {

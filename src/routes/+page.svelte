@@ -7,7 +7,7 @@
   import FilePicker from "$lib/components/FilePicker.svelte";
   import NotificationDialog from "$lib/components/NotificationDialog.svelte";
   import { calculateInitialCanvasState, type InitialCanvasState } from "$lib/canvas/canvas-fit";
-  import type { DialogProvider } from "$lib/actions";
+  import type { DialogProvider, FileDialogOptions } from "$lib/actions";
   import { createProjectLifecycle } from "$lib/project-lifecycle/projectLifecycle.svelte";
   import { cancelCurrentGifDecode, tauriGifBackend } from "$lib/app-shell/tauriGifBackend";
   import { getVisibleCanvasWidth } from "$lib/canvas/inspectorLayout";
@@ -20,10 +20,12 @@
 
   let dragging = $state(false);
   let dropError = $state("");
+  let activeDropWarning = $state("");
   let canvasArea: HTMLDivElement | undefined = $state();
   let isE2e = $state(false);
 
   let showFilePicker = $state(false);
+  let filePickerOptions = $state<FileDialogOptions>({});
   let filePickerResolve: ((path: string | null) => void) | null = null;
 
   let showSaveInput = $state(false);
@@ -59,8 +61,9 @@
   });
 
   const dialog: DialogProvider = {
-    openFile: () =>
+    openFile: (options = {}) =>
       new Promise((resolve) => {
+        filePickerOptions = options;
         filePickerResolve = resolve;
         showFilePicker = true;
       }),
@@ -259,6 +262,16 @@
 
   async function handleDrop(path: string) {
     dropError = "";
+
+    if (lifecycle.hasProject) {
+      activeDropWarning = "Close the current image or use Import to add frames.";
+      return;
+    }
+
+    await openDroppedGif(path);
+  }
+
+  async function openDroppedGif(path: string) {
     const result = await lifecycle.openFromPath(path);
 
     if (result.error) {
@@ -269,6 +282,7 @@
 
 {#if showFilePicker}
   <FilePicker
+    {...filePickerOptions}
     onConfirm={handleFilePickerConfirm}
     onCancel={handleFilePickerCancel}
   />
@@ -281,6 +295,22 @@
     cancelLabel="Cancel"
     onConfirm={() => lifecycle.confirmClose()}
     onCancel={() => lifecycle.dismissClose()}
+  />
+{/if}
+
+{#if lifecycle.aspectRatioWarning}
+  <NotificationDialog
+    message={lifecycle.aspectRatioWarning}
+    confirmLabel="OK"
+    onConfirm={() => lifecycle.dismissAspectRatioWarning()}
+  />
+{/if}
+
+{#if activeDropWarning}
+  <NotificationDialog
+    message={activeDropWarning}
+    confirmLabel="OK"
+    onConfirm={() => (activeDropWarning = "")}
   />
 {/if}
 

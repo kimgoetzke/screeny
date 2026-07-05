@@ -14,6 +14,7 @@ export const config = {
     resolve(repoRoot, "tests/e2e/specs/splashscreen.ts"),
     resolve(repoRoot, "tests/e2e/specs/app-launch.ts"),
     resolve(repoRoot, "tests/e2e/specs/open-close.ts"),
+    resolve(repoRoot, "tests/e2e/specs/import.ts"),
     resolve(repoRoot, "tests/e2e/specs/playback.ts"),
     resolve(repoRoot, "tests/e2e/specs/frame-editing.ts"),
     resolve(repoRoot, "tests/e2e/specs/keyboard.ts"),

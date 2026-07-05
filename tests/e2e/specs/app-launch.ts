@@ -75,7 +75,7 @@ describe("Studio — app launch", () => {
 
     await expect(helpMenu).toBeDisplayed();
     await expect(await $('[data-testid="help-version"]')).toHaveText(
-      expect.stringContaining("0.1.0"),
+      expect.stringMatching(/^\d+\.\d+\.\d+/),
     );
     await expect(await $('[data-testid="help-github-button"]')).toBeDisplayed();
     await expect(await $('[data-testid="help-keybindings-table"]')).toBeDisplayed();

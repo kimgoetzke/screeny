@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { GifBackend } from "./actions";
+import type { GifBackend } from "$lib/actions";
 import { openProjectFromPath } from "./projectOpen";
 import { frameStore } from "$lib/stores/frames.svelte";
 import type { Frame } from "$lib/types";

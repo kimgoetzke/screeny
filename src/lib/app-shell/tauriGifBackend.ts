@@ -28,6 +28,7 @@ export const tauriGifBackend: GifBackend = {
       decodeId: currentDecodeId,
     });
   },
+  decodeImage: (path) => invoke("decode_image_frame", { path }),
   export: (frames, path) => invoke<void>("export_gif", { frames, path }),
 };
 

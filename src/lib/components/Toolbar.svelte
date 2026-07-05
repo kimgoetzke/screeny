@@ -100,6 +100,16 @@
                 data-testid="btn-open">Open</button
             >
         {/if}
+        {#if lifecycle.canImport}
+            <button
+                onclick={() => {
+                    void lifecycle.importFrames();
+                }}
+                data-testid="btn-import"
+            >
+                Import
+            </button>
+        {/if}
         <button
             onclick={() => {
                 void lifecycle.export();

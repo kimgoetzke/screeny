@@ -77,10 +77,14 @@ describe("Studio — keyboard navigation", () => {
       }
     }
 
+    expect(visited.has("btn-import")).toBe(true);
     expect(visited.has("btn-export")).toBe(true);
     expect(Array.from(visited).some((testId) => testId.startsWith("frame-thumb-"))).toBe(false);
 
     await focusElement('[data-testid="btn-export"]');
+    await browser.keys(["Shift", "Tab"]);
+    await browser.pause(100);
+    expect(await getActiveTestId()).toBe("btn-import");
     await browser.keys(["Shift", "Tab"]);
     await browser.pause(100);
     expect(await getActiveTestId()).toBe("btn-close");

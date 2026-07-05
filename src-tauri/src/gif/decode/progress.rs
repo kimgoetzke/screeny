@@ -1,6 +1,6 @@
 use std::io::Read;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 /// Wraps a [`Read`] implementor and tracks total bytes consumed via a shared atomic counter.
 ///
@@ -16,7 +16,13 @@ impl<R: Read> ProgressReader<R> {
     /// The counter is updated on every `read()` call.
     pub(super) fn new(inner: R, _total_bytes: u64) -> (Self, Arc<AtomicU64>) {
         let bytes_read = Arc::new(AtomicU64::new(0));
-        (Self { inner, bytes_read: bytes_read.clone() }, bytes_read)
+        (
+            Self {
+                inner,
+                bytes_read: bytes_read.clone(),
+            },
+            bytes_read,
+        )
     }
 }
 
@@ -38,10 +44,10 @@ mod tests {
         let (mut reader, counter) = ProgressReader::new(std::io::Cursor::new(data), 1024);
 
         let mut buf = vec![0u8; 512];
-        reader.read(&mut buf).unwrap();
+        reader.read_exact(&mut buf).unwrap();
         assert_eq!(counter.load(Ordering::Relaxed), 512);
 
-        reader.read(&mut buf).unwrap();
+        reader.read_exact(&mut buf).unwrap();
         assert_eq!(counter.load(Ordering::Relaxed), 1024);
     }
 }

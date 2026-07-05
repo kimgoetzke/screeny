@@ -33,6 +33,22 @@ function applyEdit(result: edit.FrameEditResult): void {
   applySelection(result.selection);
 }
 
+function makeUniqueFrameId(baseId: string, usedIds: Set<string>): string {
+  if (!usedIds.has(baseId)) {
+    usedIds.add(baseId);
+    return baseId;
+  }
+
+  let suffix = 1;
+  let candidate = `${baseId}-import-${suffix}`;
+  while (usedIds.has(candidate)) {
+    suffix += 1;
+    candidate = `${baseId}-import-${suffix}`;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
 function scheduleNextFrame() {
   const currentFrame = frames.find((f) => f.id === selectedFrameId);
   if (!currentFrame) return;
@@ -240,6 +256,20 @@ export const frameStore = {
       selectedFrameId = newFrames[0].id;
       selectedFrameIds = new Set([newFrames[0].id]);
     }
+  },
+
+  insertFramesAfterSelected(newFrames: Frame[]) {
+    if (newFrames.length === 0) return;
+    const selectedIndex = selectedFrameId
+      ? frames.findIndex((frame) => frame.id === selectedFrameId)
+      : -1;
+    const insertionIndex = selectedIndex >= 0 ? selectedIndex + 1 : frames.length;
+    const usedIds = new Set(frames.map((frame) => frame.id));
+    const uniqueFrames = newFrames.map((frame) => ({
+      ...frame,
+      id: makeUniqueFrameId(frame.id, usedIds),
+    }));
+    frames.splice(insertionIndex, 0, ...uniqueFrames);
   },
 
   get isLoading(): boolean {

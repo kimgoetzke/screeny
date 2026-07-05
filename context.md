@@ -24,6 +24,10 @@ The action of loading a GIF file from disk into a Project. Replaces any current 
 
 The action of encoding the current Project's Frames to a GIF file on disk. Does not modify the Project. Transitions the Project through Exporting and back to Active.
 
+### Import
+
+The action of adding frames from a GIF or static image into the current Active Project. Imported frames are inserted after the current Selection, centred into the current Project dimensions, and keep the existing Project bounds as the export/crop boundary.
+
 ### Playback
 
 The animated preview of a Project that cycles through its Frames at their declared durations. Controlled by Play and Stop. Only available when the Project is Active.
@@ -71,5 +75,5 @@ The four lifecycle states a Project moves through:
 
 ## Flagged ambiguities
 
-- "drag-drop import" was used as if it were distinct from **Open** — resolved: it is the same **Open** action initiated via a different path source.
+- "drag-drop import" was used as if active drag-and-drop should mutate the current Project — resolved for now: drag-and-drop opens a GIF only while Empty; while Active it is blocked with a notification telling the user to close the current image or use Import.
 - "viewer" / "canvas" were used interchangeably for the main preview surface — resolved: **Canvas** is the domain term, and the code now uses that term consistently.

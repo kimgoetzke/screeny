@@ -56,6 +56,19 @@ describe("+page.svelte", () => {
       );
     });
 
+    it("passes lifecycle file-picker options into FilePicker for Open and Import reuse", () => {
+      expect(pageSource).toContain("filePickerOptions");
+      expect(pageSource).toMatch(/openFile:\s*\(options\s*=\s*\{\}\)/);
+      expect(pageSource).toMatch(/<FilePicker[\s\S]{0,180}\{\.\.\.filePickerOptions\}/);
+    });
+
+    it("renders the import aspect-ratio warning as an acknowledgement dialog", () => {
+      expect(pageSource).toMatch(/\{#if\s+lifecycle\.aspectRatioWarning\s*\}/);
+      expect(pageSource).toMatch(/message=\{lifecycle\.aspectRatioWarning\}/);
+      expect(pageSource).toMatch(/confirmLabel="OK"/);
+      expect(pageSource).toMatch(/lifecycle\.dismissAspectRatioWarning\(\)/);
+    });
+
     it("tracks inspector visibility from frameStore.hasFrames", () => {
       expect(pageSource).toMatch(/let\s+inspectorVisible\s*=\s*\$derived\(\s*frameStore\.hasFrames\s*\)/);
     });
@@ -77,6 +90,16 @@ describe("+page.svelte", () => {
         /let\s+visibleDropOverlayRightMargin\s*=\s*\$derived\(\s*inspectorVisible\s*\?\s*dropOverlayRightMargin\s*:\s*10\s*\)/,
       );
       expect(pageSource).toMatch(/style:margin-right="\{visibleDropOverlayRightMargin\}px"/);
+    });
+
+    it("blocks active-project drag-drop with an acknowledgement dialog instead of replacing frames", () => {
+      const handleDropMatch = pageSource.match(/async\s+function\s+handleDrop[\s\S]*?\n  \}/);
+      expect(handleDropMatch?.[0]).toBeDefined();
+      expect(handleDropMatch?.[0]).toMatch(/if\s*\(lifecycle\.hasProject\)/);
+      expect(handleDropMatch?.[0]).toContain("Close the current image or use Import to add frames.");
+      expect(handleDropMatch?.[0]).not.toContain("lifecycle.openFromPath");
+      expect(pageSource).toMatch(/\{#if\s+activeDropWarning\s*\}[\s\S]{0,180}<NotificationDialog/);
+      expect(pageSource).toMatch(/message=\{activeDropWarning\}/);
     });
   });
 

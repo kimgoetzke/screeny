@@ -76,6 +76,27 @@ describe("frameStore", () => {
     });
   });
 
+  describe("insertFramesAfterSelected", () => {
+    it("inserts imported frames after the selected frame without replacing existing frames", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+
+      frameStore.insertFramesAfterSelected([makeFrame("x"), makeFrame("y")]);
+
+      expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "b", "x", "y", "c"]);
+      expect(frameStore.selectedFrameId).toBe("b");
+    });
+
+    it("renames imported frames whose ids already exist", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b")]);
+      frameStore.selectFrame("a");
+
+      frameStore.insertFramesAfterSelected([makeFrame("b"), makeFrame("b")]);
+
+      expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "b-import-1", "b-import-2", "b"]);
+    });
+  });
+
   describe("addFrames (batched)", () => {
     it("appends multiple frames to the frames list in order", () => {
       frameStore.addFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);

@@ -3,9 +3,10 @@ pub mod gif;
 #[cfg(test)]
 mod testing;
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use gif::ExportFrame;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{ipc::Channel, window::Color, Manager};
@@ -80,6 +81,32 @@ fn cancel_gif_decode(decode_id: u64, state: tauri::State<'_, AppState>) {
     }
 }
 
+fn decode_image_path(path: &Path) -> Result<gif::Frame, String> {
+    let image = image::ImageReader::open(path)
+        .map_err(|e| format!("Failed to open image '{}': {e}", path.display()))?
+        .decode()
+        .map_err(|e| format!("Failed to decode image '{}': {e}", path.display()))?
+        .to_rgba8();
+    let (width, height) = image.dimensions();
+    let id = path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string_lossy().into_owned());
+
+    Ok(gif::Frame {
+        id,
+        image_data: STANDARD.encode(image.as_raw()),
+        duration: 100,
+        width,
+        height,
+    })
+}
+
+#[tauri::command]
+fn decode_image_frame(path: String) -> Result<gif::Frame, String> {
+    decode_image_path(&PathBuf::from(path))
+}
+
 #[tauri::command]
 fn export_gif(frames: Vec<ExportFrame>, path: String) -> Result<(), String> {
     gif::encode::encode_gif_file(&frames, &PathBuf::from(path))
@@ -96,16 +123,25 @@ fn home_dir() -> String {
     std::env::var("HOME").unwrap_or_else(|_| "/".to_string())
 }
 
-#[tauri::command]
-fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
+fn is_openable_extension(extension: &str) -> bool {
+    extension == "gif"
+}
+
+fn is_importable_extension(extension: &str) -> bool {
+    matches!(extension, "gif" | "png" | "jpg" | "jpeg")
+}
+
+fn list_dir_entries(
+    path: &str,
+    accepts_extension: fn(&str) -> bool,
+) -> Result<Vec<DirEntry>, String> {
     let read_dir =
-        std::fs::read_dir(&path).map_err(|e| format!("Failed to read directory '{path}': {e}"))?;
+        std::fs::read_dir(path).map_err(|e| format!("Failed to read directory '{path}': {e}"))?;
 
     let mut entries: Vec<DirEntry> = read_dir
-        .filter_map(|entry| entry.ok())
+        .filter_map(Result::ok)
         .filter_map(|entry| {
             let name = entry.file_name().to_string_lossy().into_owned();
-            // Skip hidden entries
             if name.starts_with('.') {
                 return None;
             }
@@ -116,8 +152,7 @@ fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
                 .path()
                 .extension()
                 .map(|e| e.to_string_lossy().to_lowercase());
-            // Include directories and .gif files only
-            if is_dir || extension.as_deref() == Some("gif") {
+            if is_dir || extension.as_deref().is_some_and(accepts_extension) {
                 Some(DirEntry {
                     name,
                     path: entry_path,
@@ -130,10 +165,19 @@ fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
         })
         .collect();
 
-    // Sort: directories first, then alphabetically by name
     entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then_with(|| a.name.cmp(&b.name)));
 
     Ok(entries)
+}
+
+#[tauri::command]
+fn list_dir(path: String) -> Result<Vec<DirEntry>, String> {
+    list_dir_entries(&path, is_openable_extension)
+}
+
+#[tauri::command]
+fn list_import_dir(path: String) -> Result<Vec<DirEntry>, String> {
+    list_dir_entries(&path, is_importable_extension)
 }
 
 #[tauri::command]
@@ -188,10 +232,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             decode_gif_stream,
             cancel_gif_decode,
+            decode_image_frame,
             export_gif,
             suggest_export_path,
             home_dir,
             list_dir,
+            list_import_dir,
             close_splashscreen,
             e2e_close_splashscreen,
             e2e::e2e_check,
@@ -205,6 +251,8 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::engine::general_purpose::STANDARD;
+    use image::Rgba;
     use std::fs;
     use tempfile::tempdir;
 
@@ -223,6 +271,46 @@ mod tests {
         assert!(names.contains(&"animation.gif"), "should include .gif file");
         assert!(!names.contains(&"image.png"), "should exclude .png file");
         assert!(!names.contains(&".hidden"), "should exclude hidden entries");
+    }
+
+    #[test]
+    fn list_import_dir_returns_dirs_gif_and_static_image_files() {
+        let dir = tempdir().unwrap();
+        fs::create_dir(dir.path().join("subdir")).unwrap();
+        fs::write(dir.path().join("animation.gif"), b"GIF89a").unwrap();
+        fs::write(dir.path().join("image.png"), b"PNG").unwrap();
+        fs::write(dir.path().join("photo.jpg"), b"JPG").unwrap();
+        fs::write(dir.path().join("notes.txt"), b"text").unwrap();
+
+        let entries = list_import_dir(dir.path().to_str().unwrap().to_string()).unwrap();
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        assert!(names.contains(&"subdir"), "should include directory");
+        assert!(names.contains(&"animation.gif"), "should include .gif file");
+        assert!(names.contains(&"image.png"), "should include .png file");
+        assert!(names.contains(&"photo.jpg"), "should include .jpg file");
+        assert!(
+            !names.contains(&"notes.txt"),
+            "should exclude non-importable file"
+        );
+    }
+
+    #[test]
+    fn decode_image_path_returns_static_image_as_raw_rgba_frame() {
+        let dir = tempdir().unwrap();
+        let png_path = dir.path().join("red.png");
+        RgbaImage::from_pixel(1, 1, Rgba([255, 0, 0, 255]))
+            .save(&png_path)
+            .unwrap();
+
+        let frame = decode_image_path(&png_path).unwrap();
+        let rgba = STANDARD.decode(&frame.image_data).unwrap();
+
+        assert_eq!(frame.id, "red.png");
+        assert_eq!(frame.width, 1);
+        assert_eq!(frame.height, 1);
+        assert_eq!(frame.duration, 100);
+        assert_eq!(rgba, vec![255, 0, 0, 255]);
     }
 
     #[test]
@@ -272,6 +360,9 @@ mod tests {
         register_decode_session(&mut map, 7, Arc::new(AtomicBool::new(false))).unwrap();
         map.remove(&7);
         let result = register_decode_session(&mut map, 7, Arc::new(AtomicBool::new(false)));
-        assert!(result.is_ok(), "same decode_id should be accepted after the prior session is cleaned up");
+        assert!(
+            result.is_ok(),
+            "same decode_id should be accepted after the prior session is cleaned up"
+        );
     }
 }

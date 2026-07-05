@@ -1,6 +1,7 @@
-import { decodeGifPathStreaming, exportGif } from "$lib/actions";
+import { decodeGifPathStreaming, decodeImportPath, exportGif } from "$lib/actions";
 import type { ActionResult, DialogProvider, GifBackend } from "$lib/actions";
 import { waitForNextPaint } from "$lib/canvas/paint";
+import { aspectRatiosDiffer, normaliseFrameToDimensions } from "$lib/import/importFrames";
 import { frameStore } from "$lib/stores/frames.svelte";
 
 export type ProjectState = "Empty" | "Loading" | "Active" | "Exporting";
@@ -27,11 +28,13 @@ export interface ProjectLifecycle {
   readonly hasProject: boolean;
   readonly closeRequested: boolean;
   readonly toolbarFeedback: ToolbarFeedback;
+  readonly aspectRatioWarning: string | null;
 
   readonly canOpen: boolean;
   readonly canCancel: boolean;
   readonly canClose: boolean;
   readonly canExport: boolean;
+  readonly canImport: boolean;
 
   open(): Promise<void>;
   openFromPath(path: string): Promise<ProjectLifecycleOpenResult>;
@@ -39,6 +42,8 @@ export interface ProjectLifecycle {
   requestClose(): void;
   confirmClose(): void;
   dismissClose(): void;
+  dismissAspectRatioWarning(): void;
+  importFrames(): Promise<void>;
   export(): Promise<void>;
 }
 
@@ -74,10 +79,15 @@ function resultToStatus(result: ActionResult): string {
   return result.error ?? result.message ?? "";
 }
 
+function importedFrameStatus(count: number): string {
+  return count === 1 ? "Imported 1 frame" : `Imported ${count} frames`;
+}
+
 export function createProjectLifecycle(options: ProjectLifecycleOptions): ProjectLifecycle {
   let projectState = $state<ProjectState>("Empty");
   let closeRequested = $state(false);
   let statusMessage = $state("");
+  let aspectRatioWarning = $state<string | null>(null);
   let openRequestId = 0;
 
   function setStatus(message: string) {
@@ -86,6 +96,14 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
 
   function clearStatus() {
     statusMessage = "";
+  }
+
+  function clearAspectRatioWarning(): void {
+    aspectRatioWarning = null;
+  }
+
+  function dismissAspectRatioWarning(): void {
+    clearAspectRatioWarning();
   }
 
   function clearCloseRequest() {
@@ -103,6 +121,7 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
   async function openFromPath(path: string): Promise<ProjectLifecycleOpenResult> {
     const openId = ++openRequestId;
     clearCloseRequest();
+    clearAspectRatioWarning();
     clearStatus();
     projectState = "Loading";
     frameStore.startLoading();
@@ -192,12 +211,68 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
 
     frameStore.clear();
     clearCloseRequest();
+    clearAspectRatioWarning();
     clearStatus();
     projectState = "Empty";
   }
 
   function dismissClose(): void {
     clearCloseRequest();
+  }
+
+  async function importFrames(): Promise<void> {
+    if (projectState !== "Active" || !frameStore.selectedFrame) {
+      return;
+    }
+
+    clearCloseRequest();
+    clearAspectRatioWarning();
+    const targetDimensions = {
+      width: frameStore.selectedFrame.width,
+      height: frameStore.selectedFrame.height,
+    };
+
+    let path: string | null;
+    try {
+      path = await options.dialog.openFile({
+        title: "Import file",
+        confirmLabel: "Import",
+        emptyLabel: "No importable files or folders here",
+        listCommand: "list_import_dir",
+      });
+    } catch (error) {
+      setStatus(`Failed to open file dialog: ${error}`);
+      return;
+    }
+
+    if (!path) {
+      return;
+    }
+
+    const importedFrames: typeof frameStore.frames = [];
+    setStatus("Importing…");
+    const result = await decodeImportPath(
+      path,
+      options.backend,
+      (frame) => importedFrames.push(frame),
+      () => {},
+      { beforeDecode: waitForNextPaint },
+    );
+
+    if (result.error) {
+      setStatus(result.error);
+      return;
+    }
+
+    if (importedFrames.some((frame) => aspectRatiosDiffer(frame, targetDimensions))) {
+      aspectRatioWarning = "Imported file has a different aspect ratio and was centred within the current project bounds.";
+    }
+
+    const normalisedFrames = importedFrames.map((frame) =>
+      normaliseFrameToDimensions(frame, targetDimensions),
+    );
+    frameStore.insertFramesAfterSelected(normalisedFrames);
+    setStatus(importedFrameStatus(normalisedFrames.length));
   }
 
   async function exportProject(): Promise<void> {
@@ -230,7 +305,11 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
       return closeRequested;
     },
 
-    get toolbarFeedback() {
+    get aspectRatioWarning() {
+      return aspectRatioWarning;
+    },
+
+    get toolbarFeedback(): ToolbarFeedback {
       if (projectState === "Loading") {
         return loadingToolbarFeedback();
       }
@@ -258,12 +337,18 @@ export function createProjectLifecycle(options: ProjectLifecycleOptions): Projec
       return projectState === "Active";
     },
 
+    get canImport() {
+      return projectState === "Active";
+    },
+
     open,
     openFromPath,
     cancel,
     requestClose,
     confirmClose,
     dismissClose,
+    dismissAspectRatioWarning,
+    importFrames,
     export: exportProject,
   };
 }

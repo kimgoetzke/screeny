@@ -12,6 +12,10 @@ function makeFrame(id: string): Frame {
   return { id, imageData: `data:image/png;base64,${id}`, duration: 100, width: 10, height: 10 };
 }
 
+function makeRgbaFrame(id: string, width: number, height: number, pixels: number[]): Frame {
+  return { id, imageData: btoa(String.fromCharCode(...pixels)), duration: 100, width, height };
+}
+
 function deferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
@@ -210,6 +214,80 @@ describe("projectLifecycle", () => {
     expect(lifecycle.hasProject).toBe(false);
     expect(lifecycle.closeRequested).toBe(false);
     expect(frameStore.frames).toHaveLength(0);
+  });
+
+  it("importFrames() chooses a file, decodes GIF frames, normalises them, and inserts after the selected frame", async () => {
+    const existingFrames = [
+      makeRgbaFrame("a", 2, 2, new Array(16).fill(0)),
+      makeRgbaFrame("b", 2, 2, new Array(16).fill(0)),
+    ];
+    const importedFrame = makeRgbaFrame("imported", 1, 1, [255, 0, 0, 255]);
+    const dialog = makeDialog("/tmp/import.gif");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (path, onStart, onFrame) => {
+        const frames = path === "/tmp/current.gif" ? existingFrames : [importedFrame];
+        onStart({ totalBytes: 100, totalFrames: frames.length });
+        frames.forEach(onFrame);
+      }),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    frameStore.selectFrame("a");
+    await lifecycle.importFrames();
+
+    expect(dialog.openFile).toHaveBeenCalledWith(expect.objectContaining({ confirmLabel: "Import" }));
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "imported", "b"]);
+    expect(frameStore.frames[1]).toMatchObject({ width: 2, height: 2 });
+    expect(lifecycle.projectState).toBe("Active");
+    expect(lifecycle.toolbarFeedback).toEqual({ kind: "status", message: "Imported 1 frame" });
+  });
+
+  it("imports static images through the backend image decoder", async () => {
+    const existingFrame = makeRgbaFrame("a", 2, 2, new Array(16).fill(0));
+    const imageFrame = makeRgbaFrame("image.png", 1, 1, [255, 0, 0, 255]);
+    const dialog = makeDialog("/tmp/image.png");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (_path, onStart, onFrame) => {
+        onStart({ totalBytes: 100, totalFrames: 1 });
+        onFrame(existingFrame);
+      }),
+      decodeImage: vi.fn(async () => imageFrame),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    await lifecycle.importFrames();
+
+    expect(backend.decodeImage).toHaveBeenCalledWith("/tmp/image.png");
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "image.png"]);
+  });
+
+  it("records an acknowledgement warning when imported frames use a different aspect ratio", async () => {
+    const existingFrame = makeRgbaFrame("a", 2, 2, new Array(16).fill(0));
+    const importedFrame = makeRgbaFrame("wide", 2, 1, [
+      255, 0, 0, 255,
+      0, 255, 0, 255,
+    ]);
+    const dialog = makeDialog("/tmp/import.gif");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (path, onStart, onFrame) => {
+        const frames = path === "/tmp/current.gif" ? [existingFrame] : [importedFrame];
+        onStart({ totalBytes: 100, totalFrames: frames.length });
+        frames.forEach(onFrame);
+      }),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    await lifecycle.importFrames();
+
+    expect(lifecycle.aspectRatioWarning).toContain("different aspect ratio");
+    lifecycle.dismissAspectRatioWarning();
+    expect(lifecycle.aspectRatioWarning).toBeNull();
   });
 
   it("export() moves through Exporting and returns to Active with status feedback", async () => {

@@ -11,9 +11,17 @@
   let {
     onConfirm,
     onCancel,
+    title = "Open file",
+    confirmLabel = "Open",
+    emptyLabel = "No GIF files or folders here",
+    listCommand = "list_dir",
   }: {
     onConfirm: (path: string) => void;
     onCancel: () => void;
+    title?: string;
+    confirmLabel?: string;
+    emptyLabel?: string;
+    listCommand?: string;
   } = $props();
 
   let currentPath = $state("");
@@ -24,7 +32,7 @@
 
   async function loadDir(path: string) {
     try {
-      const result = await invoke<DirEntry[]>("list_dir", { path });
+      const result = await invoke<DirEntry[]>(listCommand, { path });
       currentPath = path;
       navigatePath = path;
       entries = result;
@@ -75,7 +83,7 @@
 
 <div class="backdrop" role="presentation" onpointerdown={onCancel} data-testid="file-picker-backdrop"></div>
 
-<div class="picker" data-testid="file-picker" role="dialog" aria-modal="true" aria-label="Open file">
+<div class="picker" data-testid="file-picker" role="dialog" aria-modal="true" aria-label={title}>
   <div class="picker-header">
     <button class="btn-up" onclick={goUp} title="Go up" aria-label="Go to parent directory">↑</button>
     <input
@@ -111,7 +119,7 @@
       </li>
     {/each}
     {#if entries.length === 0 && !errorMessage}
-      <li class="empty">No GIF files or folders here</li>
+      <li class="empty">{emptyLabel}</li>
     {/if}
   </ul>
 
@@ -122,7 +130,7 @@
       disabled={!selectedPath}
       data-testid="file-picker-confirm"
     >
-      Open
+      {confirmLabel}
     </button>
     <button class="btn-cancel" onclick={onCancel} data-testid="file-picker-cancel">Cancel</button>
   </div>

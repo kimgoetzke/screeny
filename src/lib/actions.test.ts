@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { openGifStreaming, exportGif } from "./actions";
+import { decodeImportPath, openGifStreaming, exportGif } from "./actions";
 import type { DialogProvider, GifBackend } from "./actions";
 import type { Frame } from "$lib/types";
 
@@ -230,6 +230,39 @@ describe("openGifStreaming — isCancelled", () => {
     });
 
     expect(onFrame).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("decodeImportPath", () => {
+  it("routes GIF imports through streaming decode", async () => {
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation(async (_path, _onStart, onFrame) => {
+        onFrame(makeFrame("gif"));
+      }),
+    });
+    const onFrame = vi.fn();
+
+    const result = await decodeImportPath("/tmp/import.gif", backend, onFrame, vi.fn());
+
+    expect(backend.decodeStreaming).toHaveBeenCalledOnce();
+    expect(onFrame).toHaveBeenCalledWith(expect.objectContaining({ id: "gif" }));
+    expect(result.error).toBeUndefined();
+  });
+
+  it("routes static image imports through image decode", async () => {
+    const imageFrame = makeFrame("png");
+    const backend = mockBackend({
+      decodeStreaming: vi.fn(),
+      decodeImage: vi.fn().mockResolvedValue(imageFrame),
+    });
+    const onFrame = vi.fn();
+
+    const result = await decodeImportPath("/tmp/import.png", backend, onFrame, vi.fn());
+
+    expect(backend.decodeStreaming).not.toHaveBeenCalled();
+    expect(backend.decodeImage).toHaveBeenCalledWith("/tmp/import.png");
+    expect(onFrame).toHaveBeenCalledWith(imageFrame);
+    expect(result).toEqual({ message: "Loaded 1 frame" });
   });
 });
 

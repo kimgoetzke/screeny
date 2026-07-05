@@ -1,7 +1,14 @@
 import type { DecodeStart, ExportFrame, Frame } from "$lib/types";
 
+export interface FileDialogOptions {
+  title?: string;
+  confirmLabel?: string;
+  emptyLabel?: string;
+  listCommand?: string;
+}
+
 export interface DialogProvider {
-  openFile(): Promise<string | null>;
+  openFile(options?: FileDialogOptions): Promise<string | null>;
   saveFile(): Promise<string | null>;
 }
 
@@ -12,6 +19,7 @@ export interface GifBackend {
     onFrame: (frame: Frame) => void,
     onProgress: (progress: number) => void,
   ): Promise<void>;
+  decodeImage?(path: string): Promise<Frame>;
   export(frames: ExportFrame[], path: string): Promise<void>;
 }
 
@@ -57,6 +65,37 @@ export async function decodeGifPathStreaming(
   } catch (error) {
     if (options.isCancelled?.()) return {};
     return { error: `Failed to decode GIF: ${error}` };
+  }
+}
+
+function isGifPath(path: string): boolean {
+  return path.toLowerCase().endsWith(".gif");
+}
+
+export async function decodeImportPath(
+  path: string,
+  backend: GifBackend,
+  onFrame: (frame: Frame) => void,
+  onProgress: (progress: number) => void,
+  options: OpenGifStreamingOptions = {},
+): Promise<ActionResult> {
+  if (isGifPath(path)) {
+    return decodeGifPathStreaming(path, backend, onFrame, onProgress, options);
+  }
+
+  if (!backend.decodeImage) {
+    return { error: "Static image import is not available" };
+  }
+
+  try {
+    await options.beforeDecode?.();
+    const frame = await backend.decodeImage(path);
+    if (options.isCancelled?.()) return {};
+    onFrame(frame);
+    void options.onFirstFrame?.(frame);
+    return { message: "Loaded 1 frame" };
+  } catch (error) {
+    return { error: `Failed to decode image: ${error}` };
   }
 }
 
