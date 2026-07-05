@@ -231,6 +231,26 @@ describe("openGifStreaming — isCancelled", () => {
 
     expect(onFrame).toHaveBeenCalledTimes(1);
   });
+
+  it("does not forward progress after cancellation", async () => {
+    let cancelled = false;
+    const backend = mockBackend({
+      decodeStreaming: vi.fn().mockImplementation(async (_path, _onStart, onFrame, onProgress) => {
+        onProgress(25);
+        onFrame(makeFrame("a"));
+        cancelled = true;
+        onProgress(75);
+      }),
+    });
+    const onProgress = vi.fn();
+
+    await openGifStreaming(mockDialog(), backend, vi.fn(), onProgress, {
+      isCancelled: () => cancelled,
+    });
+
+    expect(onProgress).toHaveBeenCalledOnce();
+    expect(onProgress).toHaveBeenCalledWith(25);
+  });
 });
 
 describe("decodeImportPath", () => {
@@ -263,6 +283,19 @@ describe("decodeImportPath", () => {
     expect(backend.decodeImage).toHaveBeenCalledWith("/tmp/import.png");
     expect(onFrame).toHaveBeenCalledWith(imageFrame);
     expect(result).toEqual({ message: "Loaded 1 frame" });
+  });
+
+  it("returns an empty result when static image decode fails after cancellation", async () => {
+    const backend = mockBackend({
+      decodeStreaming: vi.fn(),
+      decodeImage: vi.fn().mockRejectedValue(new Error("cancelled")),
+    });
+
+    const result = await decodeImportPath("/tmp/import.png", backend, vi.fn(), vi.fn(), {
+      isCancelled: () => true,
+    });
+
+    expect(result).toEqual({});
   });
 });
 

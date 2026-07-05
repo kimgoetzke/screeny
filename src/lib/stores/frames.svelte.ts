@@ -259,11 +259,13 @@ export const frameStore = {
   },
 
   insertFramesAfterSelected(newFrames: Frame[]) {
+    frameStore.insertFramesAfterFrameId(selectedFrameId, newFrames);
+  },
+
+  insertFramesAfterFrameId(frameId: string | null, newFrames: Frame[]) {
     if (newFrames.length === 0) return;
-    const selectedIndex = selectedFrameId
-      ? frames.findIndex((frame) => frame.id === selectedFrameId)
-      : -1;
-    const insertionIndex = selectedIndex >= 0 ? selectedIndex + 1 : frames.length;
+    const targetIndex = frameId ? frames.findIndex((frame) => frame.id === frameId) : -1;
+    const insertionIndex = targetIndex >= 0 ? targetIndex + 1 : frames.length;
     const usedIds = new Set(frames.map((frame) => frame.id));
     const uniqueFrames = newFrames.map((frame) => ({
       ...frame,

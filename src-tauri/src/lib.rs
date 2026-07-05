@@ -252,7 +252,7 @@ pub fn run() {
 mod tests {
     use super::*;
     use base64::engine::general_purpose::STANDARD;
-    use image::Rgba;
+    use image::{Rgba, RgbaImage};
     use std::fs;
     use tempfile::tempdir;
 

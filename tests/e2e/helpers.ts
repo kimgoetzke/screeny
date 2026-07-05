@@ -1,4 +1,4 @@
-import { $, $$, browser, expect } from "@wdio/globals";
+import { $, browser, expect } from "@wdio/globals";
 
 /** Dispatch a window-level keydown event, as if the user pressed a key. */
 export async function dispatchKey(
@@ -242,14 +242,12 @@ export async function loadFixture(fileName: string, expectedFrameCount: number) 
 }
 
 export async function getSelectedThumbId(): Promise<string | null> {
-  const thumbs = await $$('[data-testid^="frame-thumb-"]');
-  for (const thumb of thumbs) {
-    const className = await thumb.getAttribute("class");
-    if (className?.includes("selected")) {
-      return thumb.getAttribute("data-testid");
-    }
-  }
-  return null;
+  return browser.execute(() => {
+    const selectedThumb = document.querySelector<HTMLElement>(
+      '[data-testid^="frame-thumb-"].selected',
+    );
+    return selectedThumb?.dataset.testid ?? null;
+  });
 }
 
 export async function resetPlaybackState() {

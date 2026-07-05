@@ -244,6 +244,149 @@ describe("projectLifecycle", () => {
     expect(lifecycle.toolbarFeedback).toEqual({ kind: "status", message: "Imported 1 frame" });
   });
 
+  it("shows import progress without clearing the active project", async () => {
+    const importGate = deferred<void>();
+    const existingFrame = makeRgbaFrame("a", 2, 2, new Array(16).fill(0));
+    const importedFrame = makeRgbaFrame("imported", 2, 2, new Array(16).fill(0));
+    const dialog = makeDialog("/tmp/import.gif");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (path, onStart, onFrame, onProgress) => {
+        const frames = path === "/tmp/current.gif" ? [existingFrame] : [importedFrame, makeRgbaFrame("second", 2, 2, new Array(16).fill(0))];
+        onStart({ totalBytes: 100, totalFrames: frames.length });
+        if (path === "/tmp/current.gif") {
+          frames.forEach(onFrame);
+          return;
+        }
+        onProgress(50);
+        onFrame(frames[0]);
+        await importGate.promise;
+        onFrame(frames[1]);
+      }),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    const importPromise = lifecycle.importFrames();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(lifecycle.projectState).toBe("Importing");
+    expect(lifecycle.hasProject).toBe(true);
+    expect(lifecycle.canCancel).toBe(true);
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a"]);
+    expect(lifecycle.toolbarFeedback).toEqual({
+      kind: "loading",
+      label: "Importing frame 1 of 2",
+      percent: 50,
+    });
+
+    importGate.resolve();
+    await importPromise;
+  });
+
+  it("commits imported frames after the originally selected frame if selection changes while importing", async () => {
+    const importGate = deferred<void>();
+    const existingFrames = [
+      makeRgbaFrame("a", 2, 2, new Array(16).fill(0)),
+      makeRgbaFrame("b", 2, 2, new Array(16).fill(0)),
+      makeRgbaFrame("c", 2, 2, new Array(16).fill(0)),
+    ];
+    const importedFrame = makeRgbaFrame("imported", 2, 2, new Array(16).fill(0));
+    const dialog = makeDialog("/tmp/import.gif");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (path, onStart, onFrame) => {
+        const frames = path === "/tmp/current.gif" ? existingFrames : [importedFrame];
+        onStart({ totalBytes: 100, totalFrames: frames.length });
+        if (path === "/tmp/current.gif") {
+          frames.forEach(onFrame);
+          return;
+        }
+        onFrame(importedFrame);
+        await importGate.promise;
+      }),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    frameStore.selectFrame("b");
+    const importPromise = lifecycle.importFrames();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    frameStore.selectFrame("c");
+
+    importGate.resolve();
+    await importPromise;
+
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "b", "imported", "c"]);
+    expect(frameStore.selectedFrameId).toBe("c");
+  });
+
+  it("cancel() during Importing discards buffered frames and preserves the active project selection", async () => {
+    const importGate = deferred<void>();
+    const existingFrames = [
+      makeRgbaFrame("a", 2, 2, new Array(16).fill(0)),
+      makeRgbaFrame("b", 2, 2, new Array(16).fill(0)),
+    ];
+    const importedFrame = makeRgbaFrame("imported", 2, 2, new Array(16).fill(0));
+    const dialog = makeDialog("/tmp/import.gif");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (path, onStart, onFrame) => {
+        const frames = path === "/tmp/current.gif" ? existingFrames : [importedFrame];
+        onStart({ totalBytes: 100, totalFrames: frames.length });
+        if (path === "/tmp/current.gif") {
+          frames.forEach(onFrame);
+          return;
+        }
+        onFrame(importedFrame);
+        await importGate.promise;
+      }),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle, cancelDecode } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    frameStore.selectFrame("b");
+    const importPromise = lifecycle.importFrames();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    await lifecycle.cancel();
+    importGate.resolve();
+    await importPromise;
+
+    expect(cancelDecode).toHaveBeenCalledOnce();
+    expect(lifecycle.projectState).toBe("Active");
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "b"]);
+    expect(frameStore.selectedFrameId).toBe("b");
+    expect(lifecycle.toolbarFeedback).toEqual({ kind: "none" });
+  });
+
+  it("shows indeterminate feedback while importing a static image", async () => {
+    const imageGate = deferred<Frame>();
+    const existingFrame = makeRgbaFrame("a", 2, 2, new Array(16).fill(0));
+    const imageFrame = makeRgbaFrame("image.png", 2, 2, new Array(16).fill(0));
+    const dialog = makeDialog("/tmp/image.png");
+    const backend: GifBackend = {
+      decodeStreaming: vi.fn(async (_path, onStart, onFrame) => {
+        onStart({ totalBytes: 100, totalFrames: 1 });
+        onFrame(existingFrame);
+      }),
+      decodeImage: vi.fn(() => imageGate.promise),
+      export: vi.fn(() => Promise.resolve()),
+    };
+    const { lifecycle } = makeLifecycle({ dialog, backend });
+
+    await lifecycle.openFromPath("/tmp/current.gif");
+    const importPromise = lifecycle.importFrames();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(lifecycle.projectState).toBe("Importing");
+    expect(lifecycle.toolbarFeedback).toEqual({ kind: "loading", label: "Importing…", percent: 0 });
+    expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a"]);
+
+    imageGate.resolve(imageFrame);
+    await importPromise;
+  });
+
   it("imports static images through the backend image decoder", async () => {
     const existingFrame = makeRgbaFrame("a", 2, 2, new Array(16).fill(0));
     const imageFrame = makeRgbaFrame("image.png", 1, 1, [255, 0, 0, 255]);

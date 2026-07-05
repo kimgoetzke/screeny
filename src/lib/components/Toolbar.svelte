@@ -78,7 +78,7 @@
 
 <div class="toolbar" data-testid="toolbar">
     <div class="toolbar-primary">
-        {#if lifecycle.projectState === "Loading"}
+        {#if lifecycle.canCancel}
             <button
                 onclick={() => {
                     void lifecycle.cancel();

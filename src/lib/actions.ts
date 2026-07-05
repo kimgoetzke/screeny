@@ -58,7 +58,10 @@ export async function decodeGifPathStreaming(
           void options.onFirstFrame?.(frame);
         }
       },
-      onProgress,
+      (progress) => {
+        if (options.isCancelled?.()) return;
+        onProgress(progress);
+      },
     );
     if (options.isCancelled?.()) return {};
     return { message: `Loaded ${frameCount} frames` };
@@ -95,6 +98,7 @@ export async function decodeImportPath(
     void options.onFirstFrame?.(frame);
     return { message: "Loaded 1 frame" };
   } catch (error) {
+    if (options.isCancelled?.()) return {};
     return { error: `Failed to decode image: ${error}` };
   }
 }

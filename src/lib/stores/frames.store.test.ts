@@ -95,6 +95,18 @@ describe("frameStore", () => {
 
       expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "b-import-1", "b-import-2", "b"]);
     });
+
+    it("inserts imported frames after a captured frame id even if selection changed", () => {
+      frameStore.setFrames([makeFrame("a"), makeFrame("b"), makeFrame("c")]);
+      frameStore.selectFrame("b");
+      const insertionFrameId = frameStore.selectedFrameId;
+      frameStore.selectFrame("c");
+
+      frameStore.insertFramesAfterFrameId(insertionFrameId, [makeFrame("x")]);
+
+      expect(frameStore.frames.map((frame) => frame.id)).toEqual(["a", "b", "x", "c"]);
+      expect(frameStore.selectedFrameId).toBe("c");
+    });
   });
 
   describe("addFrames (batched)", () => {

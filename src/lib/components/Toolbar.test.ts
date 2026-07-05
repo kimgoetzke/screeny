@@ -30,7 +30,7 @@ function makeFrame(id: string, duration = 100): Frame {
 }
 
 type LifecycleStub = {
-  projectState: "Empty" | "Loading" | "Active" | "Exporting";
+  projectState: "Empty" | "Loading" | "Importing" | "Active" | "Exporting";
   hasProject: boolean;
   closeRequested: boolean;
   toolbarFeedback:
@@ -117,6 +117,28 @@ describe("Toolbar", () => {
       );
       expect(body).toContain('data-testid="btn-cancel"');
       expect(body).not.toContain('data-testid="btn-open"');
+    });
+
+    it("shows Cancel and disables project actions while Importing", () => {
+      const { body } = renderToolbar(
+        makeLifecycle({
+          projectState: "Importing",
+          hasProject: true,
+          canCancel: true,
+          canClose: false,
+          canImport: false,
+          canExport: false,
+          toolbarFeedback: { kind: "loading", label: "Importing frame 1 of 2", percent: 50 },
+        }),
+      );
+
+      expect(body).toContain('data-testid="btn-cancel"');
+      expect(body).not.toContain('data-testid="btn-close"');
+      expect(body).not.toContain('data-testid="btn-import"');
+      const exportBtnTag = body.match(/<button[^>]*data-testid="btn-export"[^>]*>/)?.[0] ?? "";
+      expect(exportBtnTag).toContain("disabled");
+      expect(body).toContain('data-testid="loading-progress"');
+      expect(body).toContain("Importing frame 1 of 2");
     });
   });
 
