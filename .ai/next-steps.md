@@ -55,16 +55,27 @@ Status: **Completed**
 Status: **In progress**
 
 - [x] Add CI pipeline that creates binary
-- [ ] Import frames from other GIFs
+- [x] Import frames from other GIFs or PNG
+- [ ] Allow setting background colour for smaller frames
+- [ ] Allow moving larger frames on canvas to determine how to crop
 - [ ] Configure export (algorithm, colours, more...)
+- [x] Regression: Fix export window overlapping with menu bar
 - [ ] Optional: Research how to get app into Nix packages
 - [ ] Optional: Add basic text overlays
 
 ### Prompt planning
 
+#### Allow setting background colour for smaller frames
+
+TBC
+
+#### Allow moving larger frames on canvas to determine how to crop
+
+TBC
+
 #### Configure export
 
-
+TBC
 
 ---
 
