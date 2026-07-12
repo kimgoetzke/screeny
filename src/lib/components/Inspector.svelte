@@ -205,19 +205,27 @@
           <label class="background-colour-label" for="inspector-background-colour-input"
             >Background:</label
           >
-          <input
-            id="inspector-background-colour-input"
-            class="background-colour-input"
-            type="text"
-            inputmode="text"
-            pattern="#[0-9a-fA-F]{6}"
-            value={backgroundColourValue}
-            placeholder={backgroundColourPlaceholder}
-            data-testid="inspector-background-colour-input"
-            onfocus={openBackgroundPicker}
-            onclick={openBackgroundPicker}
-            oninput={handleBackgroundColourInput}
-          />
+          <div
+            class="background-colour-input-wrap"
+            class:mixed={backgroundColourPlaceholder === "Mixed"}
+            style:--background-colour-preview={backgroundColourValue || "transparent"}
+            data-background-colour-mixed={backgroundColourPlaceholder === "Mixed"}
+            data-testid="inspector-background-colour-preview"
+          >
+            <input
+              id="inspector-background-colour-input"
+              class="background-colour-input"
+              type="text"
+              inputmode="text"
+              pattern="#[0-9a-fA-F]{6}"
+              value={backgroundColourValue}
+              placeholder={backgroundColourPlaceholder}
+              data-testid="inspector-background-colour-input"
+              onfocus={openBackgroundPicker}
+              onclick={openBackgroundPicker}
+              oninput={handleBackgroundColourInput}
+            />
+          </div>
           <button
             class="background-colour-picker-toggle"
             type="button"
@@ -619,11 +627,39 @@
     color: var(--color-text-muted);
   }
 
+  .background-colour-input-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  .background-colour-input-wrap::before {
+    content: "";
+    position: absolute;
+    left: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 30px;
+    border-right: 1px solid var(--color-border);
+    border-radius: 3px 0 0 3px;
+    background: var(--background-colour-preview);
+    pointer-events: none;
+  }
+
+  .background-colour-input-wrap.mixed::before {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--color-surface),
+      var(--color-surface) 4px,
+      var(--color-border) 4px,
+      var(--color-border) 8px
+    );
+  }
+
   .background-colour-input {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding: 5px 8px;
+    padding: 5px 8px 5px 40px;
     border: 1px solid var(--color-border);
     border-radius: 4px;
     background: var(--color-surface);

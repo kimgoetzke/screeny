@@ -84,6 +84,8 @@ describe("Inspector", () => {
       const { body } = render(Inspector);
 
       expect(body).toContain('data-testid="inspector-background-colour"');
+      expect(body).toContain('data-testid="inspector-background-colour-preview"');
+      expect(body).toContain('--background-colour-preview: #112233');
       expect(body).toContain('data-testid="inspector-background-colour-input"');
       expect(body).toContain('value="#112233"');
     });
@@ -115,6 +117,10 @@ describe("Inspector", () => {
       expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*border:\s*0/s);
       expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*background:\s*transparent/s);
       expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.horizontal \.h\)\s*\{[^}]*width:\s*100%/s);
+    });
+
+    it("keeps normal input spacing between the background colour preview and text", () => {
+      expect(inspectorSource).toMatch(/\.background-colour-input\s*\{[^}]*padding:\s*5px 8px 5px 40px/s);
     });
 
     it("does not show dedup buttons for a single selection", () => {
@@ -196,6 +202,8 @@ describe("Inspector", () => {
       const { body } = render(Inspector);
 
       expect(body).toContain('data-testid="inspector-background-colour-input"');
+      expect(body).toContain('data-testid="inspector-background-colour-preview"');
+      expect(body).toContain('data-background-colour-mixed="true"');
       expect(body).toContain('placeholder="Mixed"');
     });
 
