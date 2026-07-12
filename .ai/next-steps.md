@@ -56,7 +56,7 @@ Status: **In progress**
 
 - [x] Add CI pipeline that creates binary
 - [x] Import frames from other GIFs or PNG
-- [ ] Allow setting background colour for smaller frames
+- [x] Allow setting background colour for smaller frames
 - [ ] Allow moving larger frames on canvas to determine how to crop
 - [ ] Configure export (algorithm, colours, more...)
 - [x] Regression: Fix export window overlapping with menu bar
@@ -64,10 +64,6 @@ Status: **In progress**
 - [ ] Optional: Add basic text overlays
 
 ### Prompt planning
-
-#### Allow setting background colour for smaller frames
-
-TBC
 
 #### Allow moving larger frames on canvas to determine how to crop
 
@@ -79,11 +75,11 @@ TBC
 
 ---
 
-Also, please write an E2E test for this feature.
+Ensure E2E test coverage for this feature.
 
 If you believe you must remove or otherwise modify an existing test to achieve your goal, you must ask for explicit confirmation via `questions.md` - list every existing tests you intend to modify, explain why, and ask if the change is acceptable.
 
-You must implement this using your `tdd` skill. Please check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
+You must implement this using your `tdd` skill. Check for warnings and address them in the best practice way or explicitly tell the user why you won't/shouldn't. All E2E test, all unit tests and all Rust tests must be run to verify that we have no regression. Before running E2E tests, you must build the application.
 
 ## Goals
 
