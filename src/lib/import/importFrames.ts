@@ -63,5 +63,12 @@ export function normaliseFrameToDimensions(frame: Frame, target: Dimensions): Fr
     width: target.width,
     height: target.height,
     imageData: encodeBase64Bytes(output),
+    backgroundColour: frame.backgroundColour ?? "#000000",
+    contentBounds: {
+      x: targetStartX,
+      y: targetStartY,
+      width: copyWidth,
+      height: copyHeight,
+    },
   };
 }

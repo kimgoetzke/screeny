@@ -17,6 +17,7 @@ let loadingProgress = $state<number | null>(null);
 let loadingFrameCount = $state(0);
 let loadingTotalFrames = $state<number | null>(null);
 let loadSessionId = $state(0);
+let selectedFrameRevision = $state(0);
 
 function getSelection(): SelectionState {
   return { selectedFrameId, selectedFrameIds, selectionActiveId };
@@ -29,8 +30,13 @@ function applySelection(state: SelectionState): void {
 }
 
 function applyEdit(result: edit.FrameEditResult): void {
+  const previousSelectedImageData = frames.find((frame) => frame.id === selectedFrameId)?.imageData;
   frames = result.frames;
   applySelection(result.selection);
+  const nextSelectedImageData = frames.find((frame) => frame.id === selectedFrameId)?.imageData;
+  if (previousSelectedImageData !== nextSelectedImageData) {
+    selectedFrameRevision += 1;
+  }
 }
 
 function makeUniqueFrameId(baseId: string, usedIds: Set<string>): string {
@@ -79,6 +85,10 @@ export const frameStore = {
 
   get selectedFrame(): Frame | undefined {
     return frames.find((f) => f.id === selectedFrameId);
+  },
+
+  get selectedFrameRevision(): number {
+    return selectedFrameRevision;
   },
 
   get hasFrames(): boolean {
@@ -231,6 +241,10 @@ export const frameStore = {
 
   setFrameDuration(duration: number) {
     applyEdit(edit.setFrameDuration(frames, getSelection(), duration));
+  },
+
+  setFrameBackgroundColour(colour: string) {
+    applyEdit(edit.setFrameBackgroundColour(frames, getSelection(), colour));
   },
 
   addFrame(frame: Frame) {

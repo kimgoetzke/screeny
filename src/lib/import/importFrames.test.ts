@@ -23,6 +23,8 @@ describe("import frame normalisation", () => {
 
     expect(normalised.width).toBe(3);
     expect(normalised.height).toBe(3);
+    expect(normalised.backgroundColour).toBe("#000000");
+    expect(normalised.contentBounds).toEqual({ x: 1, y: 1, width: 1, height: 1 });
     expect(decodeRgba(normalised.imageData)).toEqual([
       0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255,
       0, 0, 0, 255, 255, 0, 0, 255, 0, 0, 0, 255,

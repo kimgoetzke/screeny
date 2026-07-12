@@ -1,9 +1,18 @@
+export interface FrameContentBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface Frame {
   id: string;
   imageData: string;
   duration: number;
   width: number;
   height: number;
+  backgroundColour?: string;
+  contentBounds?: FrameContentBounds;
 }
 
 export interface ExportFrame {

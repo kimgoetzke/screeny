@@ -110,6 +110,10 @@ describe("Canvas", () => {
   });
 
   describe("redraw guard during streaming load", () => {
+    it("tracks the selected frame revision so selected image changes retrigger the effect", () => {
+      expect(canvasSource).toContain("frameStore.selectedFrameRevision");
+    });
+
     it("tracks only selectedFrameId so unrelated frame appends do not retrigger the effect", () => {
       expect(canvasSource).toMatch(
         /\$effect\(\(\)\s*=>\s*\{[\s\S]{0,600}frameStore\.selectedFrameId/,

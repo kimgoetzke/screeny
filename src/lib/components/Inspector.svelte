@@ -1,6 +1,8 @@
 <script lang="ts">
+  import ColorPicker from "svelte-awesome-color-picker";
   import { INSPECTOR_LAYOUT } from "$lib/canvas/inspectorLayout";
   import { frameStore } from "$lib/stores/frames.svelte";
+  import type { Frame } from "$lib/types";
 
   let { minimised = $bindable(false) }: { minimised?: boolean } = $props();
 
@@ -9,6 +11,12 @@
   let selectedFrameIds = $derived(frameStore.selectedFrameIds);
   let selectedFrame = $derived(frameStore.selectedFrame);
   let isMultiSelect = $derived(selectedFrameIds.size > 1);
+  let selectedFrames = $derived(frames.filter((f) => selectedFrameIds.has(f.id)));
+  let pickerHex = $state("#000000");
+  let isBackgroundPickerOpen = $state(false);
+  let isPickerUserInput = $state(false);
+  let previousSelectionKey = $state("");
+  let selectionKey = $derived(Array.from(selectedFrameIds).join("|"));
 
   let frameIndicator = $derived.by(() => {
     if (!selectedFrameId || frames.length === 0) return "";
@@ -39,6 +47,44 @@
     return durations.size === 1 ? "" : "Mixed";
   });
 
+  let backgroundColourValue = $derived.by(() => {
+    if (selectedFrames.length === 0) return "";
+    const colours = new Set(selectedFrames.map((f) => f.backgroundColour ?? "#000000"));
+    return colours.size === 1 ? (selectedFrames[0].backgroundColour ?? "#000000") : "";
+  });
+
+  let backgroundColourPlaceholder = $derived.by(() => {
+    if (!isMultiSelect) return "";
+    const colours = new Set(selectedFrames.map((f) => f.backgroundColour ?? "#000000"));
+    return colours.size === 1 ? "" : "Mixed";
+  });
+
+  function frameFillsCanvas(frame: Frame): boolean {
+    const bounds = frame.contentBounds;
+    return (
+      !bounds ||
+      (bounds.x === 0 &&
+        bounds.y === 0 &&
+        bounds.width === frame.width &&
+        bounds.height === frame.height)
+    );
+  }
+
+  let backgroundColourHelper = $derived.by(() => {
+    if (selectedFrames.length === 0) return "";
+    return selectedFrames.every(frameFillsCanvas)
+      ? "The selected frame(s) fill(s) the canvas, so the background colour has no visible effect."
+      : "";
+  });
+
+  $effect(() => {
+    if (previousSelectionKey && selectionKey !== previousSelectionKey) {
+      isBackgroundPickerOpen = false;
+      isPickerUserInput = false;
+    }
+    previousSelectionKey = selectionKey;
+  });
+
   function handleDurationInput(event: Event) {
     const value = parseInt((event.target as HTMLInputElement).value, 10);
     if (!isNaN(value)) {
@@ -58,7 +104,65 @@
       frameStore.setFrameDuration(current + delta);
     }
   }
+
+  function openBackgroundPicker() {
+    pickerHex = backgroundColourValue || "#000000";
+    isPickerUserInput = false;
+    isBackgroundPickerOpen = true;
+  }
+
+  function toggleBackgroundPicker() {
+    if (isBackgroundPickerOpen) {
+      isBackgroundPickerOpen = false;
+      isPickerUserInput = false;
+    } else {
+      openBackgroundPicker();
+    }
+  }
+
+  function setBackgroundColour(colour: string | null | undefined) {
+    if (!colour || !/^#[0-9a-fA-F]{6}$/.test(colour)) return;
+    const normalised = colour.toLowerCase();
+    pickerHex = normalised;
+    frameStore.setFrameBackgroundColour(normalised);
+  }
+
+  function handleBackgroundColourInput(event: Event) {
+    openBackgroundPicker();
+    setBackgroundColour((event.target as HTMLInputElement).value);
+  }
+
+  function eventTargetIsBackgroundPicker(target: EventTarget | null): boolean {
+    return (
+      target instanceof Element &&
+      Boolean(target.closest('[data-testid="inspector-background-colour-picker"]'))
+    );
+  }
+
+  function handlePickerInput(event: { hex: string | null }) {
+    if (!isPickerUserInput) return;
+    setBackgroundColour(event.hex);
+  }
+
+  function handleWindowPointerDown(event: PointerEvent) {
+    if (eventTargetIsBackgroundPicker(event.target)) {
+      isPickerUserInput = true;
+    }
+  }
+
+  function handleWindowKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape" && isBackgroundPickerOpen) {
+      isBackgroundPickerOpen = false;
+      isPickerUserInput = false;
+      return;
+    }
+    if (eventTargetIsBackgroundPicker(event.target)) {
+      isPickerUserInput = true;
+    }
+  }
 </script>
+
+<svelte:window onpointerdown={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
 
 <aside
   class="inspector"
@@ -95,6 +199,57 @@
             onwheel={handleDurationWheel}
           />
           <span class="duration-unit">ms</span>
+        </div>
+
+        <div class="background-colour" data-testid="inspector-background-colour">
+          <label class="background-colour-label" for="inspector-background-colour-input"
+            >Background:</label
+          >
+          <input
+            id="inspector-background-colour-input"
+            class="background-colour-input"
+            type="text"
+            inputmode="text"
+            pattern="#[0-9a-fA-F]{6}"
+            value={backgroundColourValue}
+            placeholder={backgroundColourPlaceholder}
+            data-testid="inspector-background-colour-input"
+            onfocus={openBackgroundPicker}
+            onclick={openBackgroundPicker}
+            oninput={handleBackgroundColourInput}
+          />
+          <button
+            class="background-colour-picker-toggle"
+            type="button"
+            aria-controls="inspector-background-colour-picker"
+            aria-expanded={isBackgroundPickerOpen}
+            data-testid="inspector-background-colour-picker-toggle"
+            onclick={toggleBackgroundPicker}
+          >
+            {isBackgroundPickerOpen ? "Hide picker" : "Show picker"}
+          </button>
+          {#if isBackgroundPickerOpen}
+            <div
+              id="inspector-background-colour-picker"
+              class="background-colour-picker"
+              data-testid="inspector-background-colour-picker"
+            >
+              <ColorPicker
+                hex={pickerHex}
+                isDialog={false}
+                isAlpha={false}
+                isTextInput={false}
+                sliderDirection="horizontal"
+                label="Background colour"
+                onInput={handlePickerInput}
+              />
+            </div>
+          {/if}
+          {#if backgroundColourHelper}
+            <p class="background-colour-helper" data-testid="inspector-background-colour-helper">
+              {backgroundColourHelper}
+            </p>
+          {/if}
         </div>
 
         {#if isMultiSelect}
@@ -207,7 +362,13 @@
               title="Duplicate selected frame(s)"
             >
               <!-- Duplicate icon: two overlapping squares -->
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <rect
                   x="4"
                   y="4"
@@ -236,7 +397,13 @@
               title="Delete selected frame(s)"
             >
               <!-- Bin icon -->
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path
                   d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
                 />
@@ -439,6 +606,90 @@
     font-size: 12px;
     color: var(--color-text-muted);
     flex-shrink: 0;
+  }
+
+  .background-colour {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .background-colour-label {
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .background-colour-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text-brightest);
+    font-size: 13px;
+  }
+
+  .background-colour-input:focus {
+    outline: none;
+    border-color: var(--color-text-muted);
+  }
+
+  .background-colour-picker-toggle {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text-brightest);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .background-colour-picker-toggle:hover,
+  .background-colour-picker-toggle:focus-visible {
+    outline: none;
+    background: var(--color-border);
+  }
+
+  .background-colour-picker {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--color-text-brightest);
+    --cp-bg-color: var(--color-bg-elevated);
+    --cp-border-color: var(--color-border);
+    --cp-text-color: var(--color-text-brightest);
+    --picker-width: 100%;
+    --picker-height: 150px;
+    --slider-width: 18px;
+  }
+
+  .background-colour-picker :global(.color-picker) {
+    display: block;
+    width: 100%;
+  }
+
+  .background-colour-picker :global(.wrapper) {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+  }
+
+  .background-colour-picker :global(.horizontal .h) {
+    width: 100%;
+    margin: 10px 0 0;
+    --track-width: 100%;
+  }
+
+  .background-colour-helper {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--color-text-muted);
   }
 
   .dedup-section {

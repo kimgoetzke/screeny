@@ -175,6 +175,81 @@ describe("Studio — inspector panel", () => {
     expect(text).toContain("Duration:");
   });
 
+  it("opens the background colour picker embedded, themed, and within inspector bounds", async () => {
+    await jsClick('[data-testid="frame-thumb-0"]');
+    await jsClick('[data-testid="inspector-background-colour-picker-toggle"]');
+    await $('[data-testid="inspector-background-colour-picker"]').waitForExist({ timeout: 5_000 });
+
+    const metrics = await browser.execute(() => {
+      const inspector = document.querySelector('[data-testid="inspector"]');
+      const body = inspector?.querySelector(".inspector-body");
+      const input = document.querySelector('[data-testid="inspector-background-colour-input"]');
+      const toggle = document.querySelector('[data-testid="inspector-background-colour-picker-toggle"]');
+      const pickerHost = document.querySelector('[data-testid="inspector-background-colour-picker"]');
+      const wrapper = pickerHost?.querySelector(".wrapper");
+      const colourArea = pickerHost?.querySelector(".picker");
+      const hue = pickerHost?.querySelector(".h");
+      const hueTrack = hue?.querySelector(".track");
+      if (
+        !(inspector instanceof HTMLElement) ||
+        !(body instanceof HTMLElement) ||
+        !(input instanceof HTMLElement) ||
+        !(toggle instanceof HTMLElement) ||
+        !(wrapper instanceof HTMLElement) ||
+        !(colourArea instanceof HTMLElement) ||
+        !(hue instanceof HTMLElement) ||
+        !(hueTrack instanceof HTMLElement)
+      ) {
+        return null;
+      }
+
+      const bodyRect = body.getBoundingClientRect();
+      const inputRect = input.getBoundingClientRect();
+      const toggleRect = toggle.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const colourAreaRect = colourArea.getBoundingClientRect();
+      const hueRect = hue.getBoundingClientRect();
+      const hueTrackRect = hueTrack.getBoundingClientRect();
+      const bodyStyle = getComputedStyle(body);
+      const inspectorStyle = getComputedStyle(inspector);
+      const wrapperStyle = getComputedStyle(wrapper);
+
+      return {
+        bodyLeft: bodyRect.left,
+        bodyRight: bodyRect.right,
+        inputWidth: inputRect.width,
+        toggleWidth: toggleRect.width,
+        pickerWidth: wrapperRect.width,
+        pickerLeft: wrapperRect.left,
+        pickerRight: wrapperRect.right,
+        colourAreaWidth: colourAreaRect.width,
+        colourAreaHeight: colourAreaRect.height,
+        hueWidth: hueRect.width,
+        hueTrackHeight: hueTrackRect.height,
+        bodyHorizontalOverflow: body.scrollWidth - body.clientWidth,
+        bodyOverflowX: bodyStyle.overflowX,
+        wrapperBackground: wrapperStyle.backgroundColor,
+        wrapperBorder: wrapperStyle.borderTopColor,
+        inspectorBackground: inspectorStyle.backgroundColor,
+        inspectorBorder: inspectorStyle.borderTopColor,
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    if (!metrics) return;
+    expect(Math.abs(metrics.toggleWidth - metrics.inputWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.pickerWidth - metrics.inputWidth)).toBeLessThanOrEqual(1);
+    expect(metrics.colourAreaWidth).toBeGreaterThan(metrics.colourAreaHeight);
+    expect(metrics.hueWidth).toBeGreaterThanOrEqual(metrics.colourAreaWidth);
+    expect(metrics.hueTrackHeight).toBeGreaterThanOrEqual(16);
+    expect(metrics.pickerLeft).toBeGreaterThanOrEqual(metrics.bodyLeft - 1);
+    expect(metrics.pickerRight).toBeLessThanOrEqual(metrics.bodyRight + 1);
+    expect(metrics.bodyHorizontalOverflow).toBeLessThanOrEqual(1);
+    expect(metrics.bodyOverflowX).not.toBe("scroll");
+    expect(metrics.wrapperBackground).toBe(metrics.inspectorBackground);
+    expect(metrics.wrapperBorder).toBe(metrics.inspectorBorder);
+  });
+
   it("Ctrl+I minimises the inspector panel", async () => {
     // Ensure inspector is expanded first
     const restore = await $('[data-testid="inspector-restore"]');

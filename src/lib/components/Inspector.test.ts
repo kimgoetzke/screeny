@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import Inspector from "./Inspector.svelte";
+import inspectorSource from "./Inspector.svelte?raw";
 import { frameStore } from "$lib/stores/frames.svelte";
 import type { Frame } from "$lib/types";
 
-function makeFrame(id: string, duration = 100): Frame {
-  return { id, imageData: `data:image/png;base64,${id}`, duration, width: 10, height: 10 };
+function makeFrame(id: string, duration = 100, extra: Partial<Frame> = {}): Frame {
+  return { id, imageData: `data:image/png;base64,${id}`, duration, width: 10, height: 10, ...extra };
 }
 
 describe("Inspector", () => {
@@ -30,6 +31,12 @@ describe("Inspector", () => {
       const { body } = render(Inspector);
 
       expect(body).not.toContain('data-testid="inspector-duration-input"');
+    });
+
+    it("does not show the background colour control when no frames loaded", () => {
+      const { body } = render(Inspector);
+
+      expect(body).not.toContain('data-testid="inspector-background-colour"');
     });
 
     it("does not show action buttons when no frames loaded", () => {
@@ -69,6 +76,41 @@ describe("Inspector", () => {
 
       expect(body).toContain('data-testid="inspector-duration-input"');
       expect(body).toContain('value="250"');
+    });
+
+    it("shows the background colour control with the selected frame colour", () => {
+      frameStore.setFrames([makeFrame("a", 100, { backgroundColour: "#112233" })]);
+      frameStore.selectFrame("a");
+      const { body } = render(Inspector);
+
+      expect(body).toContain('data-testid="inspector-background-colour"');
+      expect(body).toContain('data-testid="inspector-background-colour-input"');
+      expect(body).toContain('value="#112233"');
+    });
+
+    it("does not bind selection-derived colour state back into the picker", () => {
+      expect(inspectorSource).not.toContain("bind:hex");
+    });
+
+    it("keeps the embedded colour picker closed until opened on demand", () => {
+      frameStore.setFrames([makeFrame("a", 100, { backgroundColour: "#112233" })]);
+      frameStore.selectFrame("a");
+      const { body } = render(Inspector);
+
+      expect(body).toContain('data-testid="inspector-background-colour-picker-toggle"');
+      expect(body).toContain("Show picker");
+      expect(body).not.toContain('data-testid="inspector-background-colour-picker"');
+    });
+
+    it("uses the embedded compact picker mode with app theme variables", () => {
+      expect(inspectorSource).toContain("isDialog={false}");
+      expect(inspectorSource).toContain('sliderDirection="horizontal"');
+      expect(inspectorSource).toContain("--cp-bg-color: var(--color-bg-elevated)");
+      expect(inspectorSource).toContain("--picker-width: 100%");
+      expect(inspectorSource).toContain("--slider-width: 18px");
+      expect(inspectorSource).toMatch(/\.background-colour-picker-toggle\s*\{[^}]*width:\s*100%/s);
+      expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*width:\s*100%/s);
+      expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.horizontal \.h\)\s*\{[^}]*width:\s*100%/s);
     });
 
     it("does not show dedup buttons for a single selection", () => {
@@ -138,6 +180,31 @@ describe("Inspector", () => {
       const { body } = render(Inspector);
 
       expect(body).toContain('placeholder="Mixed"');
+    });
+
+    it("shows a mixed background colour placeholder for different selected colours", () => {
+      frameStore.setFrames([
+        makeFrame("a", 100, { backgroundColour: "#000000" }),
+        makeFrame("b", 100, { backgroundColour: "#ffffff" }),
+      ]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      const { body } = render(Inspector);
+
+      expect(body).toContain('data-testid="inspector-background-colour-input"');
+      expect(body).toContain('placeholder="Mixed"');
+    });
+
+    it("explains when every selected frame fills the canvas", () => {
+      frameStore.setFrames([
+        makeFrame("a", 100, { contentBounds: { x: 0, y: 0, width: 10, height: 10 } }),
+        makeFrame("b", 100, { contentBounds: { x: 0, y: 0, width: 10, height: 10 } }),
+      ]);
+      frameStore.selectFrame("a");
+      frameStore.shiftSelectFrames("b");
+      const { body } = render(Inspector);
+
+      expect(body).toContain("background colour has no visible effect");
     });
 
     it("shows dedup merge and drop buttons", () => {

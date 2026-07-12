@@ -37,16 +37,17 @@
   const ZOOM_FACTOR = 1.1;
 
   $effect(() => {
-    // Track only the selected id; frame lookup is read under untrack so that
-        // appending unrelated frames during streaming load does not retrigger the redraw.
-        const frameId = frameStore.selectedFrameId;
-        if (!canvas || !frameId) return;
+    // Track the selected id and explicit selected-frame revision; frame lookup is read under
+    // untrack so appending unrelated frames during streaming load does not retrigger redraw.
+    const frameId = frameStore.selectedFrameId;
+    const _frameRevision = frameStore.selectedFrameRevision;
+    if (!canvas || !frameId) return;
 
-        const frame = untrack(() => frameStore.selectedFrame);
+    const frame = untrack(() => frameStore.selectedFrame);
     if (!frame) return;
 
     renderFrameToCanvas(canvas, frame);
-    });
+  });
 
   function handleWheel(event: WheelEvent) {
     event.preventDefault();

@@ -1,4 +1,4 @@
-import type { Frame } from "$lib/types";
+import type { Frame, FrameContentBounds } from "$lib/types";
 import type { SelectionState } from "$lib/timeline/frameSelection";
 
 export interface FrameEditResult {
@@ -375,6 +375,87 @@ export function setFrameDuration(
   const clamped = Math.min(Math.max(1, duration), 9999);
   return {
     frames: frames.map((f) => (selectedFrameIds.has(f.id) ? { ...f, duration: clamped } : f)),
+    selection,
+  };
+}
+
+function decodeBase64Bytes(imageData: string): Uint8Array {
+  const raw = atob(imageData);
+  const bytes = new Uint8Array(raw.length);
+  for (let index = 0; index < raw.length; index += 1) {
+    bytes[index] = raw.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function encodeBase64Bytes(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function parseHexColour(colour: string): [number, number, number] {
+  const match = colour.match(/^#([0-9a-fA-F]{6})$/);
+  if (!match) return [0, 0, 0];
+  const value = match[1];
+  return [
+    parseInt(value.slice(0, 2), 16),
+    parseInt(value.slice(2, 4), 16),
+    parseInt(value.slice(4, 6), 16),
+  ];
+}
+
+function normaliseHexColour(colour: string): string {
+  return /^#[0-9a-fA-F]{6}$/.test(colour) ? colour.toLowerCase() : "#000000";
+}
+
+function hasPaddingPixel(x: number, y: number, bounds: FrameContentBounds): boolean {
+  return x < bounds.x || x >= bounds.x + bounds.width || y < bounds.y || y >= bounds.y + bounds.height;
+}
+
+function recolourFrameBackground(frame: Frame, colour: string): Frame {
+  const backgroundColour = normaliseHexColour(colour);
+  const bounds = frame.contentBounds ?? { x: 0, y: 0, width: frame.width, height: frame.height };
+  const hasVisiblePadding = bounds.x > 0 || bounds.y > 0 || bounds.width < frame.width || bounds.height < frame.height;
+  if (!hasVisiblePadding) {
+    return { ...frame, backgroundColour };
+  }
+
+  const [red, green, blue] = parseHexColour(backgroundColour);
+  const bytes = decodeBase64Bytes(frame.imageData);
+
+  for (let y = 0; y < frame.height; y += 1) {
+    for (let x = 0; x < frame.width; x += 1) {
+      if (!hasPaddingPixel(x, y, bounds)) continue;
+      const index = (y * frame.width + x) * 4;
+      bytes[index] = red;
+      bytes[index + 1] = green;
+      bytes[index + 2] = blue;
+      bytes[index + 3] = 255;
+    }
+  }
+
+  return {
+    ...frame,
+    backgroundColour,
+    imageData: encodeBase64Bytes(bytes),
+  };
+}
+
+export function setFrameBackgroundColour(
+  frames: Frame[],
+  selection: SelectionState,
+  colour: string,
+): FrameEditResult {
+  const { selectedFrameIds } = selection;
+  if (selectedFrameIds.size === 0) return { frames, selection };
+  return {
+    frames: frames.map((frame) =>
+      selectedFrameIds.has(frame.id) ? recolourFrameBackground(frame, colour) : frame,
+    ),
     selection,
   };
 }
