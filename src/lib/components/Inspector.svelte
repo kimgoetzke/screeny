@@ -664,7 +664,7 @@
     --cp-border-color: var(--color-border);
     --cp-text-color: var(--color-text-brightest);
     --picker-width: 100%;
-    --picker-height: 150px;
+    --picker-height: 166px;
     --slider-width: 18px;
   }
 
@@ -675,8 +675,13 @@
 
   .background-colour-picker :global(.wrapper) {
     box-sizing: border-box;
+    display: block;
     width: 100%;
     margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
   }
 
   .background-colour-picker :global(.horizontal .h) {

@@ -108,8 +108,12 @@ describe("Inspector", () => {
       expect(inspectorSource).toContain("--cp-bg-color: var(--color-bg-elevated)");
       expect(inspectorSource).toContain("--picker-width: 100%");
       expect(inspectorSource).toContain("--slider-width: 18px");
+      expect(inspectorSource).toContain("--picker-height: 166px");
       expect(inspectorSource).toMatch(/\.background-colour-picker-toggle\s*\{[^}]*width:\s*100%/s);
       expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*width:\s*100%/s);
+      expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*padding:\s*0/s);
+      expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*border:\s*0/s);
+      expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.wrapper\)\s*\{[^}]*background:\s*transparent/s);
       expect(inspectorSource).toMatch(/\.background-colour-picker :global\(\.horizontal \.h\)\s*\{[^}]*width:\s*100%/s);
     });
 
